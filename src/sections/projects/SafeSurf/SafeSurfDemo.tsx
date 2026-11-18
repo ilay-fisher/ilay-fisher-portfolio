@@ -372,175 +372,192 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
       </div>
 
       <div className="ss__bench">
-        <p className="ss-lede">Switch the filter off, then try to get around it.</p>
-
-        <div className="ss-block">
-          <p className="ss-label mono" id={switchLabelId}>
-            SafeSurf filter
+        <div className="ss-console">
+          <p className="ss-invite">
+            {busy
+              ? 'Want it now? So did I. Come back in an hour.'
+              : 'Go ahead, turn it off. Everyone tries. It waits.'}
           </p>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={state.filter === 'on'}
-            aria-labelledby={switchLabelId}
-            className="ss-switch"
-            data-cursor="flip"
-            data-testid="safesurf-switch"
-            onClick={() => act('filter')}
-          >
-            <span className="ss-switch__side mono" data-active={state.filter === 'off'}>
-              Regular browser
-            </span>
-            <span className="ss-switch__track" aria-hidden="true">
-              <span className="ss-switch__led" />
-              <span className="ss-switch__knob" />
-            </span>
-            <span className="ss-switch__side mono" data-active={state.filter === 'on'}>
-              SafeSurf
-            </span>
-          </button>
-        </div>
+          <div className="ss-console__top">
+            <div className="ss-cell">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={state.filter === 'on'}
+                aria-labelledby={switchLabelId}
+                className="ss-switch"
+                data-cursor="flip"
+                data-testid="safesurf-switch"
+                onClick={() => act('filter')}
+              >
+                <span className="ss-switch__track" aria-hidden="true">
+                  <span className="ss-switch__led" />
+                  <span className="ss-switch__knob" />
+                </span>
+                <span className="ss-switch__sides mono" aria-hidden="true">
+                  <span data-active={state.filter === 'off'}>Off</span>
+                  <span data-active={state.filter === 'on'}>On</span>
+                </span>
+              </button>
+              <p className="ss-cap mono" id={switchLabelId}>
+                SafeSurf filter
+              </p>
+            </div>
 
-        <div className="ss-block" role="group" aria-labelledby={`${switchLabelId}-allow`}>
-          <p className="ss-label mono" id={`${switchLabelId}-allow`}>
-            Allow images and video
-          </p>
-          <div className="ss-row">
-            <Button
-              data-cursor="press"
-              aria-disabled={busy || undefined}
-              data-testid="safesurf-allow-site"
-              onClick={() => act('allowSite')}
-            >
-              Allow for this site
-            </Button>
-            <Button
-              data-cursor="press"
-              aria-disabled={busy || undefined}
-              data-testid="safesurf-allow-page"
-              onClick={() => act('allowPage')}
-            >
-              Allow for this page
-            </Button>
-            <Button
-              data-cursor="press"
-              aria-disabled={busy || !hasVideo || undefined}
-              data-testid="safesurf-allow-video"
-              onClick={() => hasVideo && act('allowVideo')}
-            >
-              Allow only the video
-            </Button>
-            <Button
-              data-cursor="press"
-              data-testid="safesurf-block"
-              onClick={() => dispatch({ type: 'blockAgain' })}
-            >
-              Block again
-            </Button>
+            <div className="ss-cell ss-lock" data-pending={busy} data-shake={shake}>
+              <div className="ss-ring" aria-hidden="true">
+                {busy && <span className="ss-ring__pulse" data-p={secLeft % 2} />}
+                {doneVia && (
+                  <span className="ss-ring__snap" data-via={doneVia} data-p={state.seq % 2} />
+                )}
+                <svg viewBox="0 0 64 64">
+                  {Array.from({ length: ticks }, (_, i) => (
+                    <line
+                      key={i}
+                      className="ss-ring__tick"
+                      data-lit={busy && i < Math.ceil(frac * ticks)}
+                      x1="32"
+                      y1="3.5"
+                      x2="32"
+                      y2="7.5"
+                      transform={`rotate(${(i * 360) / ticks} 32 32)`}
+                    />
+                  ))}
+                  <circle cx="32" cy="32" r={ringR} className="ss-ring__track" />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r={ringR}
+                    className="ss-ring__arc"
+                    strokeDasharray={circ}
+                    strokeDashoffset={circ * (1 - frac)}
+                    transform="rotate(-90 32 32)"
+                  />
+                  {doneVia === 'sponsor' && (
+                    <path
+                      className="ss-ring__check"
+                      data-p={state.seq % 2}
+                      d="M21 33.5 29 41.5 44 24"
+                      pathLength={1}
+                    />
+                  )}
+                </svg>
+                <span className="ss-ring__n mono" data-testid="safesurf-countdown">
+                  {busy ? Math.ceil(remaining / 1000) : ''}
+                </span>
+              </div>
+              <p className="ss-cap mono">Delay lock</p>
+            </div>
           </div>
-          <p className="ss-note">Blocking again applies at once. Allowing waits for the delay.</p>
-        </div>
 
-        <div className="ss-block ss-lock" data-pending={busy} data-shake={shake}>
-          <div className="ss-ring" aria-hidden="true">
-            {busy && <span className="ss-ring__pulse" data-p={secLeft % 2} />}
-            {doneVia && (
-              <span className="ss-ring__snap" data-via={doneVia} data-p={state.seq % 2} />
-            )}
-            <svg viewBox="0 0 64 64" width="64" height="64">
-              {Array.from({ length: ticks }, (_, i) => (
-                <line
-                  key={i}
-                  className="ss-ring__tick"
-                  data-lit={busy && i < Math.ceil(frac * ticks)}
-                  x1="32"
-                  y1="3.5"
-                  x2="32"
-                  y2="7.5"
-                  transform={`rotate(${(i * 360) / ticks} 32 32)`}
-                />
-              ))}
-              <circle cx="32" cy="32" r={ringR} className="ss-ring__track" />
-              <circle
-                cx="32"
-                cy="32"
-                r={ringR}
-                className="ss-ring__arc"
-                strokeDasharray={circ}
-                strokeDashoffset={circ * (1 - frac)}
-                transform="rotate(-90 32 32)"
-              />
-              {doneVia === 'sponsor' && (
-                <path
-                  className="ss-ring__check"
-                  data-p={state.seq % 2}
-                  d="M21 33.5 29 41.5 44 24"
-                  pathLength={1}
-                />
-              )}
-            </svg>
-            <span className="ss-ring__n mono" data-testid="safesurf-countdown">
-              {busy ? Math.ceil(remaining / 1000) : ''}
-            </span>
-          </div>
-          <div className="ss-lock__text">
-            <p className="ss-label mono">Delay lock</p>
-            <p className="ss-lock__now" data-testid="safesurf-request">
+          <div className="ss-display mono">
+            <p className="ss-display__main" data-testid="safesurf-request">
               {requestLabel ?? 'No request waiting.'}
             </p>
-            <p className="ss-note">
-              Delay set earlier: 1 hour, compressed to {delaySeconds} s here. A sponsor can approve
-              it sooner.
-            </p>
-            <div className="ss-row">
+            <p className="ss-display__sub">1 hour, compressed to {delaySeconds} s</p>
+          </div>
+
+          {busy && (
+            <div className="ss-row ss-row--pop">
               <Button
+                className="ss-key"
                 data-cursor="press"
-                aria-disabled={!busy || undefined}
                 data-testid="safesurf-cancel"
                 onClick={() => dispatch({ type: 'cancel' })}
               >
                 Cancel request
               </Button>
               <Button
+                className="ss-key"
                 data-cursor="press"
-                aria-disabled={!busy || undefined}
                 data-testid="safesurf-sponsor"
                 onClick={() => dispatch({ type: 'sponsorApprove' })}
               >
                 Ask sponsor
               </Button>
             </div>
-          </div>
-        </div>
+          )}
 
-        <div className="ss-block" role="group" aria-labelledby={`${switchLabelId}-bypass`}>
-          <p className="ss-label mono" id={`${switchLabelId}-bypass`}>
-            Try to get around it
-          </p>
-          <div className="ss-row">
+          <div className="ss-keys" role="group" aria-label="Allow images and video">
+            <span className="ss-cap mono" aria-hidden="true">
+              Allow
+            </span>
+            {!vis.images && (
+              <>
+                <Button
+                  className="ss-key"
+                  data-cursor="press"
+                  aria-label="Allow for this site"
+                  data-testid="safesurf-allow-site"
+                  onClick={() => act('allowSite')}
+                >
+                  Site
+                </Button>
+                <Button
+                  className="ss-key"
+                  data-cursor="press"
+                  aria-label="Allow for this page"
+                  data-testid="safesurf-allow-page"
+                  onClick={() => act('allowPage')}
+                >
+                  Page
+                </Button>
+              </>
+            )}
+            {hasVideo && !vis.video && (
+              <Button
+                className="ss-key"
+                data-cursor="press"
+                aria-label="Allow only the video"
+                data-testid="safesurf-allow-video"
+                onClick={() => act('allowVideo')}
+              >
+                Video
+              </Button>
+            )}
+            {(vis.images || vis.video || state.filter === 'off') && (
+              <Button
+                className="ss-key ss-key--block"
+                data-cursor="press"
+                data-testid="safesurf-block"
+                onClick={() => dispatch({ type: 'blockAgain' })}
+              >
+                Block again
+              </Button>
+            )}
+          </div>
+
+          <div className="ss-keys" role="group" aria-label="Try to get around it">
+            <span className="ss-cap mono" aria-hidden="true">
+              Bypass
+            </span>
             {BYPASSES.map((b) => (
               <Button
+                className="ss-key"
                 data-cursor="press"
                 key={b.id}
+                aria-label={b.label}
                 data-testid={`safesurf-bypass-${b.id}`}
                 onClick={() => {
                   setLastBypass(b.id);
                   dispatch({ type: 'bypass', attempt: b.id });
                 }}
               >
-                {b.label}
+                {b.short}
               </Button>
             ))}
           </div>
-          <p
-            className="ss-bypass"
-            data-testid="safesurf-bypass-result"
-            data-p={state.refusals > 0 ? state.refusals % 2 : undefined}
-          >
-            {bypass
-              ? `${bypass.refusal} Refused: ${state.refusals}, got through: 0.`
-              : 'Nothing tried yet.'}
-          </p>
+          <div className="ss-display ss-display--small mono">
+            <p
+              className="ss-bypass"
+              data-testid="safesurf-bypass-result"
+              data-p={state.refusals > 0 ? state.refusals % 2 : undefined}
+            >
+              {bypass
+                ? `${bypass.refusal} Refused ${state.refusals}, got through 0.`
+                : 'Nothing tried yet.'}
+            </p>
+          </div>
         </div>
       </div>
 

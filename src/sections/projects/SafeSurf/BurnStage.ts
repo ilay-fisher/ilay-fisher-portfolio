@@ -77,10 +77,12 @@ uniform vec3 uChar;
 in vec2 vUv;
 out vec4 o;
 
-float field(vec2 uv) {
+float field(vec2 uv, float form, float depth) {
   float n1 = texture(uNoise, uv * ${NOISE_SCALE.toFixed(2)}).r;
   float n2 = texture(uNoise, uv * ${NOISE2_SCALE.toFixed(2)} + vec2(0.37, 0.71)).r;
-  float f = n1 * ${NOISE_WEIGHT.toFixed(3)} + n2 * ${NOISE2_WEIGHT.toFixed(3)} + distance(uv, uOrigin) * ${ORIGIN_WEIGHT.toFixed(3)};
+  // Burn spreads from a point; the re-form knits in from the rim, so its field is the rim distance.
+  float lead = mix(distance(uv, uOrigin), 1.0 - depth, form);
+  float f = n1 * ${NOISE_WEIGHT.toFixed(3)} + n2 * ${NOISE2_WEIGHT.toFixed(3)} + lead * ${ORIGIN_WEIGHT.toFixed(3)};
   return clamp(f / ${FIELD_NORM.toFixed(3)}, 0.0, 1.0);
 }
 float hash(vec2 p) {
@@ -97,7 +99,8 @@ void main() {
   float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius;
   float inside = 1.0 - smoothstep(-0.7, 0.7, sd);
   float form = step(0.5, uMode);
-  float d = field(uvc) - mix(-uEdge * 2.0, 1.0 + uEdge * 2.0, uP);
+  float depth = clamp(-sd / (0.5 * min(uSize.x, uSize.y)), 0.0, 1.0);
+  float d = field(uvc, form, depth) - mix(-uEdge * 2.0, 1.0 + uEdge * 2.0, uP);
 
   // Heat shimmer: the pixels just ahead of the front wobble.
   float near = 1.0 - smoothstep(0.0, uEdge * 5.0, max(d, 0.0));
@@ -109,41 +112,53 @@ void main() {
 
   // Knit: just behind the re-forming front the image is coarse blocks that sharpen.
   float knit = form * (1.0 - clamp(d / (uEdge * 5.0), 0.0, 1.0));
-  float cell = mix(1.0, 18.0, knit * knit);
+  float cell = mix(1.0, 5.0, knit * knit);
   vec2 px = suv * uSize;
   vec2 cellId = floor(px / cell);
   suv = (cellId + 0.5) * cell / uSize;
-  float ragged = form * (hash(cellId) - 0.5) * uEdge * 2.4 * knit;
+  float ragged = form * (hash(cellId) - 0.5) * uEdge * 1.2 * knit;
 
   vec4 img = texture(uImg, clamp(suv, 0.0, 1.0));
   float alive = step(ragged, d) * inside;
 
-  // Thin char border ahead of a burn front; mint tint ahead of a re-form front.
-  float chr = (1.0 - smoothstep(0.0, uEdge * 2.0, max(d, 0.0))) * (1.0 - form);
+  float t = -d / (uEdge * 0.3);
+  float ah = max(d, 0.0) / uEdge; // > 0 behind a burn front (gone), < 0 ahead of it (still image)
+  float flick = 0.8 + 0.4 * texture(uNoise, uvc * 6.0 + vec2(uTime * 0.9, -uTime * 0.6)).r;
+
+  // Heat: the image darkens and warms just ahead of a burn front, then chars at the very edge.
+  float scorch = (1.0 - smoothstep(0.0, 2.4, ah)) * (1.0 - form) * step(0.0, d);
+  float chr = (1.0 - smoothstep(0.0, 0.5, max(-t, 0.0))) * (1.0 - form);
   vec3 lum = vec3(dot(img.rgb, vec3(0.33)));
-  vec3 col = mix(img.rgb, uChar * img.a, chr * 0.96);
-  col = mix(col, uMid * lum * 1.4, knit * 0.32);
+  vec3 col = mix(img.rgb, img.rgb * vec3(0.62, 0.42, 0.3), scorch * 0.7);
+  col = mix(col, uChar * img.a, chr * 0.95);
+  // Cooling: a re-formed edge starts bright and settles into the image over a few edge widths.
+  float cool = form * step(0.0, d) * (1.0 - smoothstep(0.0, 3.0, ah));
+  col = mix(col, uMid * (0.55 + lum * 0.9), cool * 0.28);
+  col = mix(col, uMid * lum * 1.4, knit * 0.16);
   vec4 base = vec4(col, img.a) * alive;
 
-  // Front glow: white-hot core, paint accent, char, flickering.
-  float width = d < 0.0 ? uEdge : uEdge * mix(0.55, 0.3, form);
-  float flick = 0.75 + 0.5 * texture(uNoise, uvc * 6.0 + vec2(uTime * 0.9, -uTime * 0.6)).r;
-  float h = pow(1.0 - smoothstep(0.0, 1.0, abs(d) / width), 1.4) * flick;
-  h = clamp(h, 0.0, 1.0);
-  vec3 ramp = mix(uChar, uMid, smoothstep(0.0, 0.45, h));
-  ramp = mix(ramp, uHi, smoothstep(0.35, 0.75, h));
-  ramp = mix(ramp, uHot, smoothstep(0.7, 1.0, h));
+  // The fire, outward from the white-hot line: amber, accent, then a dark char band behind it.
+  float tt = mix(t, -t, form);
+  float band = flick * (1.0 - form);
+  float charBand = smoothstep(1.9, 2.6, tt) * (1.0 - smoothstep(3.4, 4.6, tt)) * band;
+  float acc = (1.0 - smoothstep(0.0, 1.1, abs(tt - 1.7))) * flick;
+  float amber = (1.0 - smoothstep(0.0, 1.0, abs(tt - 0.85))) * flick;
+  float core = (1.0 - smoothstep(0.0, 0.7, abs(tt - 0.1))) * flick;
+  // A burn glows on both sides of the line; a re-form is a cooling lip on the formed side only.
+  float side = mix(1.0, step(0.0, d), form);
   float od = max(sd, 0.0);
   float fade = exp(-od / 2.5);
-  float ga = clamp(h * 1.35, 0.0, 1.0) * fade;
-
-  // Soft bloom around the front, and a halo that spills past the image edge at peak heat.
-  float bloom = (1.0 - smoothstep(0.0, uEdge * 4.5, abs(d))) * (d < 0.0 ? 0.2 : 0.08) * fade;
-  float halo = uHeat * exp(-od / 14.0) * 0.3 * (1.0 - inside);
   vec4 r = base;
-  r = over(vec4(uMid * halo, halo), r);
+  r = over(vec4(uChar * charBand * 0.92, charBand * 0.92) * fade, r);
+  r = over(vec4(uMid * acc * 0.9, acc * 0.9) * fade * side, r);
+  r = over(vec4(uHi * amber, amber) * fade * side, r);
+  r = over(vec4(uHot * core, core) * fade * side, r);
+
+  // Glow spill: soft light thrown past the front, and past the image edge at peak heat.
+  float bloom = (1.0 - smoothstep(0.0, uEdge * 2.2, abs(d))) * 0.14 * fade * side;
+  float halo = uHeat * exp(-od / 20.0) * 0.4 * (1.0 - inside) * (1.0 - form * 0.5);
+  r = over(vec4(uHi * halo, halo), r);
   r = over(vec4(uMid * bloom, bloom), r);
-  r = over(vec4(ramp * ga, ga), r);
   o = r;
 }`;
 
@@ -218,10 +233,10 @@ function readPalettes(el: HTMLElement): { warm: Palette; cool: Palette } {
   const white: [number, number, number] = [1, 0.97, 0.9];
   return {
     warm: {
-      hot: mix3(paintHi, white, 0.72),
-      hi: paintHi,
+      hot: white,
+      hi: mix3(paintHi, [1, 0.72, 0.18], 0.6),
       mid: paint,
-      char: mix3(paintDeep, [0, 0, 0], 0.82),
+      char: mix3(paintDeep, [0, 0, 0], 0.88),
     },
     cool: {
       hot: mix3(pass, white, 0.8),

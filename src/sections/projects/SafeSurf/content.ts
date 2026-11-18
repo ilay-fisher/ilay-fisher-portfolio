@@ -120,6 +120,8 @@ export function mediaOf(page: MockPage): MediaItem[] {
 export interface BypassInfo {
   id: BypassId;
   label: string;
+  /** Short keycap text. */
+  short: string;
   refusal: string;
 }
 
@@ -127,21 +129,25 @@ export interface BypassInfo {
 export const BYPASSES: BypassInfo[] = [
   {
     id: 'browser',
+    short: 'Browser',
     label: 'Open another browser',
     refusal: 'SafeGuard: other browsers are hidden on this device, so there is nothing to open.',
   },
   {
     id: 'dns',
+    short: 'Private DNS',
     label: 'Change private DNS',
     refusal: 'SafeGuard: the private DNS setting is locked by the device owner. Nothing changed.',
   },
   {
     id: 'install',
+    short: 'Install app',
     label: 'Install an app',
     refusal: 'SafeGuard: new installs are blocked. Nothing was installed.',
   },
   {
     id: 'inapp',
+    short: 'In-app link',
     label: 'Open a link inside another app',
     refusal: 'SafeGuard: in-app browsers are closed. The link would only open in SafeSurf.',
   },

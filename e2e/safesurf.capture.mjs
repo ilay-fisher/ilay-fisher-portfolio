@@ -13,7 +13,7 @@ const browser = await chromium.launch({ args: ARGS });
 
 async function shots(tag, viewport) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
-  await page.goto(`${BASE}?safesurfDelay=60000&safesurfManual=1`);
+  await page.goto(`${BASE}?safesurfDelay=10000&safesurfManual=1`);
   const demo = page.getByTestId('safesurf-demo');
   await demo.scrollIntoViewIfNeeded();
   await page.waitForFunction(
@@ -30,8 +30,8 @@ async function shots(tag, viewport) {
       () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
     );
   };
-  const snap = async (name) => {
-    await page.waitForTimeout(600);
+  const snap = async (name, wait = 600) => {
+    await page.waitForTimeout(wait);
     const b = await demo.boundingBox();
     await page.screenshot({
       path: `docs/reports/img/safesurf-${tag}-${name}.png`,
@@ -59,8 +59,12 @@ async function shots(tag, viewport) {
   await snap('midburn');
   await step(3000);
   await page.getByTestId('safesurf-allow-site').click();
-  await snap('countdown');
+  await snap('countdown', 150);
   await page.getByTestId('safesurf-sponsor').click();
+  // The stage pauses while the phone is off screen, so bring it back before it re-forms.
+  await page.locator('.ss-phone').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  await step(0);
   await step(3000);
   await snap('allowed');
   await page.close();
