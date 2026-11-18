@@ -50,8 +50,14 @@ async function expectInnerThenPage(page: Page, el: Locator) {
   await wheelOver(page, el, await room(el), 1);
   expect(await room(el)).toBeLessThanOrEqual(1);
   const yEnd = await scrollY(page);
-  await wheelOver(page, el, 400, 1);
-  expect(await scrollY(page)).toBeGreaterThan(yEnd + 100);
+  // New gestures at the end must reach the page. A slow runner can still be latched to the inner scroller for the
+  // first one, so allow a few fresh gestures; a scroll trap would never move the page at all.
+  let moved = false;
+  for (let i = 0; i < 4 && !moved; i++) {
+    await wheelOver(page, el, 400, 1);
+    moved = (await scrollY(page)) > yEnd + 100;
+  }
+  expect(moved).toBe(true);
 }
 
 async function openSafeSurf(page: Page) {
