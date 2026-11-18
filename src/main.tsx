@@ -1,10 +1,10 @@
-import '@fontsource-variable/bricolage-grotesque/wdth.css';
-import '@fontsource-variable/fredoka/wght.css';
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import '@fontsource-variable/instrument-sans/index.css';
 import '@fontsource-variable/martian-mono/wdth.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { PageFx } from './components/PageFx/PageFx';
 import { createLogger } from './lib/logger';
 import { SmoothScroll } from './lib/smoothScroll';
 import './styles/global.css';
@@ -15,6 +15,7 @@ createRoot(root).render(
   <StrictMode>
     <SmoothScroll>
       <App />
+      <PageFx />
     </SmoothScroll>
   </StrictMode>,
 );

@@ -10,6 +10,7 @@ html {
   -webkit-text-size-adjust: 100%;
   overflow-x: clip; /* safety net only; do not rely on it */
   scroll-padding-top: var(--nav-h);
+  background: var(--stage);
 }
 @media (prefers-reduced-motion: no-preference) {
   html {
@@ -20,21 +21,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: var(--stage);
-  /* blueprint grid: fine line every cell, stronger line every 4th cell */
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--line) 40%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--line) 40%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: var(--grid-size) var(--grid-size);
-  background-attachment: fixed;
+  background: transparent; /* the light pools live on a fixed layer behind the page */
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--step-0);
@@ -50,10 +37,10 @@ h3,
 h4 {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 75%;
-  line-height: 0.95;
-  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+  font-weight: var(--display-weight);
+  line-height: var(--display-leading);
+  letter-spacing: var(--display-tracking);
   text-wrap: balance;
 }
 h1 {
@@ -64,6 +51,12 @@ h2 {
 }
 h3 {
   font-size: var(--step-2);
+  letter-spacing: -0.025em;
+}
+
+/* the one accent word a headline may carry */
+.accent {
+  color: var(--paint);
 }
 
 p {
@@ -131,39 +124,368 @@ samp {
   border: 0;
 }
 
-/* mono bench label text */
+/* mono label text */
 .mono {
   font-family: var(--font-mono);
   font-size: var(--step--1);
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
-/* a rig: the thing under test */
+/* ------------------------------------------------------------------ material
+   One light source, top left. Raised things get a rim gradient (bright top left, dark bottom
+   right), an inner highlight and a grounded contact shadow. Recesses are wells. */
+
+/* raised hardware body (a card, a panel, a key) */
+.bevel {
+  border: 1px solid transparent;
+  background:
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-contact);
+}
+
+/* an engraved recess (a label, a readout, a track) */
+.well {
+  background: rgb(0 0 0 / 0.26);
+  box-shadow: var(--well-inset);
+}
+
+/* a label on a pill: mono text engraved into a rounded recess */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 0.28);
+  box-shadow: var(--well-inset);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* the lit stage: a large rounded surface lit like a product shot (rig stages, the contact panel).
+   `.rig` is the v1 name and now means the same thing; corner ticks are retired. */
+.stage,
 .rig {
   position: relative;
-  background: var(--surface);
-  border: var(--hairline);
-  border-radius: var(--radius-0);
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--radius-stage);
+  border: 1px solid transparent;
+  background:
+    radial-gradient(120% 90% at 12% 0%, rgb(255 255 255 / 0.07), transparent 55%) padding-box,
+    radial-gradient(90% 70% at 100% 110%, rgb(var(--paint-rgb) / 0.1), transparent 60%) padding-box,
+    linear-gradient(160deg, #1c242d, #0f1419) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-contact), var(--rim-light);
 }
-
-/* corner ticks: crosshair marks at the four corners of a rig */
 .ticks::before,
 .ticks::after {
+  content: none;
+}
+
+/* a specular that follows the pointer over glossy surfaces (set by pageFxEngine) */
+.sheen {
+  position: relative;
+}
+.sheen::after {
   content: '';
   position: absolute;
-  inset: -1px;
+  inset: 0;
+  border-radius: inherit;
   pointer-events: none;
-  --t: 12px;
-  --c: var(--paint);
-  background:
-    linear-gradient(var(--c), var(--c)) top left / var(--t) 2px no-repeat,
-    linear-gradient(var(--c), var(--c)) top left / 2px var(--t) no-repeat,
-    linear-gradient(var(--c), var(--c)) top right / var(--t) 2px no-repeat,
-    linear-gradient(var(--c), var(--c)) top right / 2px var(--t) no-repeat;
+  background: radial-gradient(
+    120px 90px at var(--hx, 28%) var(--hy, -6%),
+    rgb(255 255 255 / 0.2),
+    rgb(var(--paint-hi-rgb) / 0.06) 55%,
+    transparent 75%
+  );
+  opacity: 0.55;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
-.ticks::after {
-  transform: scaleY(-1);
+.sheen:hover::after {
+  opacity: 1;
+}
+
+/* a rounded card row inside a list (hairline only between rows, inside the card) */
+.spec-card {
+  border-radius: var(--radius-card);
+}
+
+/* ------------------------------------------------------------------ page-level light and texture */
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--stage);
+  contain: strict;
+}
+.pool {
+  position: absolute;
+  width: 78vmax;
+  height: 78vmax;
+  border-radius: 50%;
+  transform: translate3d(var(--x, 0), var(--y, 0), 0) scale(var(--s, 1));
+  transition: transform 1800ms var(--spring-soft);
+  will-change: transform;
+}
+.pool__glow {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  animation: pool-drift var(--drift, 46s) ease-in-out infinite alternate;
+}
+.ambient[data-drift='false'] .pool__glow {
+  animation: none;
+}
+.pool--key {
+  left: -30vmax;
+  top: -34vmax;
+  --x: var(--key-x, 0);
+  --y: var(--key-y, 0);
+  --s: var(--key-s, 1);
+}
+.pool--key .pool__glow {
+  background: radial-gradient(closest-side, rgb(86 128 178 / 0.2), rgb(86 128 178 / 0.07) 55%, transparent);
+}
+.pool--ember {
+  right: -34vmax;
+  bottom: -40vmax;
+  --x: var(--ember-x, 0);
+  --y: var(--ember-y, 0);
+  --s: var(--ember-s, 1);
+}
+.pool--ember .pool__glow {
+  --drift: 58s;
+  animation-delay: -12s;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--paint-rgb) / 0.15),
+    rgb(var(--paint-deep-rgb) / 0.06) 55%,
+    transparent
+  );
+}
+.pool--amber {
+  right: 8vmax;
+  top: 22vmax;
+  width: 52vmax;
+  height: 52vmax;
+  --x: var(--amber-x, 0);
+  --y: var(--amber-y, 0);
+  --s: var(--amber-s, 1);
+}
+.pool--amber .pool__glow {
+  --drift: 70s;
+  animation-delay: -30s;
+  background: radial-gradient(closest-side, rgb(var(--paint-hi-rgb) / 0.075), transparent);
+}
+/* per-section moods: the pools slide and swell once as you arrive (transform only) */
+.ambient[data-mood='hero'] {
+  --amber-x: 6vw;
+  --amber-y: 4vh;
+}
+.ambient[data-mood='about'] {
+  --key-x: 18vw;
+  --key-y: 22vh;
+  --key-s: 1.1;
+  --ember-x: -14vw;
+  --ember-y: -8vh;
+  --amber-x: -22vw;
+  --amber-y: 18vh;
+}
+.ambient[data-mood='ember'] {
+  --key-x: -6vw;
+  --key-y: -4vh;
+  --key-s: 0.85;
+  --ember-x: -28vw;
+  --ember-y: -26vh;
+  --ember-s: 1.3;
+  --amber-s: 0.8;
+}
+.ambient[data-mood='cool'] {
+  --key-x: 24vw;
+  --key-y: 30vh;
+  --key-s: 1.3;
+  --ember-x: 12vw;
+  --ember-y: 10vh;
+  --ember-s: 0.7;
+  --amber-x: -30vw;
+  --amber-y: -10vh;
+  --amber-s: 0.7;
+}
+.ambient[data-mood='amber'] {
+  --key-x: 10vw;
+  --key-y: 6vh;
+  --key-s: 0.9;
+  --ember-x: -20vw;
+  --ember-y: -14vh;
+  --amber-x: -18vw;
+  --amber-y: 14vh;
+  --amber-s: 1.5;
+}
+@keyframes pool-drift {
+  from {
+    transform: translate3d(-2.5%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2.5%, 0) scale(1.06);
+  }
+}
+
+/* fine film grain: a tiled SVG noise on an oversize layer that steps by transform, about 8 fps */
+.grain {
+  position: fixed;
+  inset: -160px;
+  z-index: var(--z-grain);
+  pointer-events: none;
+  opacity: 0.075;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+.grain[data-moving='true'] {
+  animation: grain-step 0.8s steps(1) infinite;
+}
+@keyframes grain-step {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  17% {
+    transform: translate3d(-48px, 31px, 0);
+  }
+  34% {
+    transform: translate3d(37px, -62px, 0);
+  }
+  51% {
+    transform: translate3d(-71px, -24px, 0);
+  }
+  68% {
+    transform: translate3d(58px, 66px, 0);
+  }
+  85% {
+    transform: translate3d(-19px, 52px, 0);
+  }
+}
+
+/* ------------------------------------------------------------------ the cursor (see docs/DESIGN.md, section 6) */
+
+html.has-cursor,
+html.has-cursor * {
+  cursor: none !important;
+}
+html.has-cursor :is(input:not([type='checkbox'], [type='radio'], [type='button'], [type='submit']), textarea, select, [contenteditable='true'], [data-cursor='none']) {
+  cursor: auto !important;
+}
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-cursor);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.cursor[data-visible='true'] {
+  opacity: 1;
+}
+.cursor__ring,
+.cursor__ticks {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.cursor__ring {
+  border: 1.5px solid rgb(236 232 223 / 0.72);
+  box-shadow:
+    0 0 0 1px rgb(12 16 20 / 0.55),
+    inset 0 0 0 1px rgb(12 16 20 / 0.3);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.cursor[data-mode='verb'] .cursor__ring {
+  border-color: var(--paint-hi);
+}
+.cursor[data-mode='hug'] .cursor__ring {
+  border-color: rgb(236 232 223 / 0.9);
+}
+.cursor__ticks {
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.cursor__tick {
+  position: absolute;
+  background: var(--paint-hi);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgb(12 16 20 / 0.5);
+}
+.cursor__tick--n,
+.cursor__tick--s {
+  left: 50%;
+  width: 2px;
+  height: 6px;
+  margin-left: -1px;
+}
+.cursor__tick--e,
+.cursor__tick--w {
+  top: 50%;
+  height: 2px;
+  width: 6px;
+  margin-top: -1px;
+}
+.cursor__tick--n {
+  top: -3px;
+}
+.cursor__tick--s {
+  bottom: -3px;
+}
+.cursor__tick--w {
+  left: -3px;
+}
+.cursor__tick--e {
+  right: -3px;
+}
+.cursor__core {
+  position: absolute;
+  left: -3.5px;
+  top: -3.5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paint-hi);
+  box-shadow:
+    0 0 0 1.5px rgb(12 16 20 / 0.85),
+    0 0 12px 2px rgb(var(--paint-rgb) / 0.6);
+  will-change: transform;
+}
+.cursor__label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 5px 9px 4px;
+  border-radius: var(--radius-pill);
+  background: var(--paint-hi);
+  color: var(--on-paint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 2px 3px 6px rgb(0 0 0 / 0.45);
+  opacity: 0;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
