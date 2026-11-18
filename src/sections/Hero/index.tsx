@@ -11,13 +11,14 @@ import './Hero.css';
 const log = createLogger('hero');
 
 /** Seed and debug switches from the URL. Only tests and the still generator use them. */
-function readParams(): { seed: number; debug: boolean } {
+function readParams(): { seed: number; debug: boolean; live: boolean } {
   const q = new URLSearchParams(window.location.search);
   const raw = q.get('heroSeed');
   const seed = raw !== null && Number.isFinite(Number(raw)) ? Number(raw) : null;
   return {
     seed: seed ?? Math.floor(Math.random() * 2 ** 31),
     debug: seed !== null || q.has('heroDebug'),
+    live: seed !== null || q.has('heroDebug') || q.get('hero') === 'live',
   };
 }
 
@@ -41,12 +42,14 @@ export default function Hero() {
   const webgl2 = useMemo(() => isWebGLAvailable(), []);
   const [lost, setLost] = useState(false);
   const [failed, setFailed] = useState(false);
+  const params = useMemo(() => readParams(), []);
   const { mode, reason } = selectMode({
     webgl2,
     reducedMotion: reduced,
     contextLost: lost || failed,
+    // Automated browsers (CI on software GL) get the still unless ?hero=live, ?heroSeed or ?heroDebug.
+    automated: typeof navigator !== 'undefined' && navigator.webdriver === true && !params.live,
   });
-  const params = useMemo(() => readParams(), []);
 
   const [heroRef, inView] = useInView<HTMLElement>({ rootMargin: '10% 0px' });
   const canvasRef = useRef<HTMLCanvasElement>(null);

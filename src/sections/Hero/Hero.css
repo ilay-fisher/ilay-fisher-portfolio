@@ -28,7 +28,7 @@
   outline: none;
 }
 .hero__canvas--off {
-  visibility: hidden;
+  opacity: 0; /* stays "visible" to tests and layout; the still covers it */
 }
 .hero__still {
   object-fit: cover;

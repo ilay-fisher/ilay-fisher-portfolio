@@ -161,6 +161,15 @@ test.describe('hero scene', () => {
 });
 
 test.describe('hero fallback and layout', () => {
+  test('automated browsers get the still unless the live scene is opted into', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('img.hero__still')).toBeVisible();
+    await expect(canvas(page)).toHaveAttribute('data-ready', 'false');
+    await page.goto('/?hero=live');
+    await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 90_000 });
+    await expect(page.locator('img.hero__still')).toHaveCount(0);
+  });
+
   test('reduced motion shows the still and runs no scene', async ({ browser }) => {
     const ctx = await browser.newContext({
       reducedMotion: 'reduce',
