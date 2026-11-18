@@ -16,8 +16,8 @@ describe('idle nudge scheduler', () => {
     expect(s.tick(2500)).toBeNull();
     expect(s.tick(3600)).not.toBeNull();
     s.interact();
-    expect(s.tick(3000)).toBeNull();
-    expect(s.tick(2100)).not.toBeNull();
+    expect(s.tick(500)).toBeNull();
+    expect(s.tick(600)).not.toBeNull();
   });
   it('is deterministic for a seed and can be disabled', () => {
     const a = new IdleScheduler({ idleMs: 10, minGapMs: 10, maxGapMs: 20, seed: 9 });

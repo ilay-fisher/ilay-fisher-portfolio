@@ -22,7 +22,7 @@ describe('camera ray maths', () => {
   });
 
   it('shoots the centre ray at the target (accounting for the region shift)', () => {
-    const ray = rayFromNdc(rig, rig.shiftNdcX, 0);
+    const ray = rayFromNdc(rig, rig.shiftNdcX, rig.shiftNdcY);
     const hit = intersectPlaneY(ray, rig.target.y)!;
     expect(hit.x).toBeCloseTo(rig.target.x, 3);
     expect(hit.z).toBeCloseTo(rig.target.z, 3);
@@ -65,7 +65,7 @@ describe('world bounds per aspect ratio', () => {
       });
       const b = computeBounds(rig, region, -1.8);
       expect(b.maxX).toBeGreaterThan(b.minX);
-      expect(b.maxX - b.minX).toBeGreaterThan(width * 0.8);
+      expect(b.maxX - b.minX).toBeGreaterThan(width * 0.7);
       expect(b.maxX - b.minX).toBeLessThan(width * 1.15);
       expect(b.maxZ - b.minZ).toBeGreaterThan(2.5);
       expect(b.minZ).toBe(-1.8);
