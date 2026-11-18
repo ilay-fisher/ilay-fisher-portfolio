@@ -125,3 +125,19 @@ describe('Nav', () => {
     });
   });
 });
+
+describe('Nav (v2)', () => {
+  it('is a floating rounded bar with a sliding active indicator hidden from assistive tech', () => {
+    render(<Nav />);
+    expect(document.querySelector('.nav__bar')).not.toBeNull();
+    const ind = document.querySelector('.nav__indicator');
+    expect(ind).toHaveAttribute('aria-hidden', 'true');
+    expect(ind).toHaveAttribute('data-for', '');
+  });
+
+  it('points the indicator at the active section', () => {
+    render(<Nav />);
+    act(() => ioCb?.([{ target: document.getElementById('xray')!, isIntersecting: true }]));
+    expect(document.querySelector('.nav__indicator')).toHaveAttribute('data-for', 'xray');
+  });
+});

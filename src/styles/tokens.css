@@ -1,28 +1,45 @@
-/* Design tokens. Values and rationale: docs/DESIGN.md. Never hard-code what has a token. */
+/* Design tokens, v2 "hardware". Values and rationale: docs/DESIGN.md. Never hard-code what has a token. */
 :root {
   color-scheme: dark;
 
-  /* colour */
+  /* stage and surfaces: near-black, slightly blue, like an instrument panel in a dark studio */
   --stage: #0c1014;
-  --surface: #12171d;
-  --surface-raised: #1a2129;
+  --surface: #131920;
+  --surface-raised: #1b232c;
   --line: #2b3542;
   --line-strong: #4a5668;
+
+  /* anodised body: the gradient every raised object is cut from (light from the top left) */
+  --body-hi: #28323d;
+  --body-lo: #10151b;
+  --body-gradient: linear-gradient(150deg, var(--body-hi), var(--body-lo));
+
+  /* text: warm paper on the cold stage */
   --text: #ece8df;
   --text-dim: #a8b0bc;
   --text-faint: #8a93a1;
-  --paint: #ff3d6e;
-  --paint-hi: #ff93ae;
-  --paint-deep: #b3174a;
+
+  /* accent family: signal orange. paint = live or pressable, hi = amber specular, deep = ember shade */
+  --paint: #ff5a1f;
+  --paint-hi: #ffb347;
+  --paint-deep: #a8300f;
   --on-paint: #0c1014;
+  --paint-rgb: 255 90 31;
+  --paint-hi-rgb: 255 179 71;
+  --paint-deep-rgb: 168 48 15;
   --pass: #7be0b0;
 
-  /* type families (the hero canvas reads these names too) */
-  --font-display: 'Bricolage Grotesque Variable', 'Arial Narrow', system-ui, sans-serif;
+  /* type families */
+  --font-display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --font-body: 'Instrument Sans Variable', system-ui, sans-serif;
-  /* the hero paint face: heavy and round-terminalled so thick letters can inflate */
-  --font-paint: 'Fredoka Variable', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  /* kept so older code compiles; the balloon face is gone, this is now the display face */
+  --font-paint: var(--font-display);
   --font-mono: 'Martian Mono Variable', ui-monospace, Menlo, monospace;
+
+  /* headline treatment: round-shouldered, normal width, heavy but not black, tight */
+  --display-weight: 700;
+  --display-tracking: -0.026em;
+  --display-leading: 1.02;
 
   /* fluid type scale, 360 to 1920 px */
   --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.875rem);
@@ -48,24 +65,122 @@
   /* layout */
   --container: 1280px;
   --gutter: 16px;
-  --nav-h: 56px;
+  --nav-h: 76px;
   --measure: 68ch;
 
-  /* radii */
-  --radius-0: 0;
-  --radius-1: 4px;
+  /* radii: nothing is a sharp rectangle */
+  --radius-chip: 10px;
+  --radius-control: 16px;
+  --radius-card: 24px;
+  --radius-stage: 36px;
   --radius-pill: 999px;
+  /* v1 names, kept as aliases so older code never renders a sharp corner */
+  --radius-0: var(--radius-card);
+  --radius-1: var(--radius-chip);
 
-  /* lines and grid */
+  /* light: one source, top left, for CSS and for the 3D hero */
+  --light-angle: 135deg;
+  --rim-gradient: linear-gradient(
+    var(--light-angle),
+    rgb(255 255 255 / 0.32),
+    rgb(255 255 255 / 0.07) 36%,
+    rgb(255 255 255 / 0) 58%,
+    rgb(0 0 0 / 0.55)
+  );
+  --bevel-inset:
+    inset 0 1px 0 rgb(255 255 255 / 0.11), inset 1px 0 0 rgb(255 255 255 / 0.05),
+    inset 0 -2px 3px rgb(0 0 0 / 0.35), inset 0 18px 26px -18px rgb(255 255 255 / 0.08);
+  --bevel-inset-sm: inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 -1px 2px rgb(0 0 0 / 0.4);
+  /* the well: an engraved recess, light catches its lower right lip */
+  --well-inset: inset 1px 2px 4px rgb(0 0 0 / 0.55), inset -1px -1px 0 rgb(255 255 255 / 0.05);
+  /* grounded contact shadows fall to the lower right, away from the light */
+  --shadow-contact-sm: 1px 2px 1px rgb(0 0 0 / 0.5), 3px 6px 8px -3px rgb(0 0 0 / 0.5);
+  --shadow-contact:
+    2px 3px 2px rgb(0 0 0 / 0.45), 6px 10px 14px -4px rgb(0 0 0 / 0.45),
+    16px 26px 40px -16px rgb(0 0 0 / 0.55);
+  --shadow-lift:
+    3px 5px 3px rgb(0 0 0 / 0.4), 10px 18px 22px -6px rgb(0 0 0 / 0.5),
+    24px 38px 56px -20px rgb(0 0 0 / 0.6);
+  /* accent rim light: a faint ember glow on the lower right edge of lit objects */
+  --rim-light: 10px 12px 36px -14px rgb(var(--paint-rgb) / 0.4);
+
+  /* lines (only inside rounded cards, never as a frame) */
   --hairline: 1px solid var(--line);
-  --grid-size: 64px;
+  --hairline-soft: 1px solid rgb(255 255 255 / 0.06);
 
-  /* motion */
+  /* motion: two shared springs (generated from src/lib/spring.ts) plus plain eases */
+  --spring-soft: linear(
+    0,
+    0.042,
+    0.146,
+    0.284,
+    0.434,
+    0.579,
+    0.711,
+    0.823,
+    0.912,
+    0.98,
+    1.027,
+    1.056,
+    1.072,
+    1.077,
+    1.074,
+    1.066,
+    1.056,
+    1.044,
+    1.033,
+    1.023,
+    1.014,
+    1.007,
+    1.002,
+    0.998,
+    0.996,
+    0.995,
+    0.994,
+    1
+  );
+  --spring-soft-dur: 880ms;
+  --spring-snappy: linear(
+    0,
+    0.039,
+    0.135,
+    0.264,
+    0.404,
+    0.543,
+    0.67,
+    0.779,
+    0.87,
+    0.94,
+    0.992,
+    1.028,
+    1.05,
+    1.061,
+    1.064,
+    1.062,
+    1.055,
+    1.047,
+    1.038,
+    1.029,
+    1.021,
+    1.014,
+    1.008,
+    1.004,
+    1,
+    0.998,
+    0.997,
+    1
+  );
+  --spring-snappy-dur: 350ms;
   --dur-fast: 120ms;
   --dur-base: 240ms;
   --dur-slow: 520ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* z layers */
+  --z-nav: 50;
+  --z-grain: 900;
+  --z-cursor: 1000;
 }
 
 @media (min-width: 600px) {

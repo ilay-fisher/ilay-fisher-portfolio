@@ -41,6 +41,7 @@ export function Footer() {
         <a className="footer__top mono" href="#top">
           Back to top
         </a>
+        <p className="footer__wit">You reached the bottom. Nothing broke. That's the point.</p>
       </div>
     </footer>
   );

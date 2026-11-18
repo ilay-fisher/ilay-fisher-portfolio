@@ -3,23 +3,12 @@ import { Button, LinkButton } from '../../components/Button/Button';
 import { Section } from '../../components/Section/Section';
 import { profile } from '../../content/profile';
 import { createLogger } from '../../lib/logger';
-import { useMagnet } from './useMagnet';
 import './Contact.css';
 
 const log = createLogger('contact');
 
-/** A wrapper that leans toward the pointer; the focusable control inside never changes. */
-function Magnet({ children }: { children: React.ReactNode }) {
-  const ref = useMagnet<HTMLSpanElement>();
-  return (
-    <span ref={ref} className="magnet">
-      {children}
-    </span>
-  );
-}
-
 /**
- * Contact: one ask (stated in the summary), one primary mailto button, LinkedIn and GitHub as
+ * Contact: one ask (stated in the summary), one primary mailto button that leans toward the pointer, LinkedIn and GitHub as
  * secondary links, and a copy-email control with a polite live-region confirmation.
  */
 export default function Contact() {
@@ -46,21 +35,26 @@ export default function Contact() {
   };
 
   return (
-    <Section id="contact" title="Get in touch." summary={profile.availability} className="contact">
-      <div className="contact__panel rig ticks">
+    <Section
+      id="contact"
+      title="Get in touch."
+      accent="touch"
+      summary={profile.availability}
+      className="contact"
+    >
+      <div className="contact__panel stage">
         <p className="contact__email" data-testid="contact-email">
           {profile.email}
         </p>
         <div className="contact__actions">
-          <Magnet>
-            <LinkButton variant="primary" href={`mailto:${profile.email}`}>
-              Email Ilay
-            </LinkButton>
-          </Magnet>
+          <LinkButton variant="primary" href={`mailto:${profile.email}`}>
+            Email Ilay
+          </LinkButton>
           <Button onClick={() => void copy()}>Copy email</Button>
           <LinkButton href={profile.links.linkedin}>LinkedIn</LinkButton>
           <LinkButton href={profile.links.github}>GitHub</LinkButton>
         </div>
+        <p className="contact__wit">Throwing things was fun. Hiring me is more useful.</p>
         <p className="contact__status mono" role="status" aria-live="polite">
           {status}
         </p>

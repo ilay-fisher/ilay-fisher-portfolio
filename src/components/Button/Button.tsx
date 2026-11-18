@@ -3,23 +3,36 @@ import './Button.css';
 
 type Variant = 'primary' | 'secondary';
 
-const cls = (variant: Variant) => `btn btn--${variant}`;
+/** Class list for a button; every button carries the pointer sheen. */
+const cls = (variant: Variant) => `btn btn--${variant} sheen`;
+
+/** Primary buttons lean toward the pointer by default; `magnetic` overrides either way. */
+const magneticAttr = (variant: Variant, magnetic?: boolean) =>
+  (magnetic ?? variant === 'primary') ? { 'data-magnetic': '' } : {};
 
 /** Props for {@link Button}. */
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** `primary` is the paint fill; use at most one per section. Defaults to `secondary`. */
   variant?: Variant;
+  /** Pull toward a fine pointer. On by default for `primary`, off for `secondary`. */
+  magnetic?: boolean;
 }
 
-/** A real `<button>` with the shared look. Defaults to `type="button"`. */
+/** A real `<button>` shaped as a bevelled pill that squashes when pressed and springs back. Defaults to `type="button"`. */
 export function Button({
   variant = 'secondary',
+  magnetic,
   className,
   type = 'button',
   ...rest
 }: ButtonProps) {
   return (
-    <button type={type} className={[cls(variant), className].filter(Boolean).join(' ')} {...rest} />
+    <button
+      type={type}
+      className={[cls(variant), className].filter(Boolean).join(' ')}
+      {...magneticAttr(variant, magnetic)}
+      {...rest}
+    />
   );
 }
 
@@ -27,6 +40,8 @@ export function Button({
 export interface LinkButtonProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
   variant?: Variant;
+  /** Pull toward a fine pointer. On by default for `primary`, off for `secondary`. */
+  magnetic?: boolean;
 }
 
 /**
@@ -35,6 +50,7 @@ export interface LinkButtonProps extends AnchorHTMLAttributes<HTMLAnchorElement>
  */
 export function LinkButton({
   variant = 'secondary',
+  magnetic,
   className,
   href,
   children,
@@ -45,6 +61,7 @@ export function LinkButton({
     <a
       href={href}
       className={[cls(variant), className].filter(Boolean).join(' ')}
+      {...magneticAttr(variant, magnetic)}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       {...rest}
     >

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createLogger } from '../../lib/logger';
 import { pickActive, scrollProgress } from './navLogic';
 import './Nav.css';
@@ -18,9 +18,10 @@ export const NAV_ITEMS = [
 const ORDER = NAV_ITEMS.map((i) => i.id);
 
 /**
- * Sticky top navigation: skip link, brand, section links with an IntersectionObserver-driven
- * `aria-current`, a scroll-progress hairline, and below 900 px a Menu button (aria-expanded,
- * focus moves in on open, Escape or focus leaving closes). Anchors are handled by SmoothScroll.
+ * Floating rounded top bar: skip link, brand, section links with an IntersectionObserver-driven
+ * `aria-current` and a pill indicator that slides to the active link, a scroll-progress line
+ * inside the bar, and below 900 px a Menu button (aria-expanded, focus moves in on open, Escape or
+ * focus leaving closes) opening a rounded panel. Anchors are handled by SmoothScroll.
  */
 export function Nav() {
   const [active, setActive] = useState<string | null>(null);
@@ -29,6 +30,8 @@ export function Nav() {
   const toggleRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const linksRef = useRef<HTMLUListElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   // Active section: observe a thin band across the middle of the viewport.
   useEffect(() => {
@@ -52,7 +55,23 @@ export function Nav() {
     return () => io.disconnect();
   }, []);
 
-  // Scroll progress hairline, written straight to the DOM so scrolling never re-renders.
+  // The indicator slides under the active link: measured here, animated by CSS (transform + width).
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    const links = linksRef.current;
+    if (!bar || !links) return;
+    const place = () => {
+      const a = links.querySelector<HTMLElement>('a[aria-current]');
+      if (!a) return;
+      bar.style.setProperty('--ind-x', `${a.offsetLeft}px`);
+      bar.style.setProperty('--ind-w', `${a.offsetWidth}px`);
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [active]);
+
+  // Scroll progress line, written straight to the DOM so scrolling never re-renders.
   useEffect(() => {
     let raf = 0;
     const update = () => {
@@ -118,36 +137,39 @@ export function Nav() {
         Skip to content
       </a>
       <nav aria-label="Sections" className="container nav__inner">
-        <a className="nav__brand" href="#top">
-          Ilay Fisher
-        </a>
-        <button
-          ref={toggleRef}
-          type="button"
-          className="nav__toggle"
-          aria-expanded={open}
-          aria-controls="nav-links"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span className="nav__toggle-bars" aria-hidden="true" />
-          Menu
-        </button>
-        <ul className="nav__links" id="nav-links" data-open={open}>
-          {NAV_ITEMS.map((i, idx) => (
-            <li key={i.id}>
-              <a
-                ref={idx === 0 ? firstLinkRef : undefined}
-                href={`#${i.id}`}
-                aria-current={active === i.id ? 'true' : undefined}
-                onClick={() => setOpen(false)}
-              >
-                {i.label}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <div className="nav__bar" ref={barRef}>
+          <a className="nav__brand" href="#top">
+            Ilay Fisher
+          </a>
+          <button
+            ref={toggleRef}
+            type="button"
+            className="nav__toggle"
+            aria-expanded={open}
+            aria-controls="nav-links"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span className="nav__toggle-bars" aria-hidden="true" />
+            Menu
+          </button>
+          <ul className="nav__links" id="nav-links" data-open={open} ref={linksRef}>
+            <li className="nav__indicator" aria-hidden="true" data-for={active ?? ''} />
+            {NAV_ITEMS.map((i, idx) => (
+              <li key={i.id}>
+                <a
+                  ref={idx === 0 ? firstLinkRef : undefined}
+                  href={`#${i.id}`}
+                  aria-current={active === i.id ? 'true' : undefined}
+                  onClick={() => setOpen(false)}
+                >
+                  {i.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="nav__progress" ref={progressRef} aria-hidden="true" />
+        </div>
       </nav>
-      <div className="nav__progress" ref={progressRef} aria-hidden="true" />
     </header>
   );
 }

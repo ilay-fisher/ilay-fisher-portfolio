@@ -39,4 +39,11 @@ describe('Footer', () => {
     render(<Footer />);
     expect(screen.getByRole('link', { name: /Back to top/ })).toHaveAttribute('href', '#top');
   });
+
+  it('closes with the approved wit line', () => {
+    render(<Footer />);
+    expect(
+      screen.getByText("You reached the bottom. Nothing broke. That's the point."),
+    ).toBeInTheDocument();
+  });
 });

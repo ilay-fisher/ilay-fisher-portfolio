@@ -4,7 +4,7 @@
 }
 .project__rig {
   margin-top: var(--space-7);
-  min-height: 240px;
+  min-height: 260px;
 }
 .project__facts {
   display: grid;
@@ -13,21 +13,25 @@
 }
 .project__points {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
   max-width: var(--measure);
+  align-content: start;
 }
-.project__points li {
-  padding-left: var(--space-5);
-  position: relative;
+.spec-row {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-card);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(150deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.012)) padding-box,
+    linear-gradient(
+        var(--light-angle),
+        rgb(255 255 255 / 0.16),
+        rgb(255 255 255 / 0.02) 45%,
+        rgb(0 0 0 / 0.3)
+      )
+      border-box;
+  box-shadow: var(--bevel-inset-sm);
   color: var(--text-dim);
-}
-.project__points li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.8em;
-  width: var(--space-3);
-  border-top: 1px solid var(--paint);
 }
 .project__side {
   display: grid;
@@ -36,18 +40,25 @@
 }
 .project__numbers {
   display: grid;
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
   margin: 0;
+}
+.project__numbers > div {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-card);
+  background: rgb(0 0 0 / 0.24);
+  box-shadow: var(--well-inset);
 }
 .project__numbers dt {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 75%;
+  font-weight: var(--display-weight);
   font-size: var(--step-3);
+  letter-spacing: var(--display-tracking);
   line-height: 1;
 }
 .project__numbers dd {
-  margin: var(--space-1) 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--text-dim);
   font-size: var(--step--1);
 }

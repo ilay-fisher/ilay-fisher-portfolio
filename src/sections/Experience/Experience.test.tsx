@@ -64,3 +64,12 @@ describe('Experience', () => {
     expect(counts.map((c) => c.textContent)).toEqual(expect.arrayContaining(['14.2%', '22+']));
   });
 });
+
+describe('Experience (v2)', () => {
+  it('shows readings as instrument tiles and the timeline with round nodes, no ticks', () => {
+    render(<Experience />);
+    expect(document.querySelectorAll('.reading.tile').length).toBe(4);
+    expect(document.querySelectorAll('.timeline__node').length).toBe(profile.experience.length);
+    expect(document.querySelector('.ticks')).toBeNull();
+  });
+});

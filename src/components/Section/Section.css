@@ -1,11 +1,19 @@
+/* Sections are separated by space and light (the page's light pools shift per section), not rules. */
 .section {
   position: relative;
   padding-block: var(--section-pad);
-  border-top: var(--hairline);
 }
 .section__title {
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
   max-width: 18ch;
+}
+.section__title-text {
+  display: block;
+}
+/* SplitText wraps words; keep the baseline of each word's rise from clipping descenders */
+.section__title-text > div,
+.section__title-text > span {
+  display: inline-block;
 }
 .section__summary {
   margin-top: var(--space-5);
@@ -14,26 +22,27 @@
   color: var(--text-dim);
 }
 
+/* label pills: each field is a `.pill` (see global.css) with a dim key and a bright value */
 .bench-label {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
-  margin: 0;
-  color: var(--text-dim);
-}
-.bench-label__field {
-  display: flex;
   gap: var(--space-2);
-  align-items: baseline;
-  min-width: 0;
+  margin: 0;
 }
-.bench-label dt {
+.bench-label .bench-label__field {
+  /* long values (a status sentence) wrap inside the pill instead of widening the page */
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  padding-block: 7px;
+  white-space: normal;
+  line-height: 1.35;
+  border-radius: 18px;
+}
+.bench-label__field dt {
   color: var(--text-faint);
 }
-.bench-label dt::after {
-  content: ':';
-}
-.bench-label dd {
+.bench-label__field dd {
   margin: 0;
   color: var(--text);
 }
