@@ -164,7 +164,7 @@ test('a second request while the lock is busy shakes it, and the sponsor gets a 
   await expectSlow(demo.locator('.ss-ring__check')).toHaveCount(1);
 });
 
-for (const width of [360, 390, 768, 1440]) {
+for (const width of [360, 390, 768, 1000, 1440]) {
   test(`the rig causes no layout shift at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/?safesurfDelay=60000');
