@@ -11,19 +11,22 @@ const readServerFlag = () => null;
 
 /**
  * Drone project section: the live route-blocking rig inside the shared project frame.
- * Test flags, read from `?drone=`: `test` gives a fixed seed with no idle run and a test probe on
- * `window.__drone`; `test-auto` keeps the idle run with the probe.
+ * Test flags, read from `?drone=`: `test` gives a fixed seed, no idle run, a test probe on
+ * `window.__drone` and a manual clock (time only moves when the probe's `step()` is called);
+ * `test-auto` adds the idle run; `test-live` and `test-live-auto` keep the real frame loop.
  */
 export default function Drone() {
   const flag = useSyncExternalStore(subscribe, readFlag, readServerFlag);
-  const test = flag === 'test' || flag === 'test-auto';
+  const test = flag !== null && flag.startsWith('test');
+  const live = test && flag.includes('live');
   return (
     <ProjectFrame project={project}>
       <DroneRig
         seed={test ? 7 : undefined}
-        autoRun={flag === 'test' ? false : true}
+        autoRun={test ? flag.includes('auto') : true}
         expose={test}
-        regoalMs={flag === 'test' ? 0 : 2500}
+        regoalMs={test ? 0 : 2500}
+        clock={test && !live ? 'manual' : 'raf'}
       />
     </ProjectFrame>
   );

@@ -80,7 +80,7 @@ export const TIMING = {
   /** The new route takes this long to draw itself. */
   draw: 420,
   /** The old route dissolves over this long. */
-  dissolve: 380,
+  dissolve: 900,
   /** A building drops in over this long. */
   drop: 440,
   /** A building lifts out over this long. */
@@ -140,6 +140,41 @@ export function smoothPolyline(pts: readonly Point[], stepsPerCurve = 5): Point[
   return out;
 }
 
+/** Pre-rendered soft shapes, so a frame never builds a gradient or a blur. */
+interface Sprites {
+  /** Soft round glow in the text colour (A* region). */
+  glowText: HTMLCanvasElement;
+  /** Soft round glow in the paint colour (D* Lite region). */
+  glowPaint: HTMLCanvasElement;
+  /** Bright small glow for the wavefront and the draw-on head. */
+  glowHi: HTMLCanvasElement;
+  /** Soft dark blob for ground shadows. */
+  shadow: HTMLCanvasElement;
+  /** Half size of the glow sprites in device px. */
+  glowHalf: number;
+}
+
+/** A radial sprite: `colour` shaped by a falloff mask given as [offset, alpha] stops. */
+function radialSprite(
+  size: number,
+  colour: string,
+  stops: readonly (readonly [number, number])[],
+): HTMLCanvasElement {
+  const c = makeLayer();
+  c.width = c.height = Math.max(2, Math.ceil(size));
+  const x = c.getContext('2d');
+  if (!x) return c;
+  const h = c.width / 2;
+  x.fillStyle = colour;
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in';
+  const g = x.createRadialGradient(h, h, 0, h, h, h);
+  for (const [o, a] of stops) g.addColorStop(o, `rgba(0,0,0,${a})`);
+  x.fillStyle = g;
+  x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
 interface FloodSnapshot {
   order: Int32Array;
   length: number;
@@ -154,8 +189,13 @@ interface FloodSnapshot {
 export class DroneRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly statics = makeLayer();
+  private readonly bldg = makeLayer();
   private readonly scratch = makeLayer();
-  private readonly rimLayer = makeLayer();
+  private readonly glowA = makeLayer();
+  private readonly glowD = makeLayer();
+  private glowKey: Record<Algo, string> = { astar: '', dstar: '' };
+  private sprites: Sprites | null = null;
+  private spriteKey = '';
   private cssW = 0;
   private cssH = 0;
   private dpr = 1;
@@ -176,6 +216,11 @@ export class DroneRenderer {
   private speed = 0;
   private animatedFlag = true;
   private compH = new Float32Array(0);
+  private oldKey = -1;
+  private oldPts: Point[] = [];
+  private routeKey = '';
+  private routePts: Point[] = [];
+  private routeCum: number[] = [];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -194,13 +239,15 @@ export class DroneRenderer {
     this.cssH = this.cs * this.model.rows;
     const pw = Math.max(1, Math.round(this.cssW * this.dpr));
     const ph = Math.max(1, Math.round(this.cssH * this.dpr));
-    for (const c of [this.canvas, this.statics, this.scratch, this.rimLayer]) {
+    for (const c of [this.canvas, this.statics, this.bldg, this.scratch, this.glowA, this.glowD]) {
       c.width = pw;
       c.height = ph;
     }
     this.canvas.style.width = `${this.cssW}px`;
     this.canvas.style.height = `${this.cssH}px`;
     this.staticKey = '';
+    this.glowKey = { astar: '', dstar: '' };
+    this.sprites = null;
   }
 
   /** CSS width of the canvas. */
@@ -261,7 +308,7 @@ export class DroneRenderer {
         }
       }
       const root = Math.min(...members);
-      const h = this.cs * (0.16 + 0.24 * cellHash(root));
+      const h = this.cs * (0.12 + 0.34 * cellHash(root));
       for (const c of members) this.compH[c] = h;
     }
   }
@@ -280,6 +327,7 @@ export class DroneRenderer {
     rise: number,
     alpha: number,
     shadowAlpha: number,
+    part: 'base' | 'top' | 'both' = 'both',
   ): void {
     const cs = this.cs;
     const p = this.palette;
@@ -289,51 +337,80 @@ export class DroneRenderer {
     const wr = g.get(x + 1, y) === WALL;
     const wu = g.get(x, y - 1) === WALL;
     const wd = g.get(x, y + 1) === WALL;
-    const left = x * cs + (wl ? 0 : pad);
-    const right = (x + 1) * cs - (wr ? 0 : pad);
-    const top = y * cs + (wu ? 0 : pad) - rise;
-    const bottom = (y + 1) * cs - (wd ? 0 : pad) - rise;
+    // joined edges overlap a hair so neighbouring cells leave no seam
+    const left = x * cs + (wl ? -0.4 : pad);
+    const right = (x + 1) * cs - (wr ? -0.4 : pad);
+    const top = y * cs + (wu ? -0.4 : pad) - rise;
+    const bottom = (y + 1) * cs - (wd ? -0.4 : pad) - rise;
     const w = right - left;
     const hh = bottom - top;
     const r = cs * 0.34;
     const radii = [!wu && !wl ? r : 0, !wu && !wr ? r : 0, !wd && !wr ? r : 0, !wd && !wl ? r : 0];
-    ctx.save();
-    // contact shadow on the ground
-    ctx.globalAlpha = alpha * shadowAlpha;
-    ctx.fillStyle = '#05070a';
-    ctx.beginPath();
-    ctx.roundRect(left + cs * 0.09, top + rise + cs * 0.12, w, hh, radii);
-    ctx.fill();
-    // side
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.line;
-    ctx.beginPath();
-    ctx.roundRect(left, top, w, hh, radii);
-    ctx.fill();
-    ctx.fillStyle = '#05070a';
-    ctx.globalAlpha = alpha * 0.25;
-    ctx.beginPath();
-    ctx.roundRect(left, top, w, hh, radii);
-    ctx.fill();
-    // top
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.lineStrong;
-    ctx.beginPath();
-    ctx.roundRect(left, top - h, w, hh, radii);
-    ctx.fill();
-    // highlight along the upper edge of the block
-    if (!wu) {
-      ctx.globalAlpha = alpha * 0.2;
-      ctx.fillStyle = '#ffffff';
+    const shape = (dx: number, dy: number, ww = w, hgt = hh) => {
       ctx.beginPath();
-      ctx.roundRect(
-        left + (wl ? 0 : cs * 0.16),
-        top - h + cs * 0.1,
-        w - (wl ? 0 : cs * 0.16) - (wr ? 0 : cs * 0.16),
-        cs * 0.14,
-        cs * 0.07,
-      );
+      ctx.roundRect(left + dx, top + dy, ww, hgt, radii);
+    };
+    ctx.save();
+    if (part !== 'top') {
+      // grounded contact shadow: a wide soft one and a tight dark one, both away from the light
+      ctx.fillStyle = '#020305';
+      ctx.globalAlpha = alpha * shadowAlpha * 0.55;
+      shape(cs * 0.2, rise + cs * 0.24 + h * 0.5);
       ctx.fill();
+      ctx.globalAlpha = alpha * shadowAlpha * 1.5;
+      shape(cs * 0.07, rise + cs * 0.1 + h * 0.3);
+      ctx.fill();
+      // side face: near-black anodised metal
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.surface;
+      shape(0, 0);
+      ctx.fill();
+      ctx.globalAlpha = alpha * 0.55;
+      ctx.fillStyle = '#000000';
+      shape(0, 0);
+      ctx.fill();
+    }
+    if (part === 'base') {
+      ctx.restore();
+      return;
+    }
+    // top face: dark anodised body
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.surfaceRaised;
+    shape(0, -h);
+    ctx.fill();
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.fillStyle = p.line;
+    shape(0, -h);
+    ctx.fill();
+    // soft top highlight: light from the top-left falls off towards the lower right
+    if (!wu) {
+      const hl = ctx.createLinearGradient(0, top - h, 0, top - h + cs * 0.7);
+      hl.addColorStop(0, 'rgba(255,255,255,0.17)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = hl;
+      ctx.beginPath();
+      ctx.roundRect(left, top - h, w, cs * 0.7, [radii[0] as number, radii[1] as number, 0, 0]);
+      ctx.fill();
+    }
+    // tight specular edge on the lit sides (top, left), and a dark edge on the shaded ones
+    ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(1, cs * 0.045);
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.strokeStyle = '#ffffff';
+    if (!wu) {
+      ctx.beginPath();
+      ctx.moveTo(left + (wl ? 0 : r * 0.75), top - h + ctx.lineWidth * 0.6);
+      ctx.lineTo(right - (wr ? 0 : r * 0.75), top - h + ctx.lineWidth * 0.6);
+      ctx.stroke();
+    }
+    if (!wl) {
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(left + ctx.lineWidth * 0.6, top - h + (wu ? 0 : r * 0.75));
+      ctx.lineTo(left + ctx.lineWidth * 0.6, bottom - h - (wd ? 0 : r * 0.75));
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -380,30 +457,43 @@ export class DroneRenderer {
     }
     ctx.fill();
     ctx.globalAlpha = 1;
-    // wind: one soft merged region (cells drawn slightly oversize so neighbours fuse)
-    ctx.fillStyle = p.textDim;
-    ctx.globalAlpha = 0.24;
-    ctx.beginPath();
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        if (cells[y * cols + x] !== WIND) continue;
-        ctx.roundRect(
-          x * css - css * 0.02,
-          y * css - css * 0.02,
-          css * 1.04,
-          css * 1.04,
-          css * 0.42,
+    // wind: one soft merged glow, stamped from the wind cells
+    {
+      const wc: number[] = [];
+      for (let i = 0; i < cells.length; i++) if (cells[i] === WIND) wc.push(i);
+      if (wc.length > 0) {
+        const sp = this.ensureSprites();
+        this.stampGlow(
+          this.scratch,
+          { order: Int32Array.from(wc), length: wc.length },
+          wc.length,
+          sp.glowText,
         );
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 0.3;
+        ctx.drawImage(this.scratch, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       }
     }
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    // buildings, back to front
+    // buildings, on their own transparent layer so the flood glows underneath them
+    const bctx = this.bldg.getContext('2d');
+    if (!bctx) return;
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.clearRect(0, 0, this.bldg.width, this.bldg.height);
+    bctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const i = y * cols + x;
         if (cells[i] !== WALL || skip.has(i)) continue;
-        this.building(ctx, x, y, this.buildingHeight(i), 0, 1, 0.34);
+        this.building(bctx, x, y, this.buildingHeight(i), 0, 1, 0.34, 'base');
+      }
+    }
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const i = y * cols + x;
+        if (cells[i] !== WALL || skip.has(i)) continue;
+        this.building(bctx, x, y, this.buildingHeight(i), 0, 1, 0.34, 'top');
       }
     }
     void cs;
@@ -417,138 +507,131 @@ export class DroneRenderer {
     if (m.planSerial === this.floodSerial) return;
     this.floodSerial = m.planSerial;
     this.floodStart = m.simTime;
+    this.glowKey = { astar: '', dstar: '' };
     for (const algo of ['astar', 'dstar'] as const) {
       const e = m.expansion(algo);
       this.flood[algo] = { order: e.order.slice(0, e.length), length: e.length };
     }
   }
 
-  /** Draws the first `count` cells of an expansion as merged circles in one flat colour. */
-  private blobs(
-    ctx: CanvasRenderingContext2D,
+  private ensureSprites(): Sprites {
+    const key = `${this.cs}:${this.dpr}:${this.palette.paint}:${this.palette.text}`;
+    if (this.sprites && key === this.spriteKey) return this.sprites;
+    const p = this.palette;
+    const px = this.cs * this.dpr;
+    const half = px * 1.55;
+    const falloff = [
+      [0, 1],
+      [0.3, 0.92],
+      [0.6, 0.45],
+      [1, 0],
+    ] as const;
+    this.sprites = {
+      glowText: radialSprite(half * 2, p.textDim, falloff),
+      glowPaint: radialSprite(half * 2, p.paint, falloff),
+      glowHi: radialSprite(px * 2.2, p.paintHi, [
+        [0, 1],
+        [0.4, 0.6],
+        [1, 0],
+      ]),
+      shadow: radialSprite(px * 4, '#05070a', [
+        [0, 0.9],
+        [0.5, 0.5],
+        [1, 0],
+      ]),
+      glowHalf: half,
+    };
+    this.spriteKey = key;
+    return this.sprites;
+  }
+
+  /** Stamps the first `count` expanded cells as soft glows into `layer` (device px, no transform). */
+  private stampGlow(
+    layer: HTMLCanvasElement,
     snap: FloodSnapshot,
     count: number,
-    colour: string,
-    alpha: number,
-    radius: number,
+    sprite: HTMLCanvasElement,
   ): void {
-    if (count <= 0) return;
+    const x = layer.getContext('2d');
+    if (!x) return;
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalAlpha = 1;
+    x.clearRect(0, 0, layer.width, layer.height);
     const cols = this.model.cols;
-    const cs = this.cs;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = colour;
-    ctx.beginPath();
+    const px = this.cs * this.dpr;
+    const half = sprite.width / 2;
     const n = Math.min(count, snap.length);
     for (let k = 0; k < n; k++) {
       const c = snap.order[k] as number;
-      const cx = ((c % cols) + 0.5) * cs;
-      const cy = (Math.floor(c / cols) + 0.5) * cs;
-      ctx.roundRect(
-        cx - cs * radius,
-        cy - cs * radius,
-        cs * radius * 2,
-        cs * radius * 2,
-        cs * radius * 0.4,
-      );
+      x.drawImage(sprite, ((c % cols) + 0.5) * px - half, (Math.floor(c / cols) + 0.5) * px - half);
     }
-    ctx.fill();
-    ctx.restore();
   }
 
   /**
-   * The visited region of one planner: a flat blob layer composited once, so overlapping circles
-   * merge instead of stacking brighter.
+   * The visited region of one planner as a soft glow with no outline. While the wave is
+   * spreading it is stamped fresh each frame; once settled it comes from a cached layer.
    */
-  private drawRegion(
-    snap: FloodSnapshot,
-    count: number,
-    colour: string,
-    alpha: number,
-    outline = false,
-  ): void {
-    const sctx = this.scratch.getContext('2d');
-    if (!sctx || count <= 0) return;
-    sctx.setTransform(1, 0, 0, 1, 0, 0);
-    sctx.clearRect(0, 0, this.scratch.width, this.scratch.height);
-    sctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.blobs(sctx, snap, count, colour, 1, 0.64);
+  private drawRegion(algo: Algo, count: number, settled: boolean, alpha: number): void {
+    if (count <= 0 || alpha <= 0.005) return;
+    const sp = this.ensureSprites();
+    const sprite = algo === 'astar' ? sp.glowText : sp.glowPaint;
+    const snap = this.flood[algo];
+    let layer = this.scratch;
+    if (settled) {
+      layer = algo === 'astar' ? this.glowA : this.glowD;
+      const key = `${this.floodSerial}:${this.cssW}:${this.dpr}`;
+      if (this.glowKey[algo] !== key) {
+        this.stampGlow(layer, snap, snap.length, sprite);
+        this.glowKey[algo] = key;
+      }
+    } else {
+      this.stampGlow(layer, snap, count, sprite);
+    }
     const ctx = this.ctx;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = alpha;
-    if (!outline) {
-      ctx.drawImage(this.scratch, 0, 0);
-      ctx.restore();
-      return;
-    }
-    // rim only: the region stamped around itself, minus the region
-    const rim = this.rimLayer.getContext('2d');
-    if (!rim) {
-      ctx.restore();
-      return;
-    }
-    rim.setTransform(1, 0, 0, 1, 0, 0);
-    rim.globalCompositeOperation = 'source-over';
-    rim.clearRect(0, 0, this.rimLayer.width, this.rimLayer.height);
-    const d = Math.max(1.5, this.cs * 0.07) * this.dpr;
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * TAU;
-      rim.drawImage(this.scratch, Math.cos(a) * d, Math.sin(a) * d);
-    }
-    rim.globalCompositeOperation = 'destination-out';
-    rim.drawImage(this.scratch, 0, 0);
-    rim.globalCompositeOperation = 'source-over';
-    ctx.drawImage(this.rimLayer, 0, 0);
+    ctx.drawImage(layer, 0, 0);
     ctx.restore();
   }
 
   private drawFlood(): void {
     const m = this.model;
-    const p = this.palette;
     const ctx = this.ctx;
     const age = this.animatedFlag ? m.simTime - this.floodStart : Infinity;
     const u = Math.min(1, Math.max(0, age / TIMING.flood));
     const prog = this.animatedFlag ? easeOutCubic(u) : 1;
+    const settled = u >= 1;
     const selected = m.algo;
     const other: Algo = selected === 'astar' ? 'dstar' : 'astar';
-    const colour = (a: Algo) => (a === 'astar' ? p.text : p.paint);
-    // regions settle back a few seconds after the plan so the map is not left cluttered
-    const rest = this.animatedFlag ? 1 - 0.55 * Math.min(1, Math.max(0, (age - 3200) / 1600)) : 1;
-    // the selected planner's region is filled; the other one's rim is drawn for comparison
-    this.drawRegion(
-      this.flood[selected],
-      Math.round(this.flood[selected].length * prog),
-      colour(selected),
-      (selected === 'astar' ? 0.15 : 0.22) * rest,
-    );
-    this.drawRegion(
-      this.flood[other],
-      Math.round(this.flood[other].length * prog),
-      colour(other),
-      0.7 * rest,
-      true,
-    );
-    // the wavefront: cells that just appeared flare, then settle
+    // the glow settles back a few seconds after the plan so the map is not left cluttered
+    const rest = this.animatedFlag ? 1 - 0.5 * Math.min(1, Math.max(0, (age - 3200) / 1600)) : 1;
+    // both planners show as glow areas, so the comparison reads as area; the selected one is stronger
+    this.drawRegion(other, Math.round(this.flood[other].length * prog), settled, 0.16 * rest);
+    this.drawRegion(selected, Math.round(this.flood[selected].length * prog), settled, 0.27 * rest);
+    // the leading edge: the newest cells flare bright, then fade
     if (this.animatedFlag && age < TIMING.flood + TIMING.floodFade) {
       const snap = this.flood[selected];
       const n = snap.length;
       const head = Math.round(n * prog);
-      const lead = Math.max(10, Math.round(n * 0.16));
+      const lead = Math.max(10, Math.round(n * 0.18));
+      const sp = this.ensureSprites();
+      const px = this.cs * this.dpr;
+      const half = sp.glowHi.width / 2;
+      const settle = u < 1 ? 1 : 1 - (age - TIMING.flood) / TIMING.floodFade;
       ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       for (let k = Math.max(0, head - lead); k < head; k++) {
-        const c = snap.order[k] as number;
         const rec = (k - (head - lead)) / lead; // 0 old .. 1 newest
-        const settle = u < 1 ? 1 : 1 - (age - TIMING.flood) / TIMING.floodFade;
-        const a = Math.max(0, rec * 0.5 * settle);
+        const a = rec * rec * 0.55 * settle;
         if (a <= 0.01) continue;
-        const cx = ((c % m.cols) + 0.5) * this.cs;
-        const cy = (Math.floor(c / m.cols) + 0.5) * this.cs;
+        const c = snap.order[k] as number;
         ctx.globalAlpha = a;
-        ctx.fillStyle = p.paintHi;
-        ctx.beginPath();
-        ctx.arc(cx, cy, this.cs * (0.22 + 0.3 * rec), 0, TAU);
-        ctx.fill();
+        ctx.drawImage(
+          sp.glowHi,
+          ((c % m.cols) + 0.5) * px - half,
+          (Math.floor(c / m.cols) + 0.5) * px - half,
+        );
       }
       ctx.restore();
     }
@@ -656,58 +739,61 @@ export class DroneRenderer {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // the old route dissolves: it thins and breaks into dashes while it fades
+    // the old route dissolves: it thins, breaks into dashes that drift apart, and fades out
     if (this.animatedFlag && m.prevPath.length > 1 && sinceRoute < TIMING.dissolve) {
       const q = easeOutCubic(sinceRoute / TIMING.dissolve);
-      const old = smoothPolyline(m.prevPath);
-      ctx.strokeStyle = p.textFaint;
-      ctx.globalAlpha = 0.55 * (1 - q);
-      ctx.lineWidth = Math.max(2, cs * 0.16) * (1 - 0.6 * q);
-      ctx.setLineDash([cs * 0.3, cs * (0.05 + 0.5 * q)]);
+      const old = this.oldRoute();
+      ctx.strokeStyle = p.paintHi;
+      ctx.globalAlpha = 0.5 * (1 - q) * (1 - q);
+      ctx.lineWidth = Math.max(2, cs * 0.16) * (1 - 0.7 * q);
+      ctx.setLineDash([cs * 0.34 * (1 - 0.6 * q), cs * (0.05 + 0.9 * q)]);
+      ctx.lineDashOffset = -q * cs * 1.5;
       this.strokePoly(ctx, old, 0, old.length - 1);
       ctx.setLineDash([]);
     }
 
-    const pts = smoothPolyline(m.pathAhead());
+    const pts = this.newRoute();
     if (pts.length > 1) {
-      // cumulative length for the draw-on
-      const cum: number[] = [0];
-      for (let i = 1; i < pts.length; i++) {
-        const a = pts[i - 1] as Point;
-        const b = pts[i] as Point;
-        cum.push((cum[i - 1] as number) + Math.hypot(b.x - a.x, b.y - a.y));
-      }
+      const cum = this.routeCum;
       const total = cum[cum.length - 1] as number;
       const drawU = this.animatedFlag
         ? Math.min(1, Math.max(0, (sinceRoute - TIMING.drawDelay) / TIMING.draw))
         : 1;
-      const head = total * easeInOutCubic(drawU);
       const lw = Math.max(2.5, cs * 0.2);
-      const tailLen = Math.max(4, total * 0.22);
-      // wide soft ribbon underneath
-      ctx.strokeStyle = p.paint;
-      ctx.globalAlpha = 0.16 * (drawU < 1 ? easeInOutCubic(drawU) : 1);
-      ctx.lineWidth = lw * 2.2;
-      let last = 0;
-      for (let i = 1; i < pts.length && (cum[i - 1] as number) < head; i++) last = i;
-      if (last > 0) this.strokePoly(ctx, pts, 0, last);
-      // the route itself, in chunks so the tail can fade behind a bright head
-      ctx.lineWidth = lw;
-      const chunk = 4;
-      for (let s = 0; s < pts.length - 1; s += chunk) {
-        const e = Math.min(pts.length - 1, s + chunk);
-        const d0 = cum[s] as number;
-        if (d0 >= head) break;
-        const dEnd = Math.min(cum[e] as number, head);
-        const behind = Math.max(0, head - dEnd);
-        const bright = drawU < 1 ? Math.max(0, 1 - behind / tailLen) : 0;
-        const rest = 0.9 * easeInOutCubic(drawU);
-        ctx.globalAlpha = Math.max(rest, 0.25 + 0.75 * bright * (drawU < 1 ? 1 : 0));
-        ctx.strokeStyle = bright > 0.7 ? p.paintHi : p.paint;
-        this.strokePoly(ctx, pts, s, e);
-      }
-      // bright head
-      if (drawU > 0 && drawU < 1) {
+      if (drawU >= 1) {
+        // settled: a soft ribbon and the route, one stroke each
+        ctx.strokeStyle = p.paint;
+        ctx.globalAlpha = 0.16;
+        ctx.lineWidth = lw * 2.2;
+        this.strokePoly(ctx, pts, 0, pts.length - 1);
+        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = lw;
+        this.strokePoly(ctx, pts, 0, pts.length - 1);
+      } else {
+        const head = total * easeInOutCubic(drawU);
+        const tailLen = 4; // cells: a short bright tail behind the head
+        let last = 0;
+        for (let i = 1; i < pts.length && (cum[i - 1] as number) < head; i++) last = i;
+        ctx.strokeStyle = p.paint;
+        ctx.globalAlpha = 0.16 * easeInOutCubic(drawU);
+        ctx.lineWidth = lw * 2.2;
+        if (last > 0) this.strokePoly(ctx, pts, 0, last);
+        // body of the route drawn so far, then the tail brightening towards the head
+        ctx.lineWidth = lw;
+        ctx.globalAlpha = 0.85;
+        if (last > 0) this.strokePoly(ctx, pts, 0, last);
+        ctx.strokeStyle = p.paintHi;
+        ctx.lineWidth = lw * 1.05;
+        const chunk = 2;
+        for (let s = 0; s < last; s += chunk) {
+          const e = Math.min(last, s + chunk);
+          const behind = head - (cum[e] as number);
+          if (behind > tailLen) continue;
+          const f = Math.max(0, 1 - behind / tailLen);
+          ctx.globalAlpha = 0.95 * f * f;
+          this.strokePoly(ctx, pts, s, e);
+        }
+        // bright head: a white core in a wide soft halo
         let hi = 0;
         while (hi < pts.length - 2 && (cum[hi + 1] as number) < head) hi++;
         const a = pts[hi] as Point;
@@ -716,19 +802,45 @@ export class DroneRenderer {
         const f = seg > 0 ? (head - (cum[hi] as number)) / seg : 0;
         const hx = (a.x + (b.x - a.x) * f + 0.5) * cs;
         const hy = (a.y + (b.y - a.y) * f + 0.5) * cs;
+        const sp = this.ensureSprites();
+        const hs = cs * 3.4;
         ctx.globalAlpha = 1;
+        ctx.drawImage(sp.glowHi, hx - hs / 2, hy - hs / 2, hs, hs);
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(hx, hy, lw * 0.9, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = p.paintHi;
-        ctx.globalAlpha = 0.6;
-        ctx.beginPath();
-        ctx.arc(hx, hy, lw * 1.6, 0, TAU);
+        ctx.arc(hx, hy, lw * 0.85, 0, TAU);
         ctx.fill();
       }
     }
     ctx.restore();
+  }
+
+  /** Smoothed old route, computed once per plan. */
+  private oldRoute(): Point[] {
+    if (this.oldKey !== this.model.planSerial) {
+      this.oldKey = this.model.planSerial;
+      this.oldPts = smoothPolyline(this.model.prevPath);
+    }
+    return this.oldPts;
+  }
+
+  /** Smoothed route ahead of the drone with cumulative lengths, recomputed only when it changes. */
+  private newRoute(): Point[] {
+    const m = this.model;
+    const ahead = m.pathAhead();
+    const key = `${m.planSerial}:${ahead.length}:${ahead[0]?.x}:${ahead[0]?.y}`;
+    if (key !== this.routeKey) {
+      this.routeKey = key;
+      this.routePts = smoothPolyline(ahead);
+      const cum: number[] = [0];
+      for (let i = 1; i < this.routePts.length; i++) {
+        const a = this.routePts[i - 1] as Point;
+        const b = this.routePts[i] as Point;
+        cum.push((cum[i - 1] as number) + Math.hypot(b.x - a.x, b.y - a.y));
+      }
+      this.routeCum = cum;
+    }
+    return this.routePts;
   }
 
   // ---- pointer ----
@@ -870,7 +982,7 @@ export class DroneRenderer {
     const k = 1 - Math.exp(-dt / 90);
     this.hd += diff * k;
     const turnRate = (diff * k) / (dt / 1000); // rad/s
-    const want = Math.max(-0.75, Math.min(0.75, turnRate * 0.16));
+    const want = Math.max(-0.95, Math.min(0.95, turnRate * 0.3));
     this.bank += (want - this.bank) * (1 - Math.exp(-dt / 110));
     if (this.lastPos) {
       const v = Math.hypot(m.pos.x - this.lastPos.x, m.pos.y - this.lastPos.y) / (dt / 1000);
@@ -898,34 +1010,25 @@ export class DroneRenderer {
     const hover = this.animatedFlag ? Math.sin(time / 380) * cs * 0.04 : 0;
     const lift = cs * (0.34 + 0.08 * speedN) + hover;
     const blocked = m.status === 'blocked';
-    const sideShift = Math.sin(this.bank) * cs * 0.18;
 
-    // ground shadow: stacked soft ellipses, offset away from the light and by the bank
-    ctx.save();
-    ctx.fillStyle = '#05070a';
-    for (let k = 0; k < 3; k++) {
-      ctx.globalAlpha = 0.13;
-      const f = 1 - k * 0.2;
-      ctx.beginPath();
-      ctx.ellipse(
-        x + cs * 0.14 + sideShift * 0.6 + Math.cos(this.hd + Math.PI / 2) * sideShift,
-        y + lift * 0.55 + cs * 0.1,
-        r * 1.05 * f,
-        r * 0.7 * f,
-        0,
-        0,
-        TAU,
-      );
-      ctx.fill();
+    // ground shadow: one pre-rendered soft blob, pushed away from the light and out of the turn
+    {
+      const sp = this.ensureSprites();
+      const sw = r * 3.1;
+      const sx = x + cs * 0.2 + Math.sin(this.bank) * cs * 0.45;
+      const sy = y + lift * 0.6 + cs * 0.12;
+      ctx.save();
+      ctx.globalAlpha = 0.85 - (lift / cs) * 0.35;
+      ctx.drawImage(sp.shadow, sx - sw / 2, sy - sw * 0.3, sw, sw * 0.6);
+      ctx.restore();
     }
-    ctx.restore();
 
     // body, in a frame where +x is the heading; the bank squashes it across the heading
     ctx.save();
     ctx.translate(x, y - lift);
     ctx.rotate(this.hd);
     const squash = Math.cos(this.bank);
-    ctx.scale(1 + 0.05 * speedN, squash);
+    ctx.transform(1 + 0.05 * speedN, 0, Math.sin(this.bank) * 0.35, squash, 0, 0);
     const arm = r * 0.7;
     const rotorR = r * 0.4;
     const spin = this.animatedFlag ? time / 55 : 0;
@@ -1021,6 +1124,9 @@ export class DroneRenderer {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawFlood();
     this.drawWindFlow(time);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.bldg, 0, 0);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (fx.size > 0) this.drawBuildingFx(fx);
     this.drawRoute();
     // start marker: a small ring where this leg began

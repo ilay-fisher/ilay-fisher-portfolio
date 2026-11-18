@@ -19,6 +19,12 @@ export interface DroneRigProps {
   expose?: boolean;
   /** Milliseconds to wait after arriving before flying to a new goal. 0 never does. */
   regoalMs?: number;
+  /**
+   * `raf` (default) runs the simulation from the animation frame loop. `manual` runs no loop at
+   * all: the simulation only advances when `window.__drone.step()` is called, which makes tests
+   * independent of wall-clock frame rate.
+   */
+  clock?: 'raf' | 'manual';
 }
 
 /** The test-only probe published on `window.__drone` when `expose` is set. */
@@ -29,6 +35,14 @@ export interface DroneProbe {
   timing(): { frames: number; mean: number; p95: number; max: number };
   /** Every re-plan the planners measured since mount: ms and expanded nodes for both. */
   plans(): PlanRecord[];
+  /**
+   * Advances the simulation by `n` ticks of `dtMs` simulated milliseconds (default 16), then
+   * draws one frame. Works with either clock; with the `manual` clock it is the only thing that
+   * moves time.
+   */
+  step(n: number, dtMs?: number): ProbeState;
+  /** Whether the frame loop is currently running (in view, motion allowed, `raf` clock). */
+  loopActive(): boolean;
 }
 
 /** One recorded re-plan, for the evidence in the report. */
@@ -52,7 +66,11 @@ export interface ProbeState {
   route: number[];
   goal: { x: number; y: number };
   drone: { x: number; y: number };
+  /** Simulation ticks run since mount, by either clock. */
   frames: number;
+  /** Simulated milliseconds since mount. */
+  simTime: number;
+  clock: 'raf' | 'manual';
 }
 
 interface Snap {
@@ -162,7 +180,15 @@ interface RigProps extends DroneRigProps {
   rows: number;
 }
 
-function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, rows }: RigProps) {
+function Rig({
+  seed = 7,
+  autoRun = true,
+  expose = false,
+  regoalMs = 2500,
+  clock = 'raf',
+  cols,
+  rows,
+}: RigProps) {
   const [model] = useState(() => new DroneModel({ cols, rows, seed, algo: 'astar', regoalMs }));
   const [snap, setSnap] = useState<Snap>(() => snapshot(model));
   const [live, setLive] = useState('');
@@ -291,28 +317,42 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
   }, [model]);
 
   // frame loop: simulate, apply pending paint, draw
-  const active = inView && !reduced;
+  const active = inView && !reduced && clock === 'raf';
   useEffect(() => {
     live_.current.animating = active;
   }, [active]);
+
+  /** One simulation tick: pending paint, time, and a React refresh when something changed. */
+  const advance = useCallback(
+    (dt: number) => {
+      const p = ptr.current;
+      if (p.dirty) {
+        p.dirty = false;
+        const out = model.flush();
+        if (out) p.lastOutcome = out;
+      }
+      const ev = model.step(dt);
+      if (ev && live_.current.mode === 'manual') setLive(ev.text);
+      if (
+        ev ||
+        model.planVersion !== seen.current.planVersion ||
+        model.status !== seen.current.status
+      ) {
+        refresh();
+      }
+      seen.current.frames++;
+    },
+    [model, refresh],
+  );
+  const advanceRef = useRef(advance);
+  useEffect(() => {
+    advanceRef.current = advance;
+  }, [advance]);
+  const clockT = useRef(0);
+
   useRafLoop((dt, t) => {
     const t0 = performance.now();
-    const p = ptr.current;
-    if (p.dirty) {
-      p.dirty = false;
-      const out = model.flush();
-      if (out) p.lastOutcome = out;
-    }
-    const ev = model.step(dt);
-    if (ev && live_.current.mode === 'manual') setLive(ev.text);
-    if (
-      ev ||
-      model.planVersion !== seen.current.planVersion ||
-      model.status !== seen.current.status
-    ) {
-      refresh();
-    }
-    seen.current.frames++;
+    advance(dt);
     rendererRef.current?.draw(t, true, pointerView());
     const ms = performance.now() - t0;
     const buf = timing.current;
@@ -446,7 +486,28 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
   useEffect(() => {
     if (!expose) return;
     const probe: DroneProbe = {
-      state: () => ({ ...model.state(), mode: live_.current.mode, frames: seen.current.frames }),
+      state: () => ({
+        ...model.state(),
+        mode: live_.current.mode,
+        frames: seen.current.frames,
+        simTime: model.simTime,
+        clock,
+      }),
+      step: (n, dtMs = 16) => {
+        for (let i = 0; i < n; i++) {
+          clockT.current += dtMs;
+          advanceRef.current(dtMs);
+        }
+        rendererRef.current?.draw(clockT.current, !live_.current.reduced, pointerView());
+        return {
+          ...model.state(),
+          mode: live_.current.mode,
+          frames: seen.current.frames,
+          simTime: model.simTime,
+          clock,
+        };
+      },
+      loopActive: () => live_.current.animating,
       timing: () => {
         const xs = [...timing.current].sort((a, b) => a - b);
         const n = xs.length;
@@ -459,7 +520,7 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
     return () => {
       delete (window as unknown as { __drone?: DroneProbe }).__drone;
     };
-  }, [expose, model]);
+  }, [expose, model, clock, pointerView]);
 
   // buttons
   const run = (fn: () => Outcome | null) => {
@@ -487,11 +548,21 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
       data-testid="drone-demo"
       data-mode={mode}
       data-motion={reduced ? 'static' : 'live'}
+      data-clock={clock}
       data-ready={ready ? 'true' : 'false'}
       data-status={snap.status}
     >
       <div className="drone__map">
-        <div className="drone__stage" ref={stageRef} data-cursor="draw">
+        <p className="drone__invite" data-testid="drone-invite">
+          Get in its way. It won&apos;t take it personally. It re-plans.
+        </p>
+        <div
+          className="drone__stage"
+          ref={stageRef}
+          data-cursor="draw"
+          data-cursor-label="draw"
+          style={{ aspectRatio: `${cols} / ${rows}` }}
+        >
           <canvas
             ref={canvasRef}
             className="drone__canvas"
@@ -518,7 +589,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
               <Button
                 key={id}
                 className="drone__chip"
-                data-cursor="key"
                 aria-pressed={tool === id}
                 data-testid={`drone-tool-${id}`}
                 onClick={() => pickTool(id)}
@@ -528,7 +598,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
             ))}
             <Button
               className="drone__chip"
-              data-cursor="key"
               aria-pressed={erase}
               data-testid="drone-erase"
               onClick={() => {
@@ -540,7 +609,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
             </Button>
             <Button
               className="drone__chip"
-              data-cursor="key"
               aria-pressed={drawMode}
               data-testid="drone-draw-mode"
               onClick={() => {
@@ -562,7 +630,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
         <div className="drone__row" role="group" aria-label="Route actions">
           <Button
             className="drone__chip drone__chip--wide"
-            data-cursor="key"
             data-testid="drone-btn-drop"
             onClick={() => run(() => model.dropObstacleOnRoute())}
           >
@@ -570,7 +637,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
           </Button>
           <Button
             className="drone__chip"
-            data-cursor="key"
             data-testid="drone-btn-wind"
             onClick={() => run(() => model.addWindZone())}
           >
@@ -578,7 +644,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
           </Button>
           <Button
             className="drone__chip"
-            data-cursor="key"
             data-testid="drone-btn-goal"
             onClick={() => run(() => model.newGoal())}
           >
@@ -586,7 +651,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
           </Button>
           <Button
             className="drone__chip"
-            data-cursor="key"
             data-testid="drone-btn-reset"
             onClick={() => run(() => model.reset())}
           >
@@ -597,7 +661,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
         <div className="drone__row" role="group" aria-label="Planner">
           <Button
             className="drone__chip"
-            data-cursor="key"
             aria-pressed={snap.algo === 'astar'}
             data-testid="drone-algo-astar"
             onClick={() => run(() => model.setAlgo('astar'))}
@@ -606,7 +669,6 @@ function Rig({ seed = 7, autoRun = true, expose = false, regoalMs = 2500, cols, 
           </Button>
           <Button
             className="drone__chip"
-            data-cursor="key"
             aria-pressed={snap.algo === 'dstar'}
             data-testid="drone-algo-dstar"
             onClick={() => run(() => model.setAlgo('dstar'))}
