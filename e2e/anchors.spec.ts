@@ -14,6 +14,19 @@ async function miss(page: Page, id: string): Promise<number> {
   }, id);
 }
 
+/** Click the nav link, then (150 ms later, mid-scroll) grow the spacer above the target: layout shift under a tracked scroll. */
+async function clickThenGrow(page: Page, label: string, px: number) {
+  await page.evaluate(
+    ([name, h]) => {
+      const nav = document.querySelector('nav[aria-label="Sections"]')!;
+      const link = [...nav.querySelectorAll('a')].find((a) => a.textContent?.trim() === name);
+      (link as HTMLElement).click();
+      setTimeout(() => (document.getElementById('test-spacer')!.style.height = `${h}px`), 150);
+    },
+    [label, px] as const,
+  );
+}
+
 async function landed(page: Page, id: string) {
   await expect
     .poll(async () => Math.abs(await miss(page, id)), { timeout: 15_000 })
@@ -66,12 +79,8 @@ test.describe('nav clicks while the layout above the target changes mid-scroll',
       s.style.height = '0px';
       document.getElementById('experience')?.before(s);
     });
-    await page
-      .getByRole('navigation', { name: 'Sections' })
-      .getByRole('link', { name: 'Contact' })
-      .click();
-    await page.waitForTimeout(250);
-    await page.evaluate(() => (document.getElementById('test-spacer')!.style.height = '900px'));
+    // click and grow the layout from inside the page, so a slow runner cannot stretch the gap between the two
+    await clickThenGrow(page, 'Contact', 900);
     await landed(page, 'contact');
   });
 
@@ -85,15 +94,7 @@ test.describe('nav clicks while the layout above the target changes mid-scroll',
       document.getElementById('experience')?.before(s);
     });
     await page.getByRole('button', { name: 'Menu' }).click();
-    await page
-      .getByRole('navigation', { name: 'Sections' })
-      .getByRole('link', { name: 'Experience' })
-      .click();
-    await page.waitForTimeout(250);
-    await page.evaluate(() => (document.getElementById('test-spacer')!.style.height = '-0px'));
-    await page.evaluate(() => {
-      document.getElementById('test-spacer')!.style.height = '700px';
-    });
+    await clickThenGrow(page, 'Experience', 700);
     await landed(page, 'experience');
   });
 });
