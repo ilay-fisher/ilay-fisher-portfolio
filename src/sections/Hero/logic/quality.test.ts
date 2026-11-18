@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { QualityController } from './quality';
+import { QualityController, isSoftwareRenderer } from './quality';
 
 const feed = (q: QualityController, ms: number, n: number) => {
   let last = null;
@@ -36,5 +36,26 @@ describe('adaptive quality', () => {
     for (let i = 0; i < 29; i++) q.record(8);
     q.record(900);
     expect(q.level).toBe(0);
+  });
+  it('can start at a given level (clamped to the last one)', () => {
+    expect(new QualityController({ startLevel: 2 }).level).toBe(2);
+    const q = new QualityController({ startLevel: 99 });
+    expect(q.level).toBe(q.maxLevel);
+    expect(new QualityController({ startLevel: -3 }).level).toBe(0);
+  });
+});
+
+describe('isSoftwareRenderer', () => {
+  it('recognises software GL names and not real GPUs', () => {
+    expect(
+      isSoftwareRenderer('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device), SwiftShader driver)'),
+    ).toBe(true);
+    expect(isSoftwareRenderer('llvmpipe (LLVM 15.0.7, 256 bits)')).toBe(true);
+    expect(isSoftwareRenderer('Google SwiftShader')).toBe(true);
+    expect(
+      isSoftwareRenderer('ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)'),
+    ).toBe(false);
+    expect(isSoftwareRenderer('')).toBe(false);
+    expect(isSoftwareRenderer(null)).toBe(false);
   });
 });
