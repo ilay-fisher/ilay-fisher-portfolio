@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-// Exercises GlStage against a real WebGL2 context. Works because the dev server serves /src as modules.
-test('GlStage runs, pauses on context loss and recovers on restore', async ({ page }) => {
+// Exercises GlStage against a real WebGL2 context. Works because the dev server serves /src as modules; on CI the
+// rest of the suite runs against the production build, so this spec points at a dev server (E2E_DEV_PORT).
+if (process.env.E2E_DEV_PORT) test.use({ baseURL: `http://localhost:${process.env.E2E_DEV_PORT}` });
+test('GlStage runs, pauses on context loss and recovers on restore @gl-heavy', async ({ page }) => {
   await page.goto('/');
   const result = await page.evaluate(async () => {
     const modPath = '/src/lib/glStage.ts';

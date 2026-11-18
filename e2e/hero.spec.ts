@@ -67,7 +67,7 @@ async function openHero(page: Page) {
   return errors;
 }
 
-test.describe('hero scene', () => {
+test.describe('hero scene @gl-heavy', () => {
   test.setTimeout(120_000);
 
   test('the canvas is not blank right after the first rendered frame', async ({ page }) => {

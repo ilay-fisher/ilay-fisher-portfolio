@@ -117,7 +117,7 @@ test('no horizontal scroll at 390 px', async ({ page }) => {
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
 });
 
-test('the burn is a choreographed sequence: staggered, handed to the canvas, then the tile is left', async ({
+test('the burn is a choreographed sequence: staggered, handed to the canvas, then the tile is left @gl-heavy', async ({
   page,
 }) => {
   await page.goto('/?safesurfDelay=1500&safesurfManual=1');

@@ -1,12 +1,19 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same PR or branch supersedes the running job.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,14 +26,28 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      # e2e runs against `vite preview` of the build above. Ordinary specs run in parallel, then the GL-heavy ones
+      # run alone so they never starve UI tests (see playwright.config.ts).
+      - name: e2e (default project, parallel)
+        run: npm run e2e -- --project=default
         env:
           PORT: 5173
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-default.json
+      - name: e2e (gl-heavy project, one worker)
+        if: ${{ !cancelled() }}
+        run: npm run e2e -- --project=gl-heavy --workers=1
+        env:
+          PORT: 5173
+          E2E_DEV_PORT: 5174
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-gl-heavy.json
+      - name: e2e summary (flaky tests are listed here)
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e-summary.mjs e2e-default.json e2e-gl-heavy.json
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: ${{ !cancelled() }}
         with:
           name: playwright-report
           path: |
-            playwright-report/
+            e2e-*.json
             test-results/
           retention-days: 7
