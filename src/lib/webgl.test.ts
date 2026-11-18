@@ -5,7 +5,9 @@ describe('isWebGLAvailable', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('is true when a webgl context can be created', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as WebGLRenderingContext);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      {} as WebGLRenderingContext,
+    );
     expect(isWebGLAvailable()).toBe(true);
   });
 
