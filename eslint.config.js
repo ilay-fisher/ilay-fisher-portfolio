@@ -27,7 +27,7 @@ export default tseslint.config(
   },
   {
     // The logger is the single place allowed to touch the console.
-    files: ['src/lib/logger.ts'],
+    files: ['src/lib/logger.ts', 'src/lib/logger.test.ts'],
     rules: { 'no-console': 'off' },
   },
   prettier,

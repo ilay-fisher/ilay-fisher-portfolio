@@ -18,7 +18,12 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         launchOptions: {
           // Software GL so WebGL works in headless Chromium without a GPU.
-          args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+          args: [
+            '--use-gl=angle',
+            '--use-angle=swiftshader',
+            '--enable-unsafe-swiftshader',
+            '--ignore-gpu-blocklist',
+          ],
         },
       },
     },

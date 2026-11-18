@@ -5,16 +5,16 @@ creates every shared file and a stub for every section, so `App.tsx` never chang
 
 ## Workstreams
 
-| ID | Branch | Owns | Port |
-|---|---|---|---|
-| R | `docs/animation-research` | `docs/research/**` | — |
-| F | `feat/foundation` | everything at first: tooling, `src/lib/**`, `src/styles/**`, `src/content/**`, `src/components/**`, `src/App.tsx`, stubs for all sections, CI, Firebase config, `docs/DESIGN.md` | 5180 |
-| A | `feat/hero` | `src/sections/Hero/**`, `e2e/hero.spec.ts` | 5181 |
-| B | `feat/about-experience-contact` | `src/sections/About/**`, `src/sections/Experience/**`, `src/sections/Contact/**`, `src/components/Nav/**`, `src/components/Footer/**`, `e2e/about.spec.ts` | 5182 |
-| C | `feat/safesurf-demo` | `src/sections/projects/SafeSurf/**`, `e2e/safesurf.spec.ts` | 5183 |
-| D | `feat/drone-demo` | `src/sections/projects/Drone/**`, `e2e/drone.spec.ts` | 5184 |
-| E | `feat/xray-demo` | `src/sections/projects/XRay/**`, `e2e/xray.spec.ts` | 5185 |
-| Q | `fix/integration-qa` | cross-cutting polish after A to E are merged | 5186 |
+| ID  | Branch                          | Owns                                                                                                                                                                             | Port |
+| --- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| R   | `docs/animation-research`       | `docs/research/**`                                                                                                                                                               | —    |
+| F   | `feat/foundation`               | everything at first: tooling, `src/lib/**`, `src/styles/**`, `src/content/**`, `src/components/**`, `src/App.tsx`, stubs for all sections, CI, Firebase config, `docs/DESIGN.md` | 5180 |
+| A   | `feat/hero`                     | `src/sections/Hero/**`, `e2e/hero.spec.ts`                                                                                                                                       | 5181 |
+| B   | `feat/about-experience-contact` | `src/sections/About/**`, `src/sections/Experience/**`, `src/sections/Contact/**`, `src/components/Nav/**`, `src/components/Footer/**`, `e2e/about.spec.ts`                       | 5182 |
+| C   | `feat/safesurf-demo`            | `src/sections/projects/SafeSurf/**`, `e2e/safesurf.spec.ts`                                                                                                                      | 5183 |
+| D   | `feat/drone-demo`               | `src/sections/projects/Drone/**`, `e2e/drone.spec.ts`                                                                                                                            | 5184 |
+| E   | `feat/xray-demo`                | `src/sections/projects/XRay/**`, `e2e/xray.spec.ts`                                                                                                                              | 5185 |
+| Q   | `fix/integration-qa`            | cross-cutting polish after A to E are merged                                                                                                                                     | 5186 |
 
 Every workstream also owns `docs/reports/<workstream>.md` and `docs/reports/img/<workstream>-*`.
 
@@ -49,15 +49,15 @@ public/images/                 static images
 Each `src/sections/**/index.tsx` default-exports a React component with no required props.
 It renders one `<section>` through the shared `Section` component with these ids:
 
-| Section | `id` |
-|---|---|
-| Hero | `top` |
-| About | `about` |
-| SafeSurf | `safesurf` |
-| Drone | `drone` |
-| XRay | `xray` |
+| Section    | `id`         |
+| ---------- | ------------ |
+| Hero       | `top`        |
+| About      | `about`      |
+| SafeSurf   | `safesurf`   |
+| Drone      | `drone`      |
+| XRay       | `xray`       |
 | Experience | `experience` |
-| Contact | `contact` |
+| Contact    | `contact`    |
 
 Page order in `App.tsx`: Hero, About, SafeSurf, Drone, XRay, Experience, Contact.
 
@@ -75,17 +75,19 @@ export interface Logger {
   warn(msg: string, data?: unknown): void;
   error(msg: string, data?: unknown): void;
 }
-export function createLogger(scope: string): Logger;   // prefix: [portfolio:<scope>]
-export function setLogLevel(level: LogLevel): void;     // default: 'debug' in dev, 'warn' in prod; ?log=debug overrides
+export function createLogger(scope: string): Logger; // prefix: [portfolio:<scope>]
+export function setLogLevel(level: LogLevel): void; // default: 'debug' in dev, 'warn' in prod; ?log=debug overrides
 
 // src/lib/motion.ts
 export function usePrefersReducedMotion(): boolean;
-export function useInView<T extends Element>(options?: IntersectionObserverInit): [React.RefObject<T>, boolean];
+export function useInView<T extends Element>(
+  options?: IntersectionObserverInit,
+): [React.RefObject<T>, boolean];
 export function useRafLoop(callback: (dtMs: number, tMs: number) => void, active: boolean): void; // pauses when !active or tab hidden
 
 // src/lib/webgl.ts
 export function isWebGLAvailable(): boolean;
-export function cappedDpr(max?: number): number;        // default max 2
+export function cappedDpr(max?: number): number; // default max 2
 ```
 
 Exact content types live in `src/content/*.ts`; copy comes from `docs/CONTENT.md`.

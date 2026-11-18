@@ -43,33 +43,33 @@ has a token.
 
 ### 2.1 Colour
 
-| Token | Value | Role |
-|---|---|---|
-| `--stage` | `#0C1014` | page background |
-| `--surface` | `#12171D` | panels, rigs, inputs |
-| `--surface-raised` | `#1A2129` | hovered or active panels |
-| `--line` | `#2B3542` | hairlines, grid |
-| `--line-strong` | `#4A5668` | borders of interactive controls (3:1 UI contrast) |
-| `--text` | `#ECE8DF` | primary text |
-| `--text-dim` | `#A8B0BC` | secondary text |
-| `--text-faint` | `#8A93A1` | tertiary text, captions |
-| `--paint` | `#FF3D6E` | the accent: primary action, active state, one highlight per section |
-| `--paint-hi` | `#FF93AE` | paint specular highlight, hover on paint |
-| `--paint-deep` | `#B3174A` | paint shadow, pressed state |
-| `--on-paint` | `#0C1014` | text on a paint fill |
-| `--pass` | `#7BE0B0` | functional only: the "holds" status dot. Never decorative |
+| Token              | Value     | Role                                                                |
+| ------------------ | --------- | ------------------------------------------------------------------- |
+| `--stage`          | `#0C1014` | page background                                                     |
+| `--surface`        | `#12171D` | panels, rigs, inputs                                                |
+| `--surface-raised` | `#1A2129` | hovered or active panels                                            |
+| `--line`           | `#2B3542` | hairlines, grid                                                     |
+| `--line-strong`    | `#4A5668` | borders of interactive controls (3:1 UI contrast)                   |
+| `--text`           | `#ECE8DF` | primary text                                                        |
+| `--text-dim`       | `#A8B0BC` | secondary text                                                      |
+| `--text-faint`     | `#8A93A1` | tertiary text, captions                                             |
+| `--paint`          | `#FF3D6E` | the accent: primary action, active state, one highlight per section |
+| `--paint-hi`       | `#FF93AE` | paint specular highlight, hover on paint                            |
+| `--paint-deep`     | `#B3174A` | paint shadow, pressed state                                         |
+| `--on-paint`       | `#0C1014` | text on a paint fill                                                |
+| `--pass`           | `#7BE0B0` | functional only: the "holds" status dot. Never decorative           |
 
 Contrast (WCAG 2.x, computed from the hex values):
 
-| Pair | Ratio | Verdict |
-|---|---|---|
-| text on stage / surface / raised | 15.6 / 14.7 / 13.3 | AAA |
-| text-dim on stage / surface / raised | 8.7 / 8.2 / 7.4 | AAA |
-| text-faint on stage / surface / raised | 6.2 / 5.8 / 5.2 | AA body text |
-| paint on stage / surface / raised | 5.6 / 5.3 / 4.8 | AA body text |
-| on-paint on paint | 5.6 | AA |
-| pass on stage | 11.9 | AAA |
-| line-strong on stage | 2.6 | decorative only, pair with another cue; controls also carry a text label or fill |
+| Pair                                   | Ratio              | Verdict                                                                          |
+| -------------------------------------- | ------------------ | -------------------------------------------------------------------------------- |
+| text on stage / surface / raised       | 15.6 / 14.7 / 13.3 | AAA                                                                              |
+| text-dim on stage / surface / raised   | 8.7 / 8.2 / 7.4    | AAA                                                                              |
+| text-faint on stage / surface / raised | 6.2 / 5.8 / 5.2    | AA body text                                                                     |
+| paint on stage / surface / raised      | 5.6 / 5.3 / 4.8    | AA body text                                                                     |
+| on-paint on paint                      | 5.6                | AA                                                                               |
+| pass on stage                          | 11.9               | AAA                                                                              |
+| line-strong on stage                   | 2.6                | decorative only, pair with another cue; controls also carry a text label or fill |
 
 Rules: paint is used on at most one focal element per viewport besides links and the
 focus ring. No gradients except the hero's paint rendering. No glass, blur panels or drop
@@ -80,25 +80,25 @@ shadows; depth comes from hairlines and surface steps.
 Families (also used by the hero canvas; they must be loaded before rasterising, call
 `document.fonts.load('800 200px "Bricolage Grotesque Variable"')` first):
 
-| Token | Family string |
-|---|---|
+| Token            | Family string                                                           |
+| ---------------- | ----------------------------------------------------------------------- |
 | `--font-display` | `'Bricolage Grotesque Variable', 'Arial Narrow', system-ui, sans-serif` |
-| `--font-body` | `'Instrument Sans Variable', system-ui, sans-serif` |
-| `--font-mono` | `'Martian Mono Variable', ui-monospace, Menlo, monospace` |
+| `--font-body`    | `'Instrument Sans Variable', system-ui, sans-serif`                     |
+| `--font-mono`    | `'Martian Mono Variable', ui-monospace, Menlo, monospace`               |
 
 Exact canvas family name: `Bricolage Grotesque Variable` (weights 200 to 800, `font-stretch`
 75% to 100%).
 
 Fluid scale (360 to 1920 px viewport, `clamp(min, preferred, max)`):
 
-| Token | Value | Use |
-|---|---|---|
-| `--step--1` | `clamp(0.78rem, 0.76rem + 0.1vw, 0.875rem)` | mono labels, captions |
-| `--step-0` | `clamp(1rem, 0.96rem + 0.2vw, 1.125rem)` | body |
-| `--step-1` | `clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem)` | lead paragraph, summaries |
-| `--step-2` | `clamp(1.5rem, 1.3rem + 1vw, 2.25rem)` | sub-headings |
-| `--step-3` | `clamp(2.25rem, 1.7rem + 2.8vw, 4rem)` | section headings (h2) |
-| `--step-4` | `clamp(3rem, 1.8rem + 6vw, 7.5rem)` | hero and project titles |
+| Token       | Value                                       | Use                       |
+| ----------- | ------------------------------------------- | ------------------------- |
+| `--step--1` | `clamp(0.78rem, 0.76rem + 0.1vw, 0.875rem)` | mono labels, captions     |
+| `--step-0`  | `clamp(1rem, 0.96rem + 0.2vw, 1.125rem)`    | body                      |
+| `--step-1`  | `clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem)`     | lead paragraph, summaries |
+| `--step-2`  | `clamp(1.5rem, 1.3rem + 1vw, 2.25rem)`      | sub-headings              |
+| `--step-3`  | `clamp(2.25rem, 1.7rem + 2.8vw, 4rem)`      | section headings (h2)     |
+| `--step-4`  | `clamp(3rem, 1.8rem + 6vw, 7.5rem)`         | hero and project titles   |
 
 Display style: weight 800, `font-stretch: 75%`, line-height 0.92, letter-spacing -0.02em,
 sentence case. Body: weight 420, line-height 1.6, measure at most 68ch. Mono labels: weight
@@ -123,13 +123,13 @@ and never animates.
 
 ### 2.4 Motion
 
-| Token | Value | Use |
-|---|---|---|
-| `--dur-fast` | `120ms` | hover, press, focus |
-| `--dur-base` | `240ms` | state changes, reveals answering an action |
-| `--dur-slow` | `520ms` | the one orchestrated page-load moment |
-| `--ease-out` | `cubic-bezier(0.22, 1, 0.36, 1)` | entrances, state changes |
-| `--ease-in-out` | `cubic-bezier(0.65, 0, 0.35, 1)` | moves between two resting states |
+| Token           | Value                            | Use                                        |
+| --------------- | -------------------------------- | ------------------------------------------ |
+| `--dur-fast`    | `120ms`                          | hover, press, focus                        |
+| `--dur-base`    | `240ms`                          | state changes, reveals answering an action |
+| `--dur-slow`    | `520ms`                          | the one orchestrated page-load moment      |
+| `--ease-out`    | `cubic-bezier(0.22, 1, 0.36, 1)` | entrances, state changes                   |
+| `--ease-in-out` | `cubic-bezier(0.65, 0, 0.35, 1)` | moves between two resting states           |
 
 Principles:
 
@@ -147,11 +147,11 @@ Principles:
 
 Single column page, content in a 12-column grid inside `.container`.
 
-| Breakpoint | Name | Behaviour |
-|---|---|---|
-| 360 to 599 | phone | one column, gutter 16 px |
-| 600 to 899 | tablet | gutter 24 px, bench-label row becomes inline |
-| 900 to 1279 | laptop | 12 columns, project copy and rig side by side |
+| Breakpoint   | Name    | Behaviour                                                                                  |
+| ------------ | ------- | ------------------------------------------------------------------------------------------ |
+| 360 to 599   | phone   | one column, gutter 16 px                                                                   |
+| 600 to 899   | tablet  | gutter 24 px, bench-label row becomes inline                                               |
+| 900 to 1279  | laptop  | 12 columns, project copy and rig side by side                                              |
 | 1280 to 1920 | desktop | content max width 1280 px (`--container`), gutter 32 px; beyond 1920 content stays centred |
 
 Use `min-width` media queries only, at `600px`, `900px`, `1280px`. Never rely on a width
@@ -176,13 +176,13 @@ one-line summary                                           <- --step-1, text-dim
 
 All in `src/components/`. Import from `src/components/<Name>`.
 
-| Component | Use it for | Rules |
-|---|---|---|
-| `Section` | every section | renders `<section id aria-labelledby>`, the hairline top rule, optional bench-label row, the h2. Never write a bare `<section>` |
-| `ProjectFrame` | the three project sections | wraps `Section`; gives title, summary, stack tags, links, optional numbers, and the `demo` slot with corner ticks. Put the demo as `children` and give it `data-testid` |
-| `Button`, `LinkButton` | actions and links that look like actions | `variant`: `primary` (paint fill, max one per section), `secondary` (hairline). `LinkButton` renders an `<a>`, opens external links with `rel="noopener noreferrer"` |
-| `Tag` | stack and topic chips | mono, hairline, `--radius-1`. Not clickable |
-| `Nav`, `Footer` | page chrome | owned by B after foundation |
+| Component              | Use it for                               | Rules                                                                                                                                                                   |
+| ---------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Section`              | every section                            | renders `<section id aria-labelledby>`, the hairline top rule, optional bench-label row, the h2. Never write a bare `<section>`                                         |
+| `ProjectFrame`         | the three project sections               | wraps `Section`; gives title, summary, stack tags, links, optional numbers, and the `demo` slot with corner ticks. Put the demo as `children` and give it `data-testid` |
+| `Button`, `LinkButton` | actions and links that look like actions | `variant`: `primary` (paint fill, max one per section), `secondary` (hairline). `LinkButton` renders an `<a>`, opens external links with `rel="noopener noreferrer"`    |
+| `Tag`                  | stack and topic chips                    | mono, hairline, `--radius-1`. Not clickable                                                                                                                             |
+| `Nav`, `Footer`        | page chrome                              | owned by B after foundation                                                                                                                                             |
 
 Rig rules: a rig sits in `.rig` (surface background, hairline, corner ticks), has an
 accessible name, shows a one-line instruction in plain words ("Drag the slider."), and a
@@ -191,6 +191,7 @@ reset control if the state can get stuck.
 ## 5. Do and don't
 
 Do:
+
 - Use tokens for every colour, size, space, radius and duration.
 - Write sentence case, plain verbs, numbers over adjectives, no exclamation marks.
 - Give every interactive element a visible `:focus-visible` (global style: 2 px paint outline, 3 px offset). Do not remove it.
@@ -199,6 +200,7 @@ Do:
 - Provide a static fallback for every canvas or WebGL piece.
 
 Don't:
+
 - No purple, blue or teal gradients. No glassmorphism, blur panels, glows, drop shadows.
 - No emoji, no stock icon sets. If an icon is needed, draw a 16 px inline SVG with 1.5 px strokes.
 - No all-caps eyebrow labels, no numbered markers unless the content is a sequence, no `->` arrows appended to every link.

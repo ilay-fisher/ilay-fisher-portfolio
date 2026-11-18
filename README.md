@@ -5,22 +5,22 @@
 An interactive, single-page portfolio. Instead of describing the projects, the page lets
 the visitor play with a small, working piece of each one:
 
-| Section | What the visitor can do | Source project |
-|---|---|---|
-| Hero | Paint and distort the headline in real time (WebGL) | — |
-| SafeSurf | Flip the filter on a mock page and watch images and video dissolve; try to turn it off and hit the delay lock | [safesurfsite.com](https://safesurfsite.com) |
-| Drone sandbox | Drop obstacles on a city grid and watch the drone re-plan its route live (A* / D* Lite) | [drone-obstacle-sandbox](https://github.com/ilay-fisher/drone-obstacle-sandbox) |
-| X-Ray Lens | Drag a split slider across an inspected image to reveal the CV diff heatmap and the flagged regions | [multimodal-visual-qa-xray-lens](https://github.com/ilay-fisher/multimodal-visual-qa-xray-lens) |
-| About / Experience / Contact | Who I am, what I have shipped and taught, how to reach me | LinkedIn |
+| Section                      | What the visitor can do                                                                                       | Source project                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Hero                         | Paint and distort the headline in real time (WebGL)                                                           | —                                                                                               |
+| SafeSurf                     | Flip the filter on a mock page and watch images and video dissolve; try to turn it off and hit the delay lock | [safesurfsite.com](https://safesurfsite.com)                                                    |
+| Drone sandbox                | Drop obstacles on a city grid and watch the drone re-plan its route live (A* / D* Lite)                       | [drone-obstacle-sandbox](https://github.com/ilay-fisher/drone-obstacle-sandbox)                 |
+| X-Ray Lens                   | Drag a split slider across an inspected image to reveal the CV diff heatmap and the flagged regions           | [multimodal-visual-qa-xray-lens](https://github.com/ilay-fisher/multimodal-visual-qa-xray-lens) |
+| About / Experience / Contact | Who I am, what I have shipped and taught, how to reach me                                                     | LinkedIn                                                                                        |
 
 ## Tech stack
 
-| Layer | Technology |
-|---|---|
-| App | Vite, React, TypeScript (strict) |
-| Motion | WebGL shaders, Canvas 2D, GSAP, smooth scroll (final choices in `docs/research/ANIMATIONS.md`) |
-| Quality | Vitest + Testing Library (unit, TDD), Playwright (e2e + screenshots), ESLint, Prettier |
-| Delivery | Firebase Hosting, GitHub Actions CI, Cloudflare domain (later) |
+| Layer    | Technology                                                                                     |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| App      | Vite, React, TypeScript (strict)                                                               |
+| Motion   | WebGL shaders, Canvas 2D, GSAP, smooth scroll (final choices in `docs/research/ANIMATIONS.md`) |
+| Quality  | Vitest + Testing Library (unit, TDD), Playwright (e2e + screenshots), ESLint, Prettier         |
+| Delivery | Firebase Hosting, GitHub Actions CI, Cloudflare domain (later)                                 |
 
 ## Run it
 

@@ -19,7 +19,16 @@ describe('Section', () => {
   it('renders the bench-label row only for the fields given', () => {
     const { rerender } = render(<Section id="x" title="T" />);
     expect(screen.queryByTestId('bench-label')).not.toBeInTheDocument();
-    rerender(<Section id="x" title="T" bench={[{ label: 'case', value: 'CASE-01' }, { label: 'status', value: 'Live' }]} />);
+    rerender(
+      <Section
+        id="x"
+        title="T"
+        bench={[
+          { label: 'case', value: 'CASE-01' },
+          { label: 'status', value: 'Live' },
+        ]}
+      />,
+    );
     const row = screen.getByTestId('bench-label');
     expect(within(row).getByText('case')).toBeInTheDocument();
     expect(within(row).getByText('CASE-01')).toBeInTheDocument();
