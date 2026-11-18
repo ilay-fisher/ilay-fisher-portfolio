@@ -494,8 +494,8 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           lower.
         </p>
         <p className="xray__note mono">
-          Benchmark from the project README, Claude Haiku 5.5: one full-frame call for each of three
-          presets versus four ROI calls, totals.
+          Benchmark figures from the project README, Claude Haiku 5.5. Cloud times are totals: one
+          full-frame call per preset (three) versus the four ROI calls.
         </p>
         <p className="xray__measured mono" data-testid="xray-measured">
           {analysis?.source === 'computed' && analysis.ms !== null
