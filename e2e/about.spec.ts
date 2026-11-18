@@ -121,10 +121,10 @@ test('portrait loads with real dimensions and falls back to a monogram on failur
   page,
 }) => {
   await page.goto('/');
-  const img = page.locator('#about img');
+  const img = page.locator('#about .lens__glass img');
   await img.scrollIntoViewIfNeeded();
-  await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(800);
-  await page.route('**/images/ilay.jpg', (r) => r.abort());
+  await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(512);
+  await page.route('**/images/avatar/turn/still.webp', (r) => r.abort());
   await page.reload();
   await page.locator('#about').scrollIntoViewIfNeeded();
   await expect(page.locator('#about').getByRole('img', { name: /Ilay Fisher/ })).toContainText(
