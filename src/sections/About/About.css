@@ -1,46 +1,108 @@
 .about__open {
   color: var(--pass);
 }
-.about__lead {
+.about__grid {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-7);
   margin-top: var(--space-7);
 }
+.about__main {
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+  min-width: 0;
+}
+
+/* ---- the lens: a round bezel, knurled ring, dark gap, glass with a glint, ember rim light ---- */
 .about__portrait {
   margin: 0;
-  width: min(100%, 320px);
+  width: min(100%, 340px);
 }
-.about__frame {
+.lens {
+  position: relative;
   aspect-ratio: 1;
-  overflow: hidden;
+  padding: 16px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(150deg, #36424f, #141a21 60%, #0d1116) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow:
+    var(--bevel-inset),
+    var(--shadow-lift),
+    12px 16px 48px -14px rgb(var(--paint-rgb) / 0.42);
 }
-.about__frame img {
+/* knurled grip ring */
+.lens::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgb(255 255 255 / 0.09) 0 0.7deg, transparent 0.7deg 3deg);
+  -webkit-mask: radial-gradient(
+    closest-side,
+    transparent calc(100% - 13px),
+    #000 calc(100% - 12px)
+  );
+  mask: radial-gradient(closest-side, transparent calc(100% - 13px), #000 calc(100% - 12px));
+  pointer-events: none;
+}
+.lens__glass {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow:
+    inset 3px 5px 14px rgb(0 0 0 / 0.65),
+    0 0 0 3px rgb(0 0 0 / 0.55),
+    0 1px 0 4px rgb(255 255 255 / 0.07);
+}
+.lens__glass img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 22%;
 }
-.about__portrait figcaption {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--space-1) var(--space-4);
-  margin-top: var(--space-3);
-  color: var(--text-faint);
+/* the glass: a curved reflection top left and a warm ember bounce bottom right */
+.lens__glint {
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 46% at 30% 10%, rgb(255 255 255 / 0.2), transparent 70%),
+    radial-gradient(60% 40% at 80% 98%, rgb(var(--paint-rgb) / 0.22), transparent 70%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
 }
-.about__monogram {
+.lens__monogram {
   display: grid;
   place-items: center;
   height: 100%;
   font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 75%;
+  font-weight: var(--display-weight);
   font-size: clamp(5rem, 22vw, 9rem);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--display-tracking);
   color: var(--paint);
-  background:
-    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 25%,
-    var(--surface);
+  background: radial-gradient(circle at 30% 20%, #232d37, var(--surface));
 }
+.about__portrait figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+.about__portrait figcaption span {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 0.28);
+  box-shadow: var(--well-inset);
+  color: var(--text-dim);
+}
+
 .about__story {
   display: grid;
   gap: var(--space-4);
@@ -55,83 +117,73 @@
 .about__availability {
   display: flex;
   gap: var(--space-3);
-  align-items: baseline;
-  margin-top: var(--space-2);
-  padding-top: var(--space-4);
-  border-top: var(--hairline);
+  align-items: center;
+  margin-top: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-card);
   color: var(--text);
 }
 .about__dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: var(--radius-pill);
   background: var(--pass);
-  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 3px rgb(123 224 176 / 0.16),
+    0 0 12px rgb(123 224 176 / 0.6);
 }
 
-.about__built,
-.about__stack,
-.about__writing {
-  margin-top: var(--space-8);
-}
 .about__built h3,
 .about__stack h3,
 .about__writing h3 {
   margin-bottom: var(--space-5);
 }
 
-/* the spec list: label column, value column, hairline between rows */
+/* what I built: rounded spec cards, a label pill on top of each */
 .spec {
-  margin: 0;
-  border-top: var(--hairline);
-}
-.spec__row {
   display: grid;
-  gap: var(--space-1) var(--space-6);
-  padding-block: var(--space-4);
-  border-bottom: var(--hairline);
-}
-.spec dt {
-  color: var(--text-faint);
-}
-.spec dd {
+  gap: var(--space-4);
   margin: 0;
-  max-width: var(--measure);
+}
+.spec-card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-5);
+}
+.spec-card dt {
+  justify-self: start;
+}
+.spec-card dd {
+  margin: 0;
+  color: var(--text-dim);
 }
 
 .about__writing {
   display: grid;
   gap: var(--space-4);
   justify-items: start;
-  padding: var(--space-5);
-  border: var(--hairline);
-  background: var(--surface);
+  padding: var(--space-6);
 }
 .about__writing h3 {
   margin-bottom: 0;
 }
 
-@media (min-width: 600px) {
-  .spec__row {
-    grid-template-columns: 9rem 1fr;
+@media (min-width: 640px) {
+  .spec {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (min-width: 900px) {
-  .about__lead {
-    grid-template-columns: 320px 1fr;
-    gap: var(--space-8);
-  }
-  .about__built {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    column-gap: var(--space-8);
+@media (min-width: 960px) {
+  .about__grid {
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: var(--space-9);
     align-items: start;
   }
-  .about__built h3 {
-    margin-bottom: 0;
-  }
-  .about__writing {
-    padding: var(--space-6);
+  /* the portrait stays in view while the long column scrolls: no dead space beside it */
+  .about__side {
+    position: sticky;
+    top: calc(var(--nav-h) + var(--space-5));
   }
 }

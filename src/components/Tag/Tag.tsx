@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import './Tag.css';
 
-/** A small mono chip for a technology or topic. Not interactive. */
+/** A small mono pill for a technology or topic. Not interactive. */
 export function Tag({ children }: { children: ReactNode }) {
-  return <span className="tag mono">{children}</span>;
+  return <span className="tag pill">{children}</span>;
 }
 
 /** Props for {@link TagList}. */

@@ -17,7 +17,7 @@ export interface ProjectFrameProps {
 
 /**
  * The shared shape of the three project sections: bench labels, a challenge headline,
- * a one-line summary, the demo slot (with corner ticks), then key points, links, numbers
+ * a one-line summary, the demo slot (a large rounded lit stage), then key points, links, numbers
  * and stack tags. Keeps SafeSurf, Drone and X-Ray looking like one family.
  */
 export function ProjectFrame({ project, children, demoLabel }: ProjectFrameProps) {
@@ -34,17 +34,15 @@ export function ProjectFrame({ project, children, demoLabel }: ProjectFrameProps
         { label: 'status', value: p.status },
       ]}
     >
-      <div
-        className="project__rig rig ticks"
-        role="group"
-        aria-label={demoLabel ?? `${p.title} demo`}
-      >
+      <div className="project__rig stage" role="group" aria-label={demoLabel ?? `${p.title} demo`}>
         {children}
       </div>
       <div className="project__facts">
         <ul className="project__points">
           {p.points.map((pt) => (
-            <li key={pt}>{pt}</li>
+            <li key={pt} className="spec-row">
+              {pt}
+            </li>
           ))}
         </ul>
         <div className="project__side">

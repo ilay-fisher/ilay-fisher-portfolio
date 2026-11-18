@@ -1,12 +1,17 @@
+/* the footer is a quiet rounded tray at the foot of the page, not a ruled strip */
 .footer {
-  border-top: var(--hairline);
-  padding-block: var(--space-7);
+  padding: var(--space-7) 0 var(--space-5);
   color: var(--text-faint);
 }
 .footer__inner {
   display: grid;
   gap: var(--space-4) var(--space-6);
-  align-items: baseline;
+  align-items: center;
+  padding-block: var(--space-6);
+  padding-inline: var(--space-6);
+  border-radius: var(--radius-stage);
+  background: rgb(0 0 0 / 0.24);
+  box-shadow: var(--well-inset);
 }
 .footer__id {
   color: var(--text);

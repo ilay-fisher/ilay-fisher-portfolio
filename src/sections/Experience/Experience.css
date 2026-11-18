@@ -1,17 +1,24 @@
+/* readings: soft instrument tiles, each a recessed display with a lit face */
 .readings {
   margin-top: var(--space-7);
-  padding: var(--space-5);
 }
 .readings__list {
   display: grid;
-  gap: var(--space-6) var(--space-5);
+  gap: var(--space-4);
 }
-.reading {
+.tile {
   display: grid;
   align-content: start;
   gap: var(--space-2);
-  padding-top: var(--space-4);
-  border-top: var(--hairline);
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  border: 1px solid transparent;
+  background:
+    radial-gradient(90% 70% at 15% 0%, rgb(255 255 255 / 0.06), transparent 60%) padding-box,
+    linear-gradient(160deg, #1a222b, #0e1318) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-contact);
 }
 .reading__label {
   color: var(--text-faint);
@@ -22,11 +29,10 @@
   align-items: baseline;
   gap: var(--space-1) var(--space-3);
   font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 75%;
+  font-weight: var(--display-weight);
   font-size: var(--step-3);
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--display-tracking);
   font-variant-numeric: tabular-nums;
 }
 .reading__before {
@@ -36,50 +42,77 @@
 }
 .reading:first-child .reading__value > [data-count] {
   color: var(--paint);
+  text-shadow: 0 0 28px rgb(var(--paint-rgb) / 0.35);
 }
 .reading__note {
   font-size: var(--step--1);
   color: var(--text-dim);
 }
 
-/* timeline: ordered list with a vertical hairline and a square node per role */
+/* timeline: a recessed track on the left, a round bevelled node per role, a card per role */
 .timeline {
-  margin: var(--space-8) 0 0;
+  position: relative;
+  margin: var(--space-9) 0 0;
   padding: 0;
   list-style: none;
+  display: grid;
+  gap: var(--space-5);
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.4);
+  box-shadow: var(--well-inset);
 }
 .timeline__item {
   position: relative;
   display: grid;
   gap: var(--space-3);
-  padding: 0 0 var(--space-7) var(--space-5);
-  border-left: var(--hairline);
+  padding-left: var(--space-8);
 }
-.timeline__item:last-child {
-  padding-bottom: 0;
-}
-.timeline__item::before {
-  content: '';
+.timeline__node {
   position: absolute;
-  left: -5px;
+  left: 4px;
   top: 4px;
-  width: 9px;
-  height: 9px;
-  background: var(--stage);
-  border: 1px solid var(--line-strong);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background:
+    radial-gradient(circle at 32% 28%, #3a4653, #141a21 70%) padding-box,
+    var(--rim-gradient) border-box;
+  box-shadow:
+    var(--bevel-inset-sm),
+    1px 2px 3px rgb(0 0 0 / 0.6);
 }
-.timeline__item:first-child::before {
-  background: var(--paint);
-  border-color: var(--paint);
+.timeline__item:first-child .timeline__node {
+  background:
+    radial-gradient(circle at 32% 28%, var(--paint-hi), var(--paint) 55%, var(--paint-deep))
+      padding-box,
+    linear-gradient(var(--light-angle), rgb(255 236 200 / 0.9), rgb(var(--paint-deep-rgb) / 0.8))
+      border-box;
+  box-shadow:
+    var(--bevel-inset-sm),
+    1px 2px 3px rgb(0 0 0 / 0.6),
+    0 0 18px rgb(var(--paint-rgb) / 0.55);
 }
 .timeline__when {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-4);
   color: var(--text);
+  padding-top: 4px;
 }
 .timeline__kind {
   color: var(--text-faint);
+}
+.timeline__body {
+  padding: var(--space-5) var(--space-6);
 }
 .timeline__org {
   margin-top: var(--space-2);
@@ -95,43 +128,70 @@
 .timeline__points li {
   position: relative;
   padding-left: var(--space-5);
+  color: var(--text-dim);
 }
 .timeline__points li::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.8em;
-  width: 10px;
-  height: 1px;
-  background: var(--line-strong);
+  top: 0.62em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paint);
+  opacity: 0.85;
 }
 
 .education {
-  margin-top: var(--space-8);
+  margin-top: var(--space-9);
 }
 .education h3 {
   margin-bottom: var(--space-5);
+}
+.education__grid {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+.education__courses {
+  grid-column: 1 / -1;
+}
+.education .spec-card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-5);
+}
+.education dt {
+  justify-self: start;
+}
+.education dd {
+  margin: 0;
+  color: var(--text-dim);
 }
 
 @media (min-width: 600px) {
   .readings__list {
     grid-template-columns: repeat(2, 1fr);
   }
+  .education__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 @media (min-width: 900px) {
-  .readings {
-    padding: var(--space-6);
-  }
   .readings__list {
     grid-template-columns: repeat(4, 1fr);
   }
   .timeline__item {
-    grid-template-columns: 14rem 1fr;
-    gap: var(--space-6);
-    padding-left: var(--space-6);
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: var(--space-5);
+    padding-left: var(--space-8);
   }
   .timeline__when {
     flex-direction: column;
     gap: var(--space-1);
+  }
+  .education__grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }

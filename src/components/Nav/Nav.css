@@ -1,55 +1,76 @@
+/* A floating rounded bar, lit like the rest of the hardware. It sits 12 px below the top edge;
+   the header keeps its height so anchors and the hero know where the page starts. */
 .nav {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-nav);
   height: var(--nav-h);
-  background: color-mix(in srgb, var(--stage) 96%, transparent);
-  border-bottom: var(--hairline);
+  pointer-events: none;
 }
 .nav__inner {
+  height: 100%;
+  padding-top: 12px;
+}
+.nav__bar {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-5);
-  height: 100%;
+  gap: var(--space-4);
+  height: 56px;
+  padding: 0 8px 0 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(150deg, rgb(40 50 61 / 0.82), rgb(16 21 27 / 0.82)) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset-sm), var(--shadow-contact);
+  backdrop-filter: blur(16px) saturate(1.3);
+  pointer-events: auto;
 }
 .nav__brand {
   flex: none;
   color: var(--text);
   font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 75%;
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
   font-size: var(--step-1);
   text-decoration: none;
 }
+.nav__brand:hover {
+  color: var(--text);
+}
 
-/* phone: the link list is a panel under the bar, opened by the Menu button */
+/* phone: the Menu button is a small pill; the links open as a rounded panel under the bar */
 .nav__toggle {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-1);
-  background: transparent;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background:
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset-sm);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--step--1);
   font-weight: 500;
-  letter-spacing: 0.02em;
   cursor: pointer;
+  transition: scale var(--spring-snappy-dur) var(--spring-snappy);
 }
-.nav__toggle:hover {
-  background: var(--surface-raised);
+.nav__toggle:active {
+  scale: 0.95 0.9;
 }
 .nav__toggle-bars {
   width: 14px;
   height: 8px;
   border-block: 1.5px solid currentColor;
   position: relative;
-  transition: transform var(--dur-fast) var(--ease-out);
 }
 .nav__toggle-bars::after {
   content: '';
@@ -61,43 +82,54 @@
   background: currentColor;
 }
 .nav__toggle[aria-expanded='true'] .nav__toggle-bars {
-  border-color: var(--paint);
+  color: var(--paint);
 }
 .nav__links {
   display: none;
   position: absolute;
-  top: calc(100% + 1px);
+  top: calc(100% + 10px);
   left: 0;
   right: 0;
   flex-direction: column;
-  padding: var(--space-2) var(--gutter) var(--space-4);
-  background: var(--stage);
-  border-bottom: var(--hairline);
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  background:
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-lift);
 }
 .nav__links[data-open='true'] {
   display: flex;
+}
+.nav__indicator {
+  display: none;
 }
 .nav__links a {
   display: flex;
   align-items: center;
   min-height: 48px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: var(--step-0);
   font-weight: 500;
   text-decoration: none;
-  border-bottom: var(--hairline);
 }
 .nav__links a:hover {
   color: var(--text);
+  background: rgb(255 255 255 / 0.05);
 }
 .nav__links a[aria-current='true'] {
   color: var(--text);
-  box-shadow: inset 2px 0 0 var(--paint);
-  padding-left: var(--space-3);
+  background: rgb(0 0 0 / 0.3);
+  box-shadow: var(--well-inset);
 }
 
-/* laptop and up: inline links, no toggle */
+/* laptop and up: inline links with a pill indicator that slides between them on a spring */
 @media (min-width: 900px) {
   .nav__toggle {
     display: none;
@@ -105,50 +137,74 @@
   .nav__links,
   .nav__links[data-open] {
     display: flex;
-    position: static;
+    position: relative;
+    top: auto;
     flex: 1;
     flex-direction: row;
     justify-content: flex-end;
-    gap: var(--space-5);
+    gap: 2px;
     padding: 0;
-    background: none;
     border: 0;
+    background: none;
+    box-shadow: none;
   }
   .nav__links a {
     position: relative;
-    min-height: 0;
-    padding: var(--space-3) 0;
+    z-index: 1;
+    min-height: 40px;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-pill);
     font-size: var(--step--1);
-    border: 0;
+  }
+  .nav__links a:hover {
+    background: none;
   }
   .nav__links a[aria-current='true'] {
+    background: none;
     box-shadow: none;
-    padding-left: 0;
+    color: var(--on-paint);
   }
-  .nav__links a::after {
-    content: '';
+  .nav__indicator {
+    display: block;
     position: absolute;
     left: 0;
-    right: 0;
-    bottom: 4px;
-    height: 1px;
-    background: var(--paint);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform var(--dur-base) var(--ease-out);
+    top: 0;
+    z-index: 0;
+    height: 40px;
+    width: var(--ind-w, 0);
+    border-radius: var(--radius-pill);
+    background: linear-gradient(
+      158deg,
+      var(--paint-hi) -40%,
+      var(--paint) 40%,
+      var(--paint-deep) 130%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.38),
+      inset 0 -2px 3px rgb(var(--paint-deep-rgb) / 0.5),
+      1px 2px 2px rgb(0 0 0 / 0.4);
+    opacity: 0;
+    transform: translateX(var(--ind-x, 0));
+    /* width is the one non-transform property here: a tiny, contained pill needs it to stretch between links */
+    transition:
+      transform 520ms var(--spring-soft),
+      width 520ms var(--spring-soft),
+      opacity var(--dur-base) var(--ease-out);
   }
-  .nav__links a[aria-current='true']::after {
-    transform: scaleX(1);
+  .nav__indicator:not([data-for='']) {
+    opacity: 1;
   }
 }
 
+/* scroll progress: a thin rounded line along the bottom edge inside the bar */
 .nav__progress {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: var(--paint);
+  left: 26px;
+  right: 26px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--paint-deep), var(--paint), var(--paint-hi));
   transform: scaleX(0);
   transform-origin: left;
   pointer-events: none;
@@ -159,10 +215,12 @@
   left: var(--space-4);
   top: -100px;
   padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
   background: var(--paint);
   color: var(--on-paint);
   font-family: var(--font-mono);
   font-size: var(--step--1);
+  pointer-events: auto;
 }
 .nav__skip:focus {
   top: var(--space-2);

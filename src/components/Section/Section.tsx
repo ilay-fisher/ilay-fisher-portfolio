@@ -85,11 +85,7 @@ export function Section({
             </Reveal>
           )}
         </Heading>
-        {summary && (
-          <Reveal as="p" variant="up" className="section__summary">
-            {summary}
-          </Reveal>
-        )}
+        {summary && <p className="section__summary">{summary}</p>}
         {children}
       </div>
     </section>

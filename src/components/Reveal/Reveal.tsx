@@ -1,5 +1,5 @@
 import { useGSAP } from '@gsap/react';
-import { useRef, type ElementType, type ReactNode } from 'react';
+import { useRef, type ElementType, type HTMLAttributes, type ReactNode } from 'react';
 import { gsap, SplitText } from '../../lib/gsap';
 import { usePrefersReducedMotion } from '../../lib/motion';
 import { SPRING_SOFT, settleTime, springEase } from '../../lib/spring';
@@ -17,7 +17,7 @@ import './Reveal.css';
 export type RevealVariant = 'up' | 'fade' | 'lines' | 'words' | 'stagger';
 
 /** Props for {@link Reveal}. */
-export interface RevealProps {
+export interface RevealProps extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'className'> {
   variant?: RevealVariant;
   /** Element to render. Default `div`. */
   as?: ElementType;
@@ -33,7 +33,13 @@ const SETTLE = settleTime(SPRING_SOFT);
  * soft spring (see `src/lib/spring.ts`). Under reduced motion (or without JS) the content is simply
  * visible in its finished state. Use it for headings, one block per section and lists.
  */
-export function Reveal({ variant = 'up', as: Tag = 'div', className, children }: RevealProps) {
+export function Reveal({
+  variant = 'up',
+  as: Tag = 'div',
+  className,
+  children,
+  ...rest
+}: RevealProps) {
   const ref = useRef<HTMLElement>(null);
   const reduced = usePrefersReducedMotion();
 
@@ -47,17 +53,19 @@ export function Reveal({ variant = 'up', as: Tag = 'div', className, children }:
       }
       const scrollTrigger = { trigger: el, start: 'top 88%', once: true };
 
-      /** Rise on the spring while opacity arrives on its own, shorter curve (opacity must not overshoot). */
-      const rise = (
-        targets: gsap.TweenTarget,
-        from: gsap.TweenVars,
-        stagger = 0,
-      ): gsap.core.Timeline => {
-        const tl = gsap.timeline({ scrollTrigger });
-        tl.from(targets, { ...from, duration: SETTLE, ease: SPRING, stagger }, 0);
-        tl.from(targets, { opacity: 0, duration: 0.45, ease: 'power2.out', stagger }, 0);
-        return tl;
-      };
+      /**
+       * Rise on the spring. Opacity rides the same curve: the overshoot past 1 is clamped by the
+       * browser, so it simply arrives a touch early while the movement settles.
+       */
+      const rise = (targets: gsap.TweenTarget, from: gsap.TweenVars, stagger = 0) =>
+        gsap.from(targets, {
+          ...from,
+          opacity: 0,
+          duration: SETTLE,
+          ease: SPRING,
+          stagger,
+          scrollTrigger,
+        });
 
       if (variant === 'lines' || variant === 'words') {
         const fonts = typeof document !== 'undefined' ? document.fonts?.ready : undefined;
@@ -111,7 +119,7 @@ export function Reveal({ variant = 'up', as: Tag = 'div', className, children }:
   );
 
   return (
-    <Tag ref={ref} data-reveal={variant} className={className}>
+    <Tag ref={ref} data-reveal={variant} className={className} {...rest}>
       {children}
     </Tag>
   );

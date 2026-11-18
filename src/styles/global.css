@@ -259,7 +259,12 @@ samp {
   --s: var(--key-s, 1);
 }
 .pool--key .pool__glow {
-  background: radial-gradient(closest-side, rgb(86 128 178 / 0.2), rgb(86 128 178 / 0.07) 55%, transparent);
+  background: radial-gradient(
+    closest-side,
+    rgb(86 128 178 / 0.2),
+    rgb(86 128 178 / 0.07) 55%,
+    transparent
+  );
 }
 .pool--ember {
   right: -34vmax;
@@ -385,7 +390,14 @@ html.has-cursor,
 html.has-cursor * {
   cursor: none !important;
 }
-html.has-cursor :is(input:not([type='checkbox'], [type='radio'], [type='button'], [type='submit']), textarea, select, [contenteditable='true'], [data-cursor='none']) {
+html.has-cursor
+  :is(
+    input:not([type='checkbox'], [type='radio'], [type='button'], [type='submit']),
+    textarea,
+    select,
+    [contenteditable='true'],
+    [data-cursor='none']
+  ) {
   cursor: auto !important;
 }
 .cursor {

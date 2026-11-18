@@ -19,7 +19,7 @@ export default function Experience() {
       className="experience"
       bench={[{ label: 'since', value: 'Apr 2024' }]}
     >
-      <Reveal className="readings rig ticks">
+      <Reveal variant="stagger" className="readings">
         <h3 className="visually-hidden">Readings</h3>
         <ul className="readings__list" aria-label="Bench readings">
           {READINGS.map((r) => (
@@ -31,11 +31,12 @@ export default function Experience() {
       <ol className="timeline" aria-label="Roles">
         {profile.experience.map((e) => (
           <li key={e.id} className="timeline__item">
+            <span className="timeline__node" aria-hidden="true" />
             <div className="timeline__when mono">
               <span>{e.period}</span>
               <span className="timeline__kind">{e.kind}</span>
             </div>
-            <div className="timeline__body">
+            <div className="timeline__body spec-card bevel">
               <h3>{e.role}</h3>
               <p className="timeline__org">{e.org}</p>
               <ul className="timeline__points">
@@ -50,27 +51,25 @@ export default function Experience() {
 
       <div className="education">
         <h3>Education</h3>
-        <dl className="spec">
-          <div className="spec__row">
-            <dt className="mono">School</dt>
-            <dd>
-              <span>{education.school}</span>
-            </dd>
+        <dl className="spec education__grid">
+          <div className="spec-card bevel">
+            <dt className="pill">School</dt>
+            <dd>{education.school}</dd>
           </div>
-          <div className="spec__row">
-            <dt className="mono">Degree</dt>
+          <div className="spec-card bevel">
+            <dt className="pill">Degree</dt>
             <dd>{education.degree}</dd>
           </div>
-          <div className="spec__row">
-            <dt className="mono">Period</dt>
+          <div className="spec-card bevel">
+            <dt className="pill">Period</dt>
             <dd>{education.period}</dd>
           </div>
-          <div className="spec__row">
-            <dt className="mono">Grade average</dt>
+          <div className="spec-card bevel">
+            <dt className="pill">Grade average</dt>
             <dd>{education.average}</dd>
           </div>
-          <div className="spec__row">
-            <dt className="mono">Courses</dt>
+          <div className="spec-card bevel education__courses">
+            <dt className="pill">Courses</dt>
             <dd>
               <ul className="tag-list" aria-label="Courses">
                 {education.courses.map((c) => (

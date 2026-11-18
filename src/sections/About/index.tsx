@@ -19,52 +19,57 @@ export default function About() {
     <Section
       id="about"
       title="Built alone, end to end."
+      accent="end to end"
       summary={profile.thesis}
       className="about"
       bench={[{ label: 'status', value: <span className="about__open">Open to roles</span> }]}
     >
-      <div className="about__lead">
-        <Portrait />
-        <div className="about__story">
-          <p className="about__role">{profile.role}</p>
-          {about.paragraphs.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
-          <p className="about__availability">
-            <span className="about__dot" aria-hidden="true" />
-            <span>{profile.availability}</span>
-          </p>
+      <div className="about__grid">
+        <Reveal variant="fade" className="about__side">
+          <Portrait />
+        </Reveal>
+        <div className="about__main">
+          <Reveal variant="stagger" className="about__story">
+            <p className="about__role">{profile.role}</p>
+            {about.paragraphs.map((p) => (
+              <p key={p}>{p}</p>
+            ))}
+            <p className="about__availability well">
+              <span className="about__dot" aria-hidden="true" />
+              <span>{profile.availability}</span>
+            </p>
+          </Reveal>
+
+          <div className="about__built">
+            <h3>What I built</h3>
+            <Reveal as="dl" variant="stagger" className="spec">
+              {about.built.map((b, i) => (
+                <div className="spec-card bevel" key={b}>
+                  <dt className="pill">{BUILT_LABELS[i] ?? 'Part'}</dt>
+                  <dd>{b}</dd>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+
+          <div className="about__stack">
+            <h3>Stack</h3>
+            <TagList label="Stack" items={about.stack} />
+          </div>
+
+          <Reveal className="about__writing stage">
+            <h3>Writing</h3>
+            <p>{writing.blurb}</p>
+            <ul className="tag-list" aria-label="Series topics">
+              {writing.topics.map((t) => (
+                <li key={t}>
+                  <Tag>{t}</Tag>
+                </li>
+              ))}
+            </ul>
+            <LinkButton href={writing.url}>Read the series on LinkedIn</LinkButton>
+          </Reveal>
         </div>
-      </div>
-
-      <Reveal className="about__built">
-        <h3>What I built</h3>
-        <dl className="spec">
-          {about.built.map((b, i) => (
-            <div className="spec__row" key={b}>
-              <dt className="mono">{BUILT_LABELS[i] ?? 'Part'}</dt>
-              <dd>{b}</dd>
-            </div>
-          ))}
-        </dl>
-      </Reveal>
-
-      <div className="about__stack">
-        <h3>Stack</h3>
-        <TagList label="Stack" items={about.stack} />
-      </div>
-
-      <div className="about__writing">
-        <h3>Writing</h3>
-        <p>{writing.blurb}</p>
-        <ul className="tag-list" aria-label="Series topics">
-          {writing.topics.map((t) => (
-            <li key={t}>
-              <Tag>{t}</Tag>
-            </li>
-          ))}
-        </ul>
-        <LinkButton href={writing.url}>Read the series on LinkedIn</LinkButton>
       </div>
     </Section>
   );

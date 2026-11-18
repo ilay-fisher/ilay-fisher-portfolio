@@ -2,7 +2,7 @@ import { useGSAP } from '@gsap/react';
 import { useRef } from 'react';
 import { gsap } from '../../lib/gsap';
 import { usePrefersReducedMotion } from '../../lib/motion';
-import { countUpValue, formatReading } from './countUp';
+import { countUpBounce, formatReading } from './countUp';
 
 /** One bench reading: a number, what it measures, and an optional qualifier. */
 export interface ReadingData {
@@ -20,8 +20,9 @@ export interface ReadingData {
 }
 
 /**
- * A bench reading. The final value is in the DOM from the start (no JS, reduced motion, tests);
- * with motion allowed it counts up once when scrolled into view. Assistive tech reads `spoken`.
+ * A bench reading on a soft instrument tile. The final value is in the DOM from the start (no JS,
+ * reduced motion, tests); with motion allowed it counts up once when scrolled into view and settles
+ * with a little overshoot, like a needle with mass. Assistive tech reads `spoken`.
  */
 export function Reading({ data }: { data: ReadingData }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -35,7 +36,7 @@ export function Reading({ data }: { data: ReadingData }) {
       const state = { p: 0 };
       const write = () => {
         el.textContent = formatReading(
-          countUpValue(data.from, data.to, state.p, data.decimals),
+          countUpBounce(data.from, data.to, state.p, data.decimals),
           data.decimals,
           data.suffix,
         );
@@ -43,17 +44,18 @@ export function Reading({ data }: { data: ReadingData }) {
       write();
       gsap.to(state, {
         p: 1,
-        duration: 1.4,
-        ease: 'expo.out',
+        duration: 1.5,
+        // the overshoot lives in countUpBounce, so the needle passes its mark and settles
+        ease: 'power2.out',
         onUpdate: write,
-        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+        scrollTrigger: { trigger: el, start: 'top 90%', toggleActions: 'play none none none' },
       });
     },
     { scope: ref, dependencies: [reduced] },
   );
 
   return (
-    <li className="reading">
+    <li className="reading tile">
       <p className="reading__label mono">{data.label}</p>
       <p className="reading__value">
         <span className="visually-hidden">{data.spoken}</span>
