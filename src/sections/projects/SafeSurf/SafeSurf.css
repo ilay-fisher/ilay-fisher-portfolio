@@ -948,7 +948,7 @@
   min-height: calc(4 * 1.4em);
 }
 /* At 360 the keys and the request buttons wrap to two rows, the request label to two lines. */
-@media (max-width: 420px) {
+@media (max-width: 380px) {
   .ss-display__main {
     min-height: calc(2 * 1.4em);
   }

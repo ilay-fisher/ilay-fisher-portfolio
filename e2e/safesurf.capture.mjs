@@ -16,7 +16,7 @@ const SLOW = 180000;
 async function shots(tag, viewport) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
   page.setDefaultTimeout(SLOW);
-  await page.goto(`${BASE}?safesurfDelay=40000&safesurfManual=1`);
+  await page.goto(`${BASE}?safesurfManual=1`);
   const demo = page.getByTestId('safesurf-demo');
   await demo.scrollIntoViewIfNeeded();
   await page.waitForFunction(
@@ -77,14 +77,14 @@ async function shots(tag, viewport) {
 if (!process.env.VIDEO_ONLY) await shots('desktop', { width: 1440, height: 900 });
 if (!process.env.VIDEO_ONLY) await shots('mobile', { width: 390, height: 844 });
 
-// Video: real clock, short delay, full flow.
+// Video: real clock and the shipped 8 s default, one short pass through the whole flow.
 const ctx = await browser.newContext({
   viewport: { width: 1280, height: 800 },
-  recordVideo: { dir: '/tmp/ss-video', size: { width: 1280, height: 800 } },
+  recordVideo: { dir: '/tmp/ss-video', size: { width: 960, height: 600 } },
 });
 const page = await ctx.newPage();
 page.setDefaultTimeout(SLOW);
-await page.goto(`${BASE}?safesurfDelay=12000`);
+await page.goto(`${BASE}`);
 const demo = page.getByTestId('safesurf-demo');
 await demo.scrollIntoViewIfNeeded();
 await page.waitForTimeout(1500);
@@ -92,29 +92,22 @@ const phone = page.locator('.ss-phone');
 const pb = await phone.boundingBox();
 await page.mouse.move(pb.x + 20, pb.y + 40, { steps: 8 });
 await page.mouse.move(pb.x + pb.width - 20, pb.y + pb.height - 60, { steps: 20 });
-await page.waitForTimeout(500);
 await page.getByTestId('safesurf-allow-site').click();
-await page.waitForTimeout(2000);
-// Busy: a second unlock shakes the lock, sponsor asks for the shortcut that is refused.
+await page.waitForTimeout(1200);
+// Busy: a second unlock shakes the lock, then the sponsor opens it.
 await page.getByTestId('safesurf-allow-page').click({ force: true });
-await page.waitForTimeout(1500);
+await page.waitForTimeout(900);
 await page.getByTestId('safesurf-sponsor').click({ force: true });
-await page.waitForTimeout(2500);
-// Wait out the compressed hour, watch the burn, then lock it back.
-await page.getByTestId('safesurf-block').waitFor({ state: 'visible', timeout: 60000 });
-await page.waitForTimeout(3500);
+await page.waitForTimeout(2200);
 await page.getByTestId('safesurf-block').click();
-await page.waitForTimeout(3500);
+await page.waitForTimeout(2200);
 for (const b of await page.locator('button[data-testid^="safesurf-bypass-"]').all()) {
   await b.click();
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(500);
 }
-await page.getByTestId('safesurf-allow-page').click();
-await page.waitForTimeout(2500);
-await page.getByTestId('safesurf-block').waitFor({ state: 'visible', timeout: 60000 });
-await page.waitForTimeout(3500);
+await page.waitForTimeout(800);
 const vid = page.video();
 await ctx.close();
-renameSync(await vid.path(), 'docs/reports/video/safesurf.webm');
+renameSync(await vid.path(), '/tmp/ss-raw.webm');
 rmSync('/tmp/ss-video', { recursive: true, force: true });
 await browser.close();

@@ -18,6 +18,10 @@ Instruments, not widgets. The phone is the hero (large, lit, grounded contact sh
 
 One shared WebGL2 canvas (`loadGlStage()`, dynamic import so OGL stays a lazy chunk, about 58 kB). The front is a fire ramp, thin white-hot core, amber, accent, then a dark char band behind it, with slight scorch darkening ahead of the front, a soft bloom spill, and embers lifting upward with turbulence. Ramp colours come from `--paint`, `--paint-hi`, `--paint-deep` at runtime plus fixed white and char, so it follows the v2 orange-red accent. Re-form is its own event: embers converge, the image knits back from the edges inward in small ragged cells, with a cool mint lip (from `--pass`) at the edge. Items stagger 100 ms apart. A designed tile ("Withheld by SafeSurf") is what is left. Fallbacks: CSS dissolve without WebGL2, instant swap under reduced motion. Render loop pauses off screen, DPR capped at 2, logging via `createLogger('safesurf')`, never per frame.
 
+## Zero layout shift
+
+The rig reserves its final height before anything lazy loads: a permanent slot for the Cancel and Ask sponsor row, minimum heights for the keys row, the invitation line, the status readout and the bypass display (sized for the longest refusal), with larger reservations at 380 px and below where keys wrap. `e2e/safesurf.spec.ts` records `scrollHeight`, `#drone` `offsetTop` and the rig height after load, after the stage is ready, and through a request, countdown, sponsor allow, all four bypass refusals and block again, and asserts they never change at 360, 390, 768 and 1440 px. The cost is some empty space at rest on mobile.
+
 ## Design v2 adoption
 
 Radii use `--radius-chip/control/card/stage`, springs use `--spring-soft` and `--spring-snappy` (and their `-dur`), surfaces use `.bevel` and `.well`, accent only via `--paint*`. No hard-coded pink. One literal ink colour remains on the mock page paper (the article is deliberately a light page).
@@ -33,11 +37,11 @@ Physical toggle with a throw and spring snap, a 12-detent dial with per-second t
 ## Tests
 
 - Unit: `rules.test.ts`, `status.test.ts`, `dissolve.test.ts`, `SafeSurfDemo.test.tsx` (244 unit tests pass repo-wide).
-- E2E: `e2e/safesurf.spec.ts` (9 tests): default blocked state, countdown then allow, cancel, sponsor, bypass refusals, reduced motion, no horizontal scroll at 390, manual-clock choreography, busy-lock shake and sponsor confirm. Slow tests use a long delay because software GL is slow.
+- E2E: `e2e/safesurf.spec.ts` (13 tests, 9 behaviour plus 4 layout-shift widths): default blocked state, countdown then allow, cancel, sponsor, bypass refusals, reduced motion, no horizontal scroll at 390, manual-clock choreography, busy-lock shake and sponsor confirm. Slow tests use a long delay because software GL is slow.
 
 ## Evidence
 
-- All captured on the v2 look. Stills use a 40 s delay (label reads "compressed to 40 s"); shipped default is 8 s.
+- All captured on the v2 look with the shipped 8 s default (label reads "compressed to 8 s"). The video is short, 800 px wide and under 200 kB.
 - Screenshots: `docs/reports/img/safesurf-{desktop,mobile}-{default,midburn,countdown,allowed}.png` (1440x900 and 390x844, clipped to the demo, site nav hidden in capture only).
 - Contact sheets (8 frames, 120 ms apart): `safesurf-frames-burn.png`, `safesurf-frames-reform.png`.
 - Video: `docs/reports/video/safesurf.webm`.
@@ -57,6 +61,5 @@ Every commit on this branch ends with `Co-Authored-By: Claude Sonnet 5.5 <norepl
 - Pointer tilt untested on touch hardware.
 - The mock article page is a light page inside a dark rig; deliberate, not final art direction.
 - The custom cursor and "press" label appear in some stills (they are the shared cursor, not the demo).
-- The video is large (about 27 MB) because it was recorded under software GL load.
 - Re-form is good but less spectacular than the burn.
 - Not a top-tier interactive studio piece yet: no sound, no real GPU tuning, a single article, embers are CPU-simulated, and the burn is shader-good rather than exceptional.
