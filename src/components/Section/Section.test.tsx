@@ -50,3 +50,30 @@ describe('Section', () => {
     expect(screen.getByRole('heading', { name: 'Hidden title' })).toHaveClass('visually-hidden');
   });
 });
+
+describe('Section (v2)', () => {
+  it('marks one accent word inside a string title without changing the accessible name', () => {
+    render(<Section id="x" title="Built alone, end to end." accent="end to end" />);
+    const h = screen.getByRole('heading', { level: 2 });
+    expect(h).toHaveAccessibleName('Built alone, end to end.');
+    const accent = h.querySelector('.accent');
+    expect(accent).not.toBeNull();
+    expect(accent).toHaveTextContent('end to end');
+  });
+
+  it('ignores an accent that is not in the title', () => {
+    render(<Section id="x" title="Plain title" accent="missing" />);
+    expect(document.querySelector('.accent')).toBeNull();
+  });
+
+  it('shows each bench label as a pill', () => {
+    render(<Section id="x" title="T" bench={[{ label: 'status', value: 'Live' }]} />);
+    const row = screen.getByTestId('bench-label');
+    expect(row.querySelector('.pill')).not.toBeNull();
+  });
+
+  it('has no hairline top rule class: sections are separated by space and light, not lines', () => {
+    render(<Section id="x" title="T" />);
+    expect(document.getElementById('x')).not.toHaveClass('section--ruled');
+  });
+});

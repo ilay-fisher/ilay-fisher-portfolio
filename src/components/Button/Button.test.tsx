@@ -54,3 +54,40 @@ describe('LinkButton', () => {
     expect(screen.getByRole('link')).toHaveAccessibleName('Site (opens in a new tab)');
   });
 });
+
+describe('Button feel', () => {
+  it('primary buttons opt in to the magnetic pull and the pointer sheen, secondary only the sheen', () => {
+    render(
+      <>
+        <Button variant="primary">Go</Button>
+        <Button>Other</Button>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Go' })).toHaveAttribute('data-magnetic');
+    expect(screen.getByRole('button', { name: 'Go' })).toHaveClass('sheen');
+    expect(screen.getByRole('button', { name: 'Other' })).not.toHaveAttribute('data-magnetic');
+    expect(screen.getByRole('button', { name: 'Other' })).toHaveClass('sheen');
+  });
+
+  it('magnetic can be switched off or on explicitly', () => {
+    render(
+      <>
+        <Button variant="primary" magnetic={false}>
+          Still
+        </Button>
+        <Button magnetic>Lean</Button>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Still' })).not.toHaveAttribute('data-magnetic');
+    expect(screen.getByRole('button', { name: 'Lean' })).toHaveAttribute('data-magnetic');
+  });
+
+  it('LinkButton shares the same opt-ins', () => {
+    render(
+      <LinkButton variant="primary" href="mailto:a@b.co">
+        Mail
+      </LinkButton>,
+    );
+    expect(screen.getByRole('link')).toHaveAttribute('data-magnetic');
+  });
+});

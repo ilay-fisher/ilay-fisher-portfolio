@@ -70,3 +70,11 @@ describe('magnetOffset', () => {
     expect(magnetOffset(1000, -1000, 0.3, 12)).toEqual({ x: 12, y: -12 });
   });
 });
+
+describe('Contact (v2)', () => {
+  it('is one rounded call-to-action panel, not a ticked rig', () => {
+    render(<Contact />);
+    expect(document.querySelector('.contact__panel.stage')).not.toBeNull();
+    expect(document.querySelector('.ticks')).toBeNull();
+  });
+});

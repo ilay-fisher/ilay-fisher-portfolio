@@ -16,3 +16,10 @@ describe('TagList', () => {
     expect(list.querySelectorAll('li')).toHaveLength(3);
   });
 });
+
+describe('Tag (v2)', () => {
+  it('is a pill', () => {
+    render(<Tag>Kotlin</Tag>);
+    expect(screen.getByText('Kotlin')).toHaveClass('pill');
+  });
+});

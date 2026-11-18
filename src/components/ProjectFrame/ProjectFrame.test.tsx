@@ -50,3 +50,23 @@ describe('ProjectFrame', () => {
     expect(screen.getByText('43.7%')).toBeInTheDocument();
   });
 });
+
+describe('ProjectFrame (v2)', () => {
+  it('seats the demo on a large lit stage and draws no corner ticks', () => {
+    render(
+      <ProjectFrame project={safesurf}>
+        <div data-testid="safesurf-demo" />
+      </ProjectFrame>,
+    );
+    const stage = screen.getByRole('group', { name: /SafeSurf.*demo/i });
+    expect(stage).toHaveClass('stage');
+    expect(stage).not.toHaveClass('ticks');
+  });
+
+  it('lists the key points as rounded spec rows', () => {
+    render(<ProjectFrame project={safesurf} />);
+    for (const p of safesurf.points) {
+      expect(screen.getByText(p).closest('li')).toHaveClass('spec-row');
+    }
+  });
+});
