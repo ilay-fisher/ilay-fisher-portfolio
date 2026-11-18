@@ -192,3 +192,7 @@ shadow; use one accent per view; give every press a spring; finish states under 
 Don't: frame with hairlines, show a grid, use identical cards with identical grey shadows, put
 caps eyebrows over headings, animate several things at once, hide the native cursor on touch,
 or add a third spring.
+
+## About avatar (head-turn)
+
+The About lens shows an illustrated avatar, not a photo. 44 blink-free WebP frames (512 px, about 450 kB) cover a monotonic yaw sweep; they are generated from the owner-approved video by `src/sections/About/avatar/generate_frames.py` and described by `frames.json`. The still (`still.webp`, registered into the same framing) shows first; the frames load when About is within 300 px of the viewport and the canvas takes over. The head follows the pointer anywhere on the page through the shared soft spring (`SPRING_SOFT`), with a few degrees of tilt and parallax from the vertical position. When the pointer is idle the head glances around and returns; on touch it drifts with scroll and turns toward a tap. Reduced motion draws one static frame facing the visitor. Fallbacks: frames fail, the still stays; the still fails, the IF monogram shows. `data-avatar` (`still|frames|static|monogram`) and `data-frame` on `.lens__glass` expose the state. There is deliberately no blink: the blink footage exists only at one yaw, so it could not be played without a pop.

@@ -30,10 +30,11 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
   // The error event can fire before React attaches the handler; catch an already-failed image.
   useEffect(() => {
     const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth === 0 && img.currentSrc !== '') setStillFailed(true);
+    if (img && img.complete && img.naturalWidth === 0 && img.currentSrc !== '')
+      setStillFailed(true);
   }, []);
 
-  // Lazy: only fetch the frames when About is within a screen of the viewport.
+  // Lazy: only fetch the frames when About is within 300px of the viewport.
   useEffect(() => {
     const el = figureRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') {
@@ -47,7 +48,7 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
           io.disconnect();
         }
       },
-      { rootMargin: '600px 0px' },
+      { rootMargin: '300px 0px' },
     );
     io.observe(el);
     return () => io.disconnect();

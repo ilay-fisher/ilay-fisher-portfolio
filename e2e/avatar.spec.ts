@@ -1,6 +1,26 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const glass = '#about .lens__glass';
+
+/**
+ * Waits until the displayed frame index has stopped changing (the spring has settled), then returns it. The pointer
+ * is nudged a pixel each poll so it never counts as idle (idle makes the head wander back on its own).
+ */
+async function settled(page: Page, x: number, y: number): Promise<number> {
+  let prev = Number.NaN;
+  let stable = 0;
+  for (let i = 0; i < 80 && stable < 3; i++) {
+    await page.mouse.move(x + (i % 2), y);
+    await page.waitForTimeout(150);
+    const cur = Number(await page.locator(glass).getAttribute('data-frame'));
+    stable = cur === prev ? stable + 1 : 0;
+    prev = cur;
+  }
+  return prev;
+}
+
+// the page runs a software-GL scene, so every mouse move waits on a slow frame
+test.setTimeout(120_000);
 
 test('the head follows the pointer: sweeping left to right never raises the frame index', async ({
   page,
@@ -15,10 +35,9 @@ test('the head follows the pointer: sweeping left to right never raises the fram
   const box = (await page.locator('#about .lens').boundingBox())!;
   const y = box.y + box.height / 2;
   const seen: number[] = [];
-  for (let x = 4; x <= 1436; x += 120) {
-    await page.mouse.move(x, y, { steps: 4 });
-    await page.waitForTimeout(900);
-    seen.push(Number(await page.locator(glass).getAttribute('data-frame')));
+  for (let x = 4; x <= 1436; x += 180) {
+    await page.mouse.move(x, y, { steps: 2 });
+    seen.push(await settled(page, x, y));
   }
   for (let i = 1; i < seen.length; i++) {
     expect(seen[i]!, `frame at step ${i}: ${seen.join(',')}`).toBeLessThanOrEqual(seen[i - 1]!);
@@ -33,11 +52,9 @@ test('the pointer is tracked anywhere on the page, not only over the lens', asyn
   await page.locator('#about').scrollIntoViewIfNeeded();
   await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
   await page.mouse.move(2, 5, { steps: 6 });
-  await page.waitForTimeout(1200);
-  const left = Number(await page.locator(glass).getAttribute('data-frame'));
+  const left = await settled(page, 2, 5);
   await page.mouse.move(1436, 5, { steps: 6 });
-  await page.waitForTimeout(1200);
-  const right = Number(await page.locator(glass).getAttribute('data-frame'));
+  const right = await settled(page, 1436, 5);
   expect(left).toBeGreaterThan(right);
 });
 
@@ -71,7 +88,9 @@ test('if the frames fail the still stays; if the still fails too the monogram sh
   await expect(page.locator('#about .lens__monogram')).toContainText('IF');
 });
 
-test('the avatar is lazy: nothing from the turn set loads until About is near', async ({ page }) => {
+test('the avatar is lazy: nothing from the turn set loads until About is near', async ({
+  page,
+}) => {
   const urls: string[] = [];
   page.on('request', (r) => r.url().includes('/images/avatar/turn/f') && urls.push(r.url()));
   await page.setViewportSize({ width: 1440, height: 900 });
