@@ -16,7 +16,17 @@ import {
   scrollToLook,
   stepIdle,
 } from './avatarLogic';
-import type { AvatarFrames } from './avatarLoader';
+import {
+  blinkDuration,
+  blinkPosition,
+  eyeMatrix,
+  initBlink,
+  mulberry32,
+  pickBlinkSet,
+  stepBlink,
+  type BlinkState,
+} from './blinkLogic';
+import type { AvatarFrames, BlinkAssets } from './avatarLoader';
 
 export interface AvatarEngineOptions {
   /** The avatar stage: receives `data-frame` and is observed for visibility. */
@@ -31,6 +41,10 @@ export interface AvatarEngineOptions {
   reduced: boolean;
   /** Called after the first frame is on the canvas. */
   onReady: () => void;
+  /** Lid patches cut from real blink footage. Without them the head simply does not blink. */
+  blinks?: BlinkAssets | null;
+  /** Seed for the blink scheduler (tests); random by default. */
+  seed?: number;
 }
 
 const TAP_HOLD = 1800;
@@ -41,6 +55,11 @@ const TAP_HOLD = 1800;
  * last tap, plus a gentle drift with scroll progress; and, after the pointer has been still for a while, an idle
  * glance around. Frames between two stored frames are cross-faded by the fractional index, so the turn never steps.
  * The tilt and parallax are written as one transform on the canvas.
+ *
+ * Blinks: at irregular 3 to 7 s intervals (sometimes twice in a row) the nearest recorded blink is played over the
+ * head frame: small footage patches of the lids, positioned on each eye by its tracked motion, so the lids move
+ * and nothing else does. The stage reports `data-blink` (off, idle or blinking) and counts `data-blink-started` /
+ * `data-blink-ended`. No blinks while reduced, off screen, or when no recorded blink is within reach of the angle.
  */
 export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
   const ctx = o.canvas.getContext('2d');
@@ -49,7 +68,46 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
   o.canvas.width = size;
   o.canvas.height = size;
 
-  const paint = (index: number) => {
+  const bl = o.reduced ? null : (o.blinks ?? null);
+  const anchors = bl ? bl.data.sets.map((x) => x.anchor) : [];
+  const reach = bl ? Math.min(...bl.data.sets.map((x) => x.reach)) : 0;
+  const rng = mulberry32(o.seed ?? Math.floor(Math.random() * 4294967296));
+  let blinkS: BlinkState = initBlink(0, rng);
+  let active = -1;
+  let blinkAt = 0;
+  let started = 0;
+  let ended = 0;
+  o.stage.dataset.blink = bl ? 'idle' : 'off';
+  o.stage.dataset.blinkStarted = '0';
+  o.stage.dataset.blinkEnded = '0';
+
+  /** Draws the lid patches of set `si` at patch position `pos` over the head frame already on the canvas. */
+  const paintBlink = (index: number, si: number, pos: number) => {
+    if (!ctx || !bl) return;
+    const set = bl.data.sets[si];
+    if (!set) return;
+    const { pw, ph } = bl.data;
+    const lo = Math.floor(pos);
+    const f = pos - lo;
+    ctx.imageSmoothingQuality = 'high';
+    // source-atop: lids land only where the head is, never on the backdrop at the edge of the silhouette
+    ctx.globalCompositeOperation = 'source-atop';
+    for (const eye of set.eyes) {
+      const m = eyeMatrix(eye.eye === 0 ? bl.data.tracks.E0 : bl.data.tracks.E1, index, set.anchor);
+      ctx.setTransform(m[0], m[3], m[1], m[4], m[2], m[5]);
+      ctx.globalAlpha = 1 - f;
+      ctx.drawImage(bl.atlas, lo * pw, eye.row * ph, pw, ph, eye.ox, eye.oy, pw, ph);
+      if (f > 0.01 && lo + 1 < set.count) {
+        ctx.globalAlpha = f;
+        ctx.drawImage(bl.atlas, (lo + 1) * pw, eye.row * ph, pw, ph, eye.ox, eye.oy, pw, ph);
+      }
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  };
+
+  const paint = (index: number, blinkPos: number | null = null) => {
     if (!ctx) return;
     const { a, b, t } = blendFrames(index, o.count);
     const fa = o.frames[a];
@@ -67,6 +125,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
     } else if (fa) ctx.drawImage(fa, 0, 0, size, size);
+    if (blinkPos !== null && active >= 0) paintBlink(index, active, blinkPos);
   };
 
   if (o.reduced) {
@@ -94,6 +153,14 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
   let shownFrame = -1;
   let poseKey = '';
   let readied = false;
+
+  const endBlink = () => {
+    if (active < 0) return;
+    active = -1;
+    o.stage.dataset.blink = 'idle';
+    o.stage.dataset.blinkEnded = String(++ended);
+    drawnKey = '';
+  };
 
   const onMove = (e: PointerEvent) => {
     if (e.pointerType === 'touch') return;
@@ -143,10 +210,31 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     pitchS = springStep(pitchS, targetPitch, dt, LOOK_SPRING);
 
     const index = lookToIndex(lookS.x, o.count, o.neutral);
-    const key = `${Math.floor(index)}:${Math.round((index % 1) * 48)}`;
+
+    let blinkPos: number | null = null;
+    if (bl) {
+      const step = stepBlink(blinkS, t, rng, false, pickBlinkSet(anchors, index, reach) >= 0);
+      blinkS = step.state;
+      if (step.started) {
+        active = pickBlinkSet(anchors, index, reach);
+        blinkAt = t;
+        o.stage.dataset.blink = 'blinking';
+        o.stage.dataset.blinkStarted = String(++started);
+      }
+      if (step.ended) endBlink();
+      const set = active >= 0 ? bl.data.sets[active] : undefined;
+      if (set)
+        blinkPos = blinkPosition(
+          Math.min(t - blinkAt, blinkDuration() - 1e-3),
+          set.count,
+          set.closed,
+        );
+    }
+
+    const key = `${Math.floor(index)}:${Math.round((index % 1) * 48)}:${active >= 0 && blinkPos !== null ? `${active}/${Math.round(blinkPos * 24)}` : ''}`;
     if (key !== drawnKey) {
       drawnKey = key;
-      paint(index);
+      paint(index, blinkPos);
       if (!readied) {
         readied = true;
         o.onReady();
@@ -177,6 +265,8 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
       ? null
       : new IntersectionObserver((entries) => {
           visible = entries[entries.length - 1]?.isIntersecting ?? false;
+          endBlink(); // never blink off screen; a fresh wait starts when he is seen again
+          if (bl) blinkS = initBlink(performance.now(), rng);
           if (visible) kick();
         });
   if (io) io.observe(o.stage);
@@ -190,6 +280,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerdown', onDown);
       io?.disconnect();
+      endBlink();
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       visible = false;

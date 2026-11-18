@@ -34,7 +34,7 @@ sweep to far screen left. The blink is repaired in place (open eyes from frames 
 head of each blink frame), so the head keeps its real motion through the seam and there is no jump. Frames are then thinned to
 even steps of head motion (measured as image difference), so equal pointer travel gives equal turn.
 """
-import argparse, json, os, subprocess, sys, tempfile
+import argparse, json, os, shutil, subprocess, sys, tempfile
 import cv2
 import numpy as np
 from PIL import Image
@@ -44,6 +44,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..',
 OUT = os.environ.get('AVATAR_OUT', os.path.join(ROOT, 'public', 'images', 'avatar', 'turn'))
 MANIFEST = os.environ.get('AVATAR_MANIFEST', os.path.join(ROOT, 'src', 'sections', 'About', 'avatar', 'frames.json'))
 ASSETS = os.environ.get('AVATAR_ASSETS', os.path.abspath(os.path.join(ROOT, '..', '..', '_assets')))
+BLINKS = os.environ.get('AVATAR_BLINKS', os.path.join(ROOT, 'src', 'sections', 'About', 'avatar', 'blinks.json'))
 STILL = os.path.join(ROOT, 'public', 'images', 'avatar', 'ilay-avatar.jpg')
 
 CROP_X, CROP = 270, 720          # square around the head in the 1280x720 video
@@ -398,7 +399,8 @@ def symmetry(bgra):
 
 
 def main_stitch(a_path, b_path, seam, keep, target):
-    with tempfile.TemporaryDirectory() as tmp:
+    tmp = tempfile.mkdtemp()
+    try:
         ga, gb = extract_all(a_path, os.path.join(tmp, 'a')), extract_all(b_path, os.path.join(tmp, 'b'))
         sa, sb = seam
         w = register(ga(sa), gb(sb))
@@ -409,6 +411,12 @@ def main_stitch(a_path, b_path, seam, keep, target):
         raw += [warp(gb(n)) for n in range(sb, B_TURN[1] + 1)]
         seam_idx = len(range(A_TURN[1], sa, -1))            # first frame that comes from clip B
         keyed = [key_green(im) for im in raw]
+        return _stitch_rest(keyed, seam_idx, keep, target, tmp, ga, gb, warp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _stitch_rest(keyed, seam_idx, keep, target, tmp, ga, gb, warp):
     boxes = [b for b in (subject_box(k) for k in keyed) if b]
     box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
     seq = [fade_bottom(fit_square(k, box)) for k in keyed]
@@ -431,6 +439,23 @@ def main_stitch(a_path, b_path, seam, keep, target):
     print(f'source sequence {len(seq)} frames (A reversed {seam_idx}, B {len(seq) - seam_idx}); kept {len(frames)} of {lo}..{hi}; '
           f'frontal = sequence frame {front}; max step among kept {max(np.abs(small(flat(frames[i + 1])) - small(flat(frames[i]))).mean() for i in range(len(frames) - 1)):.2f}')
     write_set(frames, frames[neutral], neutral, neutral)
+    # blinks: cut from the real footage and registered to these very frames (same crop box, same keying)
+    import generate_blinks
+    blink_clip = os.path.join(ASSETS, 'avatar-blinks-green.mp4')
+    readers = {'a': ga, 'b': lambda n: warp(gb(n))}
+    if os.path.exists(blink_clip):
+        gc = extract_all(blink_clip, os.path.join(tmp, 'c'))
+        readers['c'] = gc
+    else:
+        print(f'{blink_clip} not found: blinks only from the head-turn clips')
+    cache = {}
+
+    def get(clip, n):
+        if (clip, n) not in cache:
+            cache[(clip, n)] = fit_square(key_green(readers[clip](n)), box)
+        return cache[(clip, n)]
+
+    generate_blinks.generate(frames, neutral, get, OUT, BLINKS, set(readers))
     return pick, seam_idx, front
 
 

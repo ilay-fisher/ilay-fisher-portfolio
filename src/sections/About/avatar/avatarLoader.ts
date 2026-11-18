@@ -1,4 +1,5 @@
 import manifest from './frames.json';
+import type { BlinkData } from './blinkLogic';
 
 export type AvatarFrames = Array<HTMLImageElement | undefined>;
 export type AvatarLoader = (only?: number[]) => Promise<AvatarFrames>;
@@ -30,4 +31,21 @@ export const loadAvatarFrames: AvatarLoader = async (only) => {
     }),
   );
   return out;
+};
+
+export interface BlinkAssets {
+  atlas: HTMLImageElement;
+  data: BlinkData;
+}
+/** Loads the blink atlas; resolves null when it is unavailable, so the head just does not blink. */
+export type BlinkLoader = () => Promise<BlinkAssets | null>;
+
+/** Fetches the blink data (a lazy chunk) and the lid-patch atlas image. */
+export const loadBlinkAssets: BlinkLoader = async () => {
+  const data = (await import('./blinks.json')).default as unknown as BlinkData;
+  const atlas = new Image();
+  atlas.decoding = 'async';
+  atlas.src = `${manifest.dir}${data.atlas}`;
+  await atlas.decode();
+  return { atlas, data };
 };
