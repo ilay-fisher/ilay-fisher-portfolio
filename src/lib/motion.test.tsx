@@ -77,8 +77,11 @@ describe('useRafLoop', () => {
   let frames: FrameRequestCallback[] = [];
   beforeEach(() => {
     frames = [];
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
-    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    vi.stubGlobal('cancelAnimationFrame', () => {
+      frames = [];
+    });
   });
   afterEach(() => vi.unstubAllGlobals());
 
