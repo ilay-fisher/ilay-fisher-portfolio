@@ -155,7 +155,7 @@ describe('SafeSurfDemo', () => {
     // The ring ticks once a second: five of eight seconds left is five eighths of the arc.
     advance(3000);
     const arc = document.querySelector<SVGElement>('.ss-ring__arc')!;
-    const circ = 2 * Math.PI * 26;
+    const circ = 2 * Math.PI * 22;
     expect(Number(arc.getAttribute('stroke-dashoffset'))).toBeCloseTo(circ * (1 - 5 / 8), 1);
     expect(document.querySelector('.ss-ring__pulse')).not.toBeNull();
     click(/ask sponsor/i);
