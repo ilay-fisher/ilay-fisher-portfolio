@@ -60,11 +60,29 @@
     0 0 0 3px rgb(0 0 0 / 0.55),
     0 1px 0 4px rgb(255 255 255 / 0.07);
 }
-.lens__glass img {
+.lens__glass {
+  --avatar-zoom: 1.07;
+}
+.lens__glass img,
+.lens__frames {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+}
+.lens__glass img {
   object-fit: cover;
-  object-position: 50% 22%;
+  transform: scale(var(--avatar-zoom));
+  transition: opacity 520ms var(--ease-out);
+}
+.lens__frames {
+  transform-origin: 50% 55%;
+  will-change: transform;
+}
+/* once a frame is on the canvas the still steps aside (it stays in the tree for the alt text) */
+.lens__glass[data-avatar='frames'] img,
+.lens__glass[data-avatar='static'] img {
+  opacity: 0;
 }
 /* the glass: a curved reflection top left and a warm ember bounce bottom right */
 .lens__glint {

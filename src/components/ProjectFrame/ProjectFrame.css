@@ -40,11 +40,14 @@
 }
 .project__numbers {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(7.5rem, 100%), 1fr));
   gap: var(--space-3);
   margin: 0;
 }
 .project__numbers > div {
+  min-width: 0;
+  /* the figure sizes itself from this tile's width, so it can never run into its neighbour */
+  container-type: inline-size;
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-card);
   background: rgb(0 0 0 / 0.24);
@@ -53,8 +56,10 @@
 .project__numbers dt {
   font-family: var(--font-display);
   font-weight: var(--display-weight);
-  font-size: var(--step-3);
+  font-size: clamp(1.1rem, 24cqi, var(--step-3));
   letter-spacing: var(--display-tracking);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   line-height: 1;
 }
 .project__numbers dd {
