@@ -159,9 +159,6 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-3) var(--space-4) var(--space-5);
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
-  overscroll-behavior: contain;
 }
 .ss-gl {
   position: absolute;
