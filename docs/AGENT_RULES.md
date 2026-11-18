@@ -76,9 +76,13 @@ known limits, shared files touched, screenshots.
 
 ## 7. Pull request
 
+On this machine `gh` is an x86_64 binary and fails when it shells out to `/usr/bin/git`.
+Always run `gh` with the Command Line Tools git first on the PATH:
+
 ```bash
+export PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH
 git push -u origin <branch-name>
-gh pr create --base main --title "<type>: <summary>" --body "<what, why, how tested, screenshots, shared files touched>"
+gh pr create --repo ilay-fisher/ilay-fisher-portfolio --head <branch-name> --base main --title "<type>: <summary>" --body "<what, why, how tested, screenshots, shared files touched>"
 ```
 
 Do not merge. Do not push to `main`. Report back to the manager with: PR URL, branch,

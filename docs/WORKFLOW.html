@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio build board</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #16181d; --muted: #5d6470; --line: #dcd9d0;
+    --accent: #1f4fd8; --done: #1a7f4b; --run: #b26a00; --todo: #7a808c; --review: #7b3fc4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1115; --panel: #171a21; --ink: #e9ebef; --muted: #9aa2b1; --line: #2a2f3a;
+            --accent: #7da2ff; --done: #4cc38a; --run: #f0a93b; --todo: #8a92a3; --review: #b891f5; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 18px; margin: 40px 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 8px; max-width: 70ch; }
+  .flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; position: relative; }
+  .step b { display: block; font-size: 13px; }
+  .step span { color: var(--muted); font-size: 12.5px; }
+  .step:not(:last-child)::after { content: "→"; position: absolute; right: -11px; top: 50%;
+         transform: translateY(-50%); color: var(--muted); font-size: 13px; z-index: 1; }
+  .par { display: grid; gap: 6px; margin-top: 8px; }
+  .par i { font-style: normal; font-size: 12px; border: 1px dashed var(--line); border-radius: 6px; padding: 3px 6px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 13.5px; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+          border: 1px solid currentColor; white-space: nowrap; }
+  .done { color: var(--done); } .run { color: var(--run); } .todo { color: var(--todo); } .review { color: var(--review); }
+  ol.loop { padding-left: 20px; max-width: 75ch; } ol.loop li { margin: 4px 0; }
+  a { color: var(--accent); }
+  @media (max-width: 760px) { .flow { grid-template-columns: 1fr 1fr; } .step::after { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Portfolio build board</h1>
+  <p class="lead">One manager agent plans, writes contracts, reviews and merges. Worker agents (Claude Opus 5.5) each own one
+  workstream in its own git worktree, write tests first, and deliver one pull request. The manager writes no application code.</p>
+  <p class="lead">Rules: <a href="AGENT_RULES.md">AGENT_RULES.md</a> · Interfaces: <a href="CONTRACTS.md">CONTRACTS.md</a> ·
+  Copy: <a href="CONTENT.md">CONTENT.md</a> · Reports: <a href="reports/">reports/</a></p>
+
+  <h2>Workflow</h2>
+  <div class="flow">
+    <div class="step"><b>0 · Brief</b><span>Manager gathers profile data, asks the owner, creates repo, Firebase project and contracts.</span></div>
+    <div class="step"><b>1 · Research</b><span>Worker R finds the exact technique for every animation.</span></div>
+    <div class="step"><b>2 · Foundation</b><span>Worker F scaffolds tooling, design tokens, shared libs, CI and a stub per section.</span></div>
+    <div class="step"><b>3 · Features</b><span>Five workers in parallel, one worktree each.</span>
+      <div class="par"><i>A Hero</i><i>B About / Experience / Contact</i><i>C SafeSurf demo</i><i>D Drone demo</i><i>E X-Ray demo</i></div></div>
+    <div class="step"><b>4 · Integration QA</b><span>Worker Q checks the merged page: visuals, performance, accessibility, mobile.</span></div>
+    <div class="step"><b>5 · Ship</b><span>Manager verifies on localhost, deploys to Firebase Hosting, later connects the Cloudflare domain.</span></div>
+  </div>
+
+  <h2>Per-workstream loop</h2>
+  <ol class="loop">
+    <li>Manager sends a brief: goal, owned paths, port, acceptance criteria.</li>
+    <li>Worker creates a worktree and branch from <code>origin/main</code>.</li>
+    <li>Worker writes failing tests and commits them (<code>test:</code>).</li>
+    <li>Worker implements until lint, typecheck, unit, build and e2e pass (<code>feat:</code>).</li>
+    <li>Worker verifies visually with Playwright screenshots and writes a report.</li>
+    <li>Worker opens a PR and reports to the manager. It does not merge.</li>
+    <li>Manager reviews the diff, the tests and the screenshots. Requests changes or merges.</li>
+  </ol>
+
+  <h2>Board</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>ID</th><th>Workstream</th><th>Branch</th><th>Status</th><th>PR</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>Brief, repo, Firebase project, contracts</td><td><code>main</code></td><td><span class="pill done">Done</span></td><td>—</td><td>Repo public. Firebase project <code>ilay-fisher-portfolio</code>.</td></tr>
+      <tr><td>R</td><td>Animation research</td><td><code>docs/animation-research</code></td><td><span class="pill run">In progress</span></td><td>—</td><td></td></tr>
+      <tr><td>F</td><td>Foundation: tooling, tokens, libs, stubs, CI</td><td><code>feat/foundation</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td>Starts when R is merged.</td></tr>
+      <tr><td>A</td><td>Hero: real-time text paint</td><td><code>feat/hero</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td></td></tr>
+      <tr><td>B</td><td>About, Experience, Contact, Nav, Footer</td><td><code>feat/about-experience-contact</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td></td></tr>
+      <tr><td>C</td><td>SafeSurf filter demo</td><td><code>feat/safesurf-demo</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td></td></tr>
+      <tr><td>D</td><td>Drone path-planning demo</td><td><code>feat/drone-demo</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td></td></tr>
+      <tr><td>E</td><td>X-Ray lens demo</td><td><code>feat/xray-demo</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td></td></tr>
+      <tr><td>Q</td><td>Integration QA and polish</td><td><code>fix/integration-qa</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td></td></tr>
+      <tr><td>S</td><td>Deploy to Firebase Hosting</td><td><code>main</code></td><td><span class="pill todo">Queued</span></td><td>—</td><td>Cloudflare domain after the owner supplies it.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</main>
+</body>
+</html>
