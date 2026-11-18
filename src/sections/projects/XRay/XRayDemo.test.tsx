@@ -183,3 +183,28 @@ describe('XRayDemo fallback', () => {
     expect(screen.getByTestId('xray-measured')).toHaveTextContent(/not measured/i);
   });
 });
+
+describe('XRayDemo hardware and cursor contract', () => {
+  it('marks the slider area as drag and every region as scan', async () => {
+    await ready();
+    const slide = screen.getByTestId('xray-slider').parentElement!;
+    expect(slide).toHaveAttribute('data-cursor', 'drag');
+    for (const r of screen.getAllByRole('button', { name: /^Region \d of 2$/ })) {
+      expect(r).toHaveAttribute('data-cursor', 'scan');
+    }
+  });
+  it('rides the knob on the rail at the slider position', async () => {
+    await ready();
+    const knob = document.querySelector('.xray__knob') as HTMLElement;
+    const lit = document.querySelector('.xray__lit') as HTMLElement;
+    expect(knob.style.left).toBe('50%');
+    expect(lit.style.width).toBe('50%');
+    fireEvent.change(screen.getByTestId('xray-slider'), { target: { value: '80' } });
+    await waitFor(() => expect(knob.style.left).toBe('80%'));
+  });
+  it('has no corner ticks and a desaturated base layer inside the heat side', async () => {
+    await ready();
+    expect(document.querySelector('.xray__corner')).toBeNull();
+    expect(screen.getByTestId('xray-heatmap').querySelector('.xray__heatbase')).not.toBeNull();
+  });
+});

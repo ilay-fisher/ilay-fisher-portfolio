@@ -116,4 +116,40 @@ test.describe('X-Ray demo', () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
   });
+
+  test('knob follows the slider on the rail and the cursor contract is set', async ({ page }) => {
+    await openDemo(page);
+    const slider = page.getByTestId('xray-slider');
+    await expect(slider.locator('xpath=..')).toHaveAttribute('data-cursor', 'drag');
+    await slider.focus();
+    await slider.press('Home');
+    const knob = page.locator('.xray__knob');
+    await expect
+      .poll(async () => (await knob.boundingBox())?.x ?? 999, { timeout: 20_000 })
+      .toBeLessThan((await page.getByTestId('xray-stage').boundingBox())!.x + 8);
+    await slider.press('End');
+    await expect
+      .poll(async () => (await knob.boundingBox())?.x ?? 0, { timeout: 20_000 })
+      .toBeGreaterThan((await page.getByTestId('xray-stage').boundingBox())!.x + 200);
+    await expect(page.getByTestId('xray-region-1')).toHaveAttribute('data-cursor', 'scan');
+  });
+
+  test('the rig does not change height when a diff result lands (no layout shift)', async ({
+    page,
+  }) => {
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openDemo(page);
+      const demo = page.getByTestId('xray-demo');
+      await page.getByTestId('xray-preset-aerial').click();
+      // The diff may already be done by the time we look (fast machine), so pending is not asserted.
+      const pending = (await demo.boundingBox())!.height;
+      await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
+        'data-source',
+        /computed|fallback/,
+      );
+      const done = (await demo.boundingBox())!.height;
+      expect(Math.abs(done - pending)).toBeLessThanOrEqual(1);
+    }
+  });
 });
