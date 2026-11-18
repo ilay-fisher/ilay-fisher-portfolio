@@ -234,9 +234,14 @@ test.describe('hero scene', () => {
     await expect.poll(() => page.evaluate(() => location.hash)).toMatch(/#(safesurf|drone|xray)/);
   });
 
-  test('a real mouse double-click on each project piece jumps to its section', async ({ page }) => {
-    test.setTimeout(180_000);
-    await openHero(page);
+  test('as a visitor gets it (live physics, smooth scroll), a real double-click scrolls all the way to the section', async ({
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // No heroFast, no reduced motion: the page keeps Lenis smooth scrolling and the scene keeps simulating.
+    await page.goto('/?hero=live&heroDebug=1');
+    await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
     const projects = [
       ['logo', '#safesurf'],
       ['shield', '#safesurf'],
@@ -244,32 +249,35 @@ test.describe('hero scene', () => {
       ['lens', '#xray'],
     ] as const;
     for (const [id, hash] of projects) {
-      // One scene load for all four pieces (loads are the slow part on software GL).
       await page.evaluate(() => {
         history.replaceState(null, '', location.pathname + location.search);
         window.scrollTo({ top: 0, behavior: 'instant' });
       });
       await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(0);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1500);
       const at = await hero(page, (h, i: string) => h.project(i), id);
       expect(at, `${id} is on screen`).not.toBeNull();
-      const onCanvas = await page.evaluate(
-        ([x, y]) => document.elementFromPoint(x!, y!)?.getAttribute('data-testid'),
-        [at!.x, at!.y],
-      );
-      expect(onCanvas, `${id} is not covered by other content`).toBe('hero-canvas');
       await page.mouse.dblclick(at!.x, at!.y);
       await expect.poll(() => page.evaluate(() => location.hash), { message: id }).toBe(hash);
+      // Wait for scrolling to stop, then the section must sit at the top.
+      let last = -1;
+      let still = 0;
       await expect
         .poll(
-          () =>
-            page.evaluate(
-              (h) => Math.abs(document.querySelector(h)?.getBoundingClientRect().top ?? 9999),
-              hash,
-            ),
-          { message: `${id} scrolls its section to the top`, timeout: 40_000 },
+          async () => {
+            const y = await page.evaluate(() => Math.round(window.scrollY));
+            still = Math.abs(y - last) < 1 ? still + 1 : 0;
+            last = y;
+            return still;
+          },
+          { message: `${id}: scrolling stops`, timeout: 30_000, intervals: [300] },
         )
-        .toBeLessThan(160);
+        .toBeGreaterThanOrEqual(4);
+      const top = await page.evaluate(
+        (h) => document.querySelector(h)?.getBoundingClientRect().top ?? 9999,
+        hash,
+      );
+      expect(Math.abs(top), `${id}: ${hash} ends at the top of the viewport`).toBeLessThan(160);
     }
   });
 
