@@ -27,7 +27,7 @@ describe('avatar frame manifest', () => {
       expect(existsSync(diskPath(name)), name).toBe(true);
       total += statSync(diskPath(name)).size;
     }
-    expect(total).toBeLessThanOrEqual(600_000);
+    expect(total).toBeLessThanOrEqual(700_000);
     const framesOnly = manifest.frames.reduce((n, f) => n + statSync(diskPath(f)).size, 0);
     expect(framesOnly).toBe(manifest.bytes);
     expect(manifest.size).toBe(512);

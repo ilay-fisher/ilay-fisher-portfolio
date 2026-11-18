@@ -31,8 +31,8 @@ not a spreadsheet.
   panels, full pill for buttons, switches and labels.
 - Forbidden: corner-tick frames, 1 px box outlines as the main frame, square grids, square
   image crops, full-width table rules. A hairline may separate rows inside a rounded card.
-- Portrait: never a square. A soft rounded form (squircle or a slow-breathing organic mask)
-  seated in a bevelled bezel like an instrument lens, with a faint accent rim light.
+- Portrait: never a square and never framed. The avatar stands free on the stage (alpha, no bezel or
+  circle), grounded by a soft contact pool and a faint accent rim glow.
 
 ## Material and light
 

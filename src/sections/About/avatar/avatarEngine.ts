@@ -15,8 +15,8 @@ import {
 import type { AvatarFrames } from './avatarLoader';
 
 export interface AvatarEngineOptions {
-  /** The lens glass: receives `data-frame` and is observed for visibility. */
-  glass: HTMLElement;
+  /** The avatar stage: receives `data-frame` and is observed for visibility. */
+  stage: HTMLElement;
   canvas: HTMLCanvasElement;
   frames: AvatarFrames;
   count: number;
@@ -32,7 +32,7 @@ export interface AvatarEngineOptions {
 const TAP_HOLD = 1800;
 
 /**
- * Draws the head-turn onto a canvas. One rAF loop, only while the lens is on screen. The head is a spring (the
+ * Draws the head-turn onto a canvas. One rAF loop, only while the avatar is on screen. The head is a spring (the
  * site's soft spring) chasing a `look` target: the pointer anywhere on the page on a fine pointer; on touch, the
  * last tap, plus a gentle drift with scroll progress; and, after the pointer has been still for a while, an idle
  * glance around. Frames between two stored frames are cross-faded by the fractional index, so the turn never steps.
@@ -52,6 +52,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     const a = o.frames[i0];
     const b = o.frames[Math.min(i0 + 1, o.count - 1)];
     ctx.globalAlpha = 1;
+    ctx.clearRect(0, 0, size, size); // frames carry alpha: never stack on the previous paint
     if (a) ctx.drawImage(a, 0, 0, size, size);
     if (frac > 0.04 && b && b !== a) {
       ctx.globalAlpha = frac;
@@ -62,7 +63,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
 
   if (o.reduced) {
     paint(first);
-    o.glass.dataset.frame = String(first);
+    o.stage.dataset.frame = String(first);
     o.onReady();
     return { stop: () => {} };
   }
@@ -94,7 +95,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     lastInput = performance.now();
   };
   const onDown = (e: PointerEvent) => {
-    const rect = o.glass.getBoundingClientRect();
+    const rect = o.stage.getBoundingClientRect();
     const range = lookRange(window.innerWidth);
     if (e.pointerType === 'touch') {
       tapLook = pointerToLook(e.clientX - (rect.left + rect.width / 2), range);
@@ -109,7 +110,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     if (!visible) return;
     const dt = last ? (t - last) / 1000 : 0.016;
     last = t;
-    const rect = o.glass.getBoundingClientRect();
+    const rect = o.stage.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const pointerLive = fine && havePointer && t - lastInput < IDLE_AFTER;
@@ -146,7 +147,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     const shown = nearestIndex(index, o.count);
     if (shown !== shownFrame) {
       shownFrame = shown;
-      o.glass.dataset.frame = String(shown);
+      o.stage.dataset.frame = String(shown);
     }
     const pose = avatarPose(lookS.x, pitchS.x);
     const pk = `${pose.rx.toFixed(2)}|${pose.rz.toFixed(2)}|${pose.ty.toFixed(1)}`;
@@ -170,7 +171,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
           visible = entries[entries.length - 1]?.isIntersecting ?? false;
           if (visible) kick();
         });
-  if (io) io.observe(o.glass);
+  if (io) io.observe(o.stage);
   else {
     visible = true;
     kick();

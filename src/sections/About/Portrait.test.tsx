@@ -51,15 +51,16 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const glass = () => document.querySelector('.lens__glass') as HTMLElement;
+const stage = () => document.querySelector('.avatar__stage') as HTMLElement;
 
 describe('Portrait avatar', () => {
-  it('shows the illustrated still first, in the lens, with honest alt text', () => {
+  it('shows the illustrated still first, free on the stage, with honest alt text', () => {
     render(<Portrait loader={vi.fn<Loader>(() => new Promise(() => {}))} />);
     const img = screen.getByRole('img', { name: 'Illustrated avatar of Ilay Fisher' });
     expect(img).toHaveAttribute('src', `${manifest.dir}${manifest.still}`);
-    expect(img.closest('.lens')).not.toBeNull();
-    expect(glass()).toHaveAttribute('data-avatar', 'still');
+    expect(img.closest('.avatar')).not.toBeNull();
+    expect(img.closest('.lens')).toBeNull();
+    expect(stage()).toHaveAttribute('data-avatar', 'still');
   });
 
   it('does not fetch frames until About is near the viewport', async () => {
@@ -83,7 +84,7 @@ describe('Portrait avatar', () => {
     expect(opts.reduced).toBe(false);
     expect(opts.frames).toHaveLength(manifest.count);
     act(() => opts.onReady());
-    expect(glass()).toHaveAttribute('data-avatar', 'frames');
+    expect(stage()).toHaveAttribute('data-avatar', 'frames');
   });
 
   it('keeps the still when the frames fail to load', async () => {
@@ -95,16 +96,16 @@ describe('Portrait avatar', () => {
     await waitFor(() => expect(loader).toHaveBeenCalled());
     await Promise.resolve();
     expect(engine.start).not.toHaveBeenCalled();
-    expect(glass()).toHaveAttribute('data-avatar', 'still');
+    expect(stage()).toHaveAttribute('data-avatar', 'still');
     expect(screen.getByRole('img', { name: /Illustrated avatar/ })).toBeInTheDocument();
   });
 
   it('falls back to the IF monogram when the still fails too', () => {
     render(<Portrait loader={vi.fn<Loader>(() => new Promise(() => {}))} />);
     fireEvent.error(screen.getByRole('img', { name: /Illustrated avatar/ }));
-    expect(document.querySelector('.lens img')).toBeNull();
-    expect(document.querySelector('.lens .lens__monogram')).toHaveTextContent('IF');
-    expect(glass()).toHaveAttribute('data-avatar', 'monogram');
+    expect(document.querySelector('.avatar img')).toBeNull();
+    expect(document.querySelector('.avatar .avatar__monogram')).toHaveTextContent('IF');
+    expect(stage()).toHaveAttribute('data-avatar', 'monogram');
   });
 
   it('under reduced motion loads only the neutral frame and renders it static', async () => {
@@ -121,7 +122,7 @@ describe('Portrait avatar', () => {
     const opts = engine.start.mock.calls[0]![0] as { reduced: boolean; onReady: () => void };
     expect(opts.reduced).toBe(true);
     act(() => opts.onReady());
-    expect(glass()).toHaveAttribute('data-avatar', 'static');
+    expect(stage()).toHaveAttribute('data-avatar', 'static');
   });
 
   it('stops the engine on unmount', async () => {

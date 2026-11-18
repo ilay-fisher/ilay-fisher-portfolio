@@ -121,7 +121,7 @@ test('portrait loads with real dimensions and falls back to a monogram on failur
   page,
 }) => {
   await page.goto('/');
-  const img = page.locator('#about .lens__glass img');
+  const img = page.locator('#about .avatar__stage img');
   await img.scrollIntoViewIfNeeded();
   await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(512);
   await page.route('**/images/avatar/turn/still.webp', (r) => r.abort());

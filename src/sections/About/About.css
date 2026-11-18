@@ -13,89 +13,54 @@
   min-width: 0;
 }
 
-/* ---- the lens: a round bezel, knurled ring, dark gap, glass with a glint, ember rim light ---- */
+/* ---- the avatar stands free on the stage: no bezel, ring or crop. Depth comes from light only:
+   a soft contact pool under the shoulders and a faint accent rim glow ---- */
 .about__portrait {
   margin: 0;
-  width: min(100%, 340px);
+  width: min(100%, 420px);
 }
-.lens {
+.avatar {
   position: relative;
   aspect-ratio: 1;
-  padding: 16px;
-  border-radius: 50%;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(150deg, #36424f, #141a21 60%, #0d1116) padding-box,
-    var(--rim-gradient) border-box;
-  background-origin: border-box;
-  box-shadow:
-    var(--bevel-inset),
-    var(--shadow-lift),
-    12px 16px 48px -14px rgb(var(--paint-rgb) / 0.42);
 }
-/* knurled grip ring */
-.lens::before {
-  content: '';
+.avatar__pool {
   position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  background: repeating-conic-gradient(rgb(255 255 255 / 0.09) 0 0.7deg, transparent 0.7deg 3deg);
-  -webkit-mask: radial-gradient(
-    closest-side,
-    transparent calc(100% - 13px),
-    #000 calc(100% - 12px)
-  );
-  mask: radial-gradient(closest-side, transparent calc(100% - 13px), #000 calc(100% - 12px));
+  left: 8%;
+  right: 8%;
+  bottom: 2%;
+  height: 22%;
   pointer-events: none;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.38), transparent);
+  filter: blur(10px);
 }
-.lens__glass {
+.avatar__stage {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow:
-    inset 3px 5px 14px rgb(0 0 0 / 0.65),
-    0 0 0 3px rgb(0 0 0 / 0.55),
-    0 1px 0 4px rgb(255 255 255 / 0.07);
+  /* faint accent rim: a drop-shadow follows the alpha silhouette, so it is light, not an outline */
+  filter: drop-shadow(0 0 22px rgb(var(--paint-rgb) / 0.22));
 }
-.lens__glass {
-  --avatar-zoom: 1.07;
-}
-.lens__glass img,
-.lens__frames {
+.avatar__stage img,
+.avatar__frames {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-.lens__glass img {
-  object-fit: cover;
-  transform: scale(var(--avatar-zoom));
+.avatar__stage img {
+  object-fit: contain;
   transition: opacity 520ms var(--ease-out);
 }
-.lens__frames {
-  transform-origin: 50% 55%;
+.avatar__frames {
+  transform-origin: 50% 80%;
   will-change: transform;
 }
 /* once a frame is on the canvas the still steps aside (it stays in the tree for the alt text) */
-.lens__glass[data-avatar='frames'] img,
-.lens__glass[data-avatar='static'] img {
+.avatar__stage[data-avatar='frames'] img,
+.avatar__stage[data-avatar='static'] img {
   opacity: 0;
 }
-/* the glass: a curved reflection top left and a warm ember bounce bottom right */
-.lens__glint {
-  position: absolute;
-  inset: 16px;
-  border-radius: 50%;
-  pointer-events: none;
-  background:
-    radial-gradient(70% 46% at 30% 10%, rgb(255 255 255 / 0.2), transparent 70%),
-    radial-gradient(60% 40% at 80% 98%, rgb(var(--paint-rgb) / 0.22), transparent 70%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
-}
-.lens__monogram {
+.avatar__monogram {
   display: grid;
   place-items: center;
   height: 100%;
@@ -104,7 +69,6 @@
   font-size: clamp(5rem, 22vw, 9rem);
   letter-spacing: var(--display-tracking);
   color: var(--paint);
-  background: radial-gradient(circle at 30% 20%, #232d37, var(--surface));
 }
 .about__portrait figcaption {
   display: flex;
@@ -196,7 +160,7 @@
 }
 @media (min-width: 960px) {
   .about__grid {
-    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-columns: 400px minmax(0, 1fr);
     gap: var(--space-9);
     align-items: start;
   }
