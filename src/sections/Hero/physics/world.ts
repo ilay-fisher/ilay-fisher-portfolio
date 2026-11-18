@@ -2,6 +2,7 @@ import {
   Body,
   Box,
   ContactMaterial,
+  GSSolver,
   Material,
   SAPBroadphase,
   Quaternion,
@@ -64,7 +65,7 @@ export class PhysicsWorld {
     this.world = new World({ gravity: new CVec3(0, GRAVITY, 0) });
     this.world.broadphase = new SAPBroadphase(this.world);
     this.world.allowSleep = true;
-    this.world.solver.iterations = 14;
+    (this.world.solver as GSSolver).iterations = 14;
     this.world.defaultContactMaterial.contactEquationRelaxation = 4;
     this.world.addContactMaterial(
       new ContactMaterial(this.thing, this.thing, { friction: 0.38, restitution: 0.22 }),

@@ -46,6 +46,14 @@ describe('Hero markup', () => {
     expect(screen.getByTestId('hero-canvas').tagName).toBe('CANVAS');
   });
 
+  it('shows the approved invitation line verbatim next to the scene', () => {
+    webgl.available = true;
+    render(<Hero />);
+    expect(
+      screen.getByText('Throw things at my name. Cheaper than therapy. It holds.'),
+    ).toBeInTheDocument();
+  });
+
   it('has a scroll cue to the next section', () => {
     render(<Hero />);
     expect(screen.getByRole('link', { name: /scroll/i })).toHaveAttribute('href', '#about');
