@@ -24,6 +24,8 @@ describe('name layout', () => {
     const big = layoutName(3);
     expect(big.width / n.width).toBeCloseTo(2, 1);
     expect(n.keepOut.maxZ).toBeGreaterThan(n.keepOut.minZ);
+    // Thin lettering: a readable face rather than a deep block.
+    expect(n.depth).toBeLessThanOrEqual(1.5 * 0.52);
     expect(n.keepOut.maxX).toBeGreaterThan(n.width / 2 - 0.5);
   });
 });

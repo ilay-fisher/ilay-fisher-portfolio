@@ -78,7 +78,8 @@ describe('hero physics', () => {
     run(s, 9);
     const before = s.world.nameSnapshot();
     const key = s.specs.find((x) => x.id === 'key-react')!;
-    s.world.throwBody(key.id, { x: 0, y: 1.2, z: 3 }, { x: 0, y: 0, z: -18 });
+    // From above the settled pile (the floor is crowded now), aimed down onto the lettering.
+    s.world.throwBody(key.id, { x: 0, y: 3, z: 3 }, { x: 0, y: -8, z: -18 });
     let minZ = Infinity;
     for (let i = 0; i < 360; i++) {
       s.world.stepOnce();
@@ -113,5 +114,45 @@ describe('hero physics', () => {
     s.world.respawn(p.id, { ...p, x: 0, y: 4, z: 2 });
     expect(s.world.get(p.id)!.asleep).toBe(false);
     expect(s.world.get(p.id)!.pos.y).toBeCloseTo(4, 5);
+  });
+
+  it('counts real impacts on the name, once per impact, and nothing else', () => {
+    const s = setup(3);
+    const seen: string[] = [];
+    s.world.onNameHit = (id) => seen.push(id);
+    run(s, 9);
+    const settled = s.world.nameHits;
+    expect(s.world.nameHits).toBe(seen.length);
+    // At rest nothing is counted.
+    for (let i = 0; i < 240; i++) s.world.stepOnce();
+    expect(s.world.nameHits).toBe(settled);
+    // A hard throw at the lettering from above the pile counts as one hit (not one per letter touched).
+    const key = s.specs.find((x) => x.id === 'key-react')!;
+    s.world.throwBody(key.id, { x: 0, y: 3, z: 3 }, { x: 0, y: -8, z: -18 });
+    for (let i = 0; i < 90; i++) s.world.stepOnce();
+    expect(s.world.nameHits).toBeGreaterThan(settled);
+    expect(seen[seen.length - 1]).toBe('key-react');
+    const after = s.world.nameHits;
+    // Resting contact does not keep adding hits.
+    for (let i = 0; i < 480; i++) s.world.stepOnce();
+    expect(s.world.nameHits - after).toBeLessThanOrEqual(3);
+  });
+
+  it('gives the project pieces real collision shapes that fall asleep inside the walls', () => {
+    const s = setup(11);
+    run(s, 9);
+    for (const id of ['phone', 'drone', 'lens']) {
+      const b = s.world.get(id)!;
+      expect(b, id).toBeDefined();
+      expect(b.asleep, id).toBe(true);
+      expect(b.pos.y).toBeGreaterThan(0.05);
+    }
+  });
+
+  it('gives a planned body its start velocity', () => {
+    const s = setup(5);
+    const p = { ...s.plans[0]!, vz: 2 };
+    s.world.spawn(s.specs.find((x) => x.id === p.id)!, p);
+    expect(s.world.get(p.id)!.vel.z).toBeCloseTo(2, 5);
   });
 });

@@ -61,4 +61,18 @@ describe('spawn plan', () => {
       for (const x of p) expect(x.y).toBeLessThan(phone.height + 4.5);
     }
   });
+
+  it('starts bodies in front of the name and drifting a little toward the camera', () => {
+    const gap = plan.map((p) => p.z - boundingRadius(specs.find((s) => s.id === p.id)!) - keepOut.maxZ);
+    expect(gap.reduce((a, b) => a + b, 0) / gap.length).toBeGreaterThan(0.5);
+    for (const p of plan) {
+      expect(p.vz).toBeGreaterThanOrEqual(0.6);
+      expect(p.vz).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('keeps the whole shower of a full catalogue inside 1.4 s', () => {
+    const big = planSpawns(buildCatalogue('desktop'), bounds, keepOut, 21);
+    expect(Math.max(...big.map((p) => p.delayMs))).toBeLessThanOrEqual(1400);
+  });
 });
