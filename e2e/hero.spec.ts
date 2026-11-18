@@ -31,11 +31,13 @@ interface Hero {
   hits(): number;
   pixels(): Pixels;
 }
-const hero = <T>(page: Page, fn: (h: Hero) => T, arg?: unknown) =>
+const hero = <T, A = undefined>(page: Page, fn: (h: Hero, arg: A) => T, arg?: A): Promise<T> =>
   page.evaluate(
     ([src, a]) => {
       const h = (window as unknown as { __hero: Hero }).__hero;
-      return (new Function('h', 'a', `return (${src})(h, a)`) as (h: Hero, a: unknown) => T)(h, a);
+      return (
+        new Function('h', 'a', `return (${src as string})(h, a)`) as (h: Hero, a: unknown) => T
+      )(h, a);
     },
     [fn.toString(), arg] as const,
   );
@@ -95,7 +97,7 @@ test.describe('hero scene', () => {
     const before = await snap(page);
     const a = before.find((s) => s.id === 'key-node') ?? before[0]!;
     const b = [...before].filter((s) => s.id !== a.id).sort((p, q) => dist(p, a) - dist(q, a))[0]!;
-    await hero(page, (h, id) => h.throwBody(id as string, { x: 0, y: 1, z: -22 }), a.id);
+    await hero(page, (h, id: string) => h.throwBody(id, { x: 0, y: 1, z: -22 }), a.id);
     await hero(page, (h) => h.step(240));
     const after = await snap(page);
     const moved = after.filter(
@@ -116,7 +118,7 @@ test.describe('hero scene', () => {
     const before = await snap(page);
     // The pointer picks whatever is on top, which may not be the first body: drag the front-most one.
     const front = [...before].sort((p, q) => q.pos.z - p.pos.z)[0]!;
-    const p = (await hero(page, (h, i) => h.project(i as string), front.id))!;
+    const p = (await hero(page, (h, i: string) => h.project(i), front.id))!;
     await page.mouse.move(p.x, p.y);
     await page.mouse.down();
     for (let i = 1; i <= 6; i++) await page.mouse.move(p.x + i * 14, p.y - i * 8);
@@ -142,7 +144,7 @@ test.describe('hero scene', () => {
   test('hovering an object shows its name in the chip', async ({ page }) => {
     await openHero(page);
     const id = (await hero(page, (h) => h.ids()))[0]!;
-    const p = (await hero(page, (h, i) => h.project(i as string), id))!;
+    const p = (await hero(page, (h, i: string) => h.project(i), id))!;
     await page.mouse.move(p.x - 4, p.y - 4);
     await page.mouse.move(p.x, p.y);
     await expect(page.getByTestId('hero-chip')).toBeVisible({ timeout: 15_000 });
@@ -202,7 +204,7 @@ test.describe('hero scene', () => {
     await expect(counter).toHaveText(/^Hits on the name: \d+\. Damage: 0\.$/);
     const ids = await hero(page, (h) => h.ids());
     for (const id of ids.slice(0, 6)) {
-      await hero(page, (h, i) => h.throwBody(i as string, { x: 0, y: 2, z: -24 }), id);
+      await hero(page, (h, i: string) => h.throwBody(i, { x: 0, y: 2, z: -24 }), id);
       await hero(page, (h) => h.step(90));
     }
     const hits = await hero(page, (h) => h.hits());

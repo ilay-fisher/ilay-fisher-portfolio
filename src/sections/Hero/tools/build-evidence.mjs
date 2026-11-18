@@ -30,7 +30,9 @@ for (const d of [OUT_IMG, OUT_VIDEO, OUT_STILL, TMP]) mkdirSync(d, { recursive: 
 
 const browser = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
 
-const open = async (ctx, url = `${BASE}/?heroSeed=${SEED}`) => {
+/** `fast` pre-settles the physics (stills); the drop, throw frames, stats and video run the live drop. */
+const open = async (ctx, fast = false) => {
+  const url = `${BASE}/?heroSeed=${SEED}${fast ? '&heroFast=1' : ''}`;
   const page = await ctx.newPage();
   await page.goto(url);
   await page.waitForSelector('[data-testid=hero-canvas][data-ready=true]', { timeout: 60000 });
@@ -89,7 +91,7 @@ img.save(out)
 // 1. Settled, mid-throw, fallback, transparent stills.
 for (const vp of VIEWPORTS) {
   const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
-  const page = await open(ctx);
+  const page = await open(ctx, true);
   await settle(page);
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT_IMG}/hero-${vp.name}-settled.png` });
@@ -113,7 +115,7 @@ for (const vp of VIEWPORTS) {
 
   // Mid-throw.
   const ctx2 = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
-  const p2 = await open(ctx2);
+  const p2 = await open(ctx2, true);
   await settle(p2);
   await throwAtName(p2);
   await p2.waitForTimeout(260);
