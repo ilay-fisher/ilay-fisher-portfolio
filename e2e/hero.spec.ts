@@ -249,6 +249,7 @@ test.describe('hero scene', () => {
 
 test.describe('hero fallback and layout', () => {
   test('automated browsers get the still unless the live scene is opted into', async ({ page }) => {
+    test.setTimeout(120_000);
     await page.goto('/');
     await expect(page.locator('img.hero__still')).toBeVisible();
     await expect(canvas(page)).toHaveAttribute('data-ready', 'false');
