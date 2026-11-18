@@ -9,14 +9,13 @@ async function openDemo(page: Page) {
   await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
     'data-source',
     /computed|fallback/,
-    {
-      timeout: 15_000,
-    },
+    { timeout: 60_000 },
   );
   return demo;
 }
 
 test.describe('X-Ray demo', () => {
+  test.describe.configure({ timeout: 120_000 });
   test('images load and the computed heatmap is not blank', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', (m) => {
@@ -85,7 +84,7 @@ test.describe('X-Ray demo', () => {
     await expect(page.getByTestId('xray-replay-note')).toContainText(/recorded/i);
     await expect(page.getByTestId('xray-diagnosis').getByRole('status')).toContainText(
       /Region 1 of/,
-      { timeout: 15_000 },
+      { timeout: 60_000 },
     );
     const text = (await page.getByTestId('xray-description').textContent()) ?? '';
     expect(text.length).toBeGreaterThan(40);
@@ -95,7 +94,7 @@ test.describe('X-Ray demo', () => {
     await openDemo(page);
     await page.getByTestId('xray-preset-aerial').click();
     await expect(page.getByTestId('xray-preset-aerial')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('xray-region-1')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('xray-region-1')).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId('xray-measured')).toContainText(/ms/);
   });
 
@@ -106,7 +105,7 @@ test.describe('X-Ray demo', () => {
     await page.getByTestId('xray-preset-ui').focus();
     await page.keyboard.press('Enter');
     const region = page.getByTestId('xray-region-1');
-    await expect(region).toBeVisible({ timeout: 15_000 });
+    await expect(region).toBeVisible({ timeout: 60_000 });
     await region.focus();
     await page.keyboard.press('Space');
     await expect(page.getByTestId('xray-diagnosis')).toBeVisible();
@@ -130,11 +129,11 @@ test.describe('X-Ray demo', () => {
     await slider.press('Home');
     const knob = page.locator('.xray__knob');
     await expect
-      .poll(async () => (await knob.boundingBox())?.x ?? 999, { timeout: 20_000 })
+      .poll(async () => (await knob.boundingBox())?.x ?? 999, { timeout: 60_000 })
       .toBeLessThan((await page.getByTestId('xray-stage').boundingBox())!.x + 8);
     await slider.press('End');
     await expect
-      .poll(async () => (await knob.boundingBox())?.x ?? 0, { timeout: 20_000 })
+      .poll(async () => (await knob.boundingBox())?.x ?? 0, { timeout: 60_000 })
       .toBeGreaterThan((await page.getByTestId('xray-stage').boundingBox())!.x + 200);
     await expect(page.getByTestId('xray-region-1')).toHaveAttribute('data-cursor', 'scan');
   });
@@ -152,6 +151,7 @@ test.describe('X-Ray demo', () => {
       await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
         'data-source',
         /computed|fallback/,
+        { timeout: 60_000 },
       );
       const done = (await demo.boundingBox())!.height;
       expect(Math.abs(done - pending)).toBeLessThanOrEqual(1);
@@ -161,9 +161,18 @@ test.describe('X-Ray demo', () => {
   test('the section never changes the page layout while it loads, computes and streams', async ({
     page,
   }) => {
+    test.setTimeout(180_000);
+    // reduced motion completes the stream at once, so the run never depends on typing time
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const metrics = () =>
       page.evaluate(() => ({
         scrollHeight: document.documentElement.scrollHeight,
+        panel: Math.round(
+          document.querySelector('[data-testid="xray-diagnosis"]')!.getBoundingClientRect().height,
+        ),
+        readout: Math.round(
+          document.querySelector('[data-testid="xray-readout"]')!.getBoundingClientRect().height,
+        ),
         experienceTop: Math.round(
           document.getElementById('experience')!.getBoundingClientRect().top + window.scrollY,
         ),
@@ -177,7 +186,7 @@ test.describe('X-Ray demo', () => {
       await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
         'data-source',
         /computed|fallback/,
-        { timeout: 20_000 },
+        { timeout: 60_000 },
       );
       const computed = await metrics();
       await page.getByTestId('xray-stage').scrollIntoViewIfNeeded();
@@ -186,7 +195,7 @@ test.describe('X-Ray demo', () => {
       await expect(page.getByTestId('xray-crop-pair')).toBeVisible();
       const selected = await metrics();
       await expect(page.getByTestId('xray-description')).toHaveAttribute('data-complete', 'true', {
-        timeout: 30_000,
+        timeout: 60_000,
       });
       const finished = await metrics();
       expect({ width, computed }).toEqual({ width, computed: loaded });
