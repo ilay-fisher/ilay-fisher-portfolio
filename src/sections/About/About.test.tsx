@@ -28,12 +28,13 @@ describe('About', () => {
     expect(screen.getByText(profile.availability)).toBeInTheDocument();
   });
 
-  it('renders the portrait with alt, size and lazy loading', () => {
+  it('renders the illustrated avatar still with alt, size and lazy loading', () => {
     render(<About />);
     const img = screen.getByRole('img', { name: /Ilay Fisher/ });
-    expect(img).toHaveAttribute('src', profile.photo);
-    expect(img).toHaveAttribute('width', '800');
-    expect(img).toHaveAttribute('height', '800');
+    expect(img).toHaveAttribute('src', '/images/avatar/turn/still.webp');
+    expect(img).toHaveAttribute('width', '512');
+    expect(img).toHaveAttribute('height', '512');
+    expect(img.getAttribute('alt')).toBe('Illustrated avatar of Ilay Fisher');
     expect(img).toHaveAttribute('loading', 'lazy');
     expect(img.getAttribute('alt')).not.toBe('');
   });
