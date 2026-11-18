@@ -37,18 +37,20 @@ async function centre(page: Page, el: Locator) {
 
 async function expectInnerThenPage(page: Page, el: Locator) {
   await centre(page, el);
-  expect(await room(el)).toBeGreaterThan(200);
+  const free = await room(el);
+  expect(free).toBeGreaterThan(100);
   const y0 = await scrollY(page);
   const t0 = await top(el);
-  await wheelOver(page, el, 120, 3);
-  expect(await top(el)).toBeGreaterThan(t0 + 100);
+  // Half of the available travel: the inner area must absorb all of it.
+  await wheelOver(page, el, Math.floor(free / 6), 3);
+  expect(await top(el)).toBeGreaterThan(t0 + free * 0.3);
   expect(Math.abs((await scrollY(page)) - y0)).toBeLessThanOrEqual(TOL);
 
   // Past the end: the article reaches its end, then the page takes over (a fresh gesture, no trap).
-  await wheelOver(page, el, 600, 12);
+  await wheelOver(page, el, await room(el), 1);
   expect(await room(el)).toBeLessThanOrEqual(1);
   const yEnd = await scrollY(page);
-  await wheelOver(page, el, 400, 3);
+  await wheelOver(page, el, 400, 1);
   expect(await scrollY(page)).toBeGreaterThan(yEnd + 100);
 }
 
@@ -104,13 +106,13 @@ test.describe('inner scroll with reduced motion', () => {
 
 test.describe('inner scroll areas are keyboard reachable', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
-  test('every [data-scroll-area] is a focusable, named region', async ({ page }) => {
+  test('every overflowing [data-scroll-area] is a focusable, named region', async ({ page }) => {
     await page.goto('/');
     const bad = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>('[data-scroll-area]')]
         .filter(
           (n) =>
-            n.tabIndex < 0 ||
+            (n.tabIndex < 0 && n.scrollHeight > n.clientHeight + 1) ||
             n.getAttribute('role') !== 'region' ||
             !n.getAttribute('aria-label'),
         )

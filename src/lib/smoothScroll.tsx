@@ -4,6 +4,7 @@ import { createAnchorTracker, type AnchorTracker } from './anchorTracker';
 import { gsap, ScrollTrigger } from './gsap';
 import { createLogger } from './logger';
 import { usePrefersReducedMotion } from './motion';
+import { isInnerScrollTarget } from './scrollArea';
 
 const log = createLogger('scroll');
 
@@ -12,6 +13,8 @@ const log = createLogger('scroll');
  * ScrollTrigger kept in sync. Anchor links (`#about`) and deep links (`/#contact`) go through an anchor tracker that
  * keeps re-reading the target's real position until the page has been quiet, so a late layout shift (an image, a
  * font, a lazy section) cannot leave the visitor in the wrong place; any wheel, touch or key press cancels it.
+
+ * Inner scrollers (`data-scroll-area`, see `scrollArea.ts`) are excluded from smoothing so they scroll natively.
  * Under `prefers-reduced-motion: reduce` there is no Lenis: scrolling is native and the tracker jumps instantly.
  * `html.reduce-motion` is set so reveals stay visible.
  */
@@ -35,7 +38,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     let tick: ((t: number) => void) | null = null;
     if (reduced) log.info('reduced motion: smooth scroll disabled');
     else {
-      lenis = new Lenis({ autoRaf: false, anchors: false, lerp: 0.1 });
+      lenis = new Lenis({ autoRaf: false, anchors: false, lerp: 0.1, prevent: isInnerScrollTarget });
       const l = lenis;
       tick = (timeSec: number) => l.raf(timeSec * 1000);
       gsap.ticker.add(tick);

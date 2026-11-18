@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createLogger } from '../../../lib/logger';
 import { useInView, usePrefersReducedMotion } from '../../../lib/motion';
+import { scrollAreaProps } from '../../../lib/scrollArea';
 import { analyzePreset, fallbackAnalysis, type Analysis, type AnalyzeFn } from './analysis';
 import {
   clampPercent,
@@ -547,10 +548,8 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           ) : (
             <div
               className="xray__scroller"
-              role="region"
-              aria-label="Diagnosis details"
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users must be able to scroll this region
-              tabIndex={0}
+               
+              {...scrollAreaProps('Diagnosis details')}
               key={`${presetId}-${selected}`}
             >
               <h3 className="xray__panel-title">
@@ -618,10 +617,8 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           className="xray__readout well"
           data-testid="xray-readout"
           ref={readoutRef}
-          role="region"
-          aria-label="Why it matters"
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users must be able to scroll this region
-          tabIndex={0}
+           
+          {...scrollAreaProps('Why it matters')}
         >
           <div className="xray__head">
             <h3 className="xray__readout-title">Why it matters</h3>

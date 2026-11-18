@@ -150,9 +150,12 @@ the native cursor is hidden (`html.has-cursor`) only after the first real mouse 
 It never blocks clicks (`pointer-events: none`) and leaves text selection alone.
 
 ```html
-<div data-cursor="drag" data-cursor-label="toss">...</div>  <!-- verb mode, label shown -->
-<div data-cursor="hug">...</div>   <!-- reserved: hug | none | text | default -->
-<button data-magnetic>...</button> <!-- magnetic pull, primary Buttons have it by default -->
+<div data-cursor="drag" data-cursor-label="toss">...</div>
+<!-- verb mode, label shown -->
+<div data-cursor="hug">...</div>
+<!-- reserved: hug | none | text | default -->
+<button data-magnetic>...</button>
+<!-- magnetic pull, primary Buttons have it by default -->
 ```
 
 Links, buttons, `role=button` and checkboxes hug automatically; the nearest `data-cursor` wins.
@@ -165,6 +168,12 @@ Springs: `SPRING_SOFT`, `SPRING_SNAPPY`, `springEase` in `src/lib/spring.ts` (CS
 `src/components/**` (except Nav and Footer, owned by B) are frozen for A to E. If a worker
 must touch one, keep the change minimal and list it in the PR. The manager resolves
 lockfile conflicts at merge time.
+
+## Inner scroll areas
+
+Every inner scroller is marked `data-scroll-area` via `scrollAreaProps` / `useScrollArea` (`src/lib/scrollArea.ts`);
+`smoothScroll.tsx` passes `isInnerScrollTarget` as Lenis `prevent`. A new `overflow: auto|scroll` element without
+it fails `e2e/inner-scroll.spec.ts`. Details: `docs/DESIGN.md`, "Inner scroll areas".
 
 ## Test ids
 

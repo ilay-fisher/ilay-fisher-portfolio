@@ -10,6 +10,7 @@ import {
 import { Button } from '../../../components/Button/Button';
 import { createLogger } from '../../../lib/logger';
 import { useInView, usePrefersReducedMotion } from '../../../lib/motion';
+import { scrollAreaProps, useScrollArea } from '../../../lib/scrollArea';
 import { isWebGLAvailable } from '../../../lib/webgl';
 import { BYPASSES, PAGES, mediaOf, type MediaItem } from './content';
 import type { BurnStage } from './BurnStage';
@@ -131,6 +132,9 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
   const [rootRef, inView] = useInView<HTMLDivElement>({ rootMargin: '50% 0px' });
   const [wantGl, setWantGl] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const statusArea = useScrollArea('Status');
+  const bypassArea = useScrollArea('Bypass attempt result');
+  const captionArea = useScrollArea('Note');
   const screenRef = useRef<HTMLDivElement>(null);
   const glRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<BurnStage | null>(null);
@@ -341,11 +345,9 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             <div
               className="ss-scroll"
               ref={scrollRef}
-              role="region"
-              aria-label="Mock news article, scrollable"
-              // A scrollable region must be focusable so keyboard users can scroll the article.
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-              tabIndex={0}
+              // A scroll area: wheel and touch scroll it, and it is a focusable region for the keyboard.
+               
+              {...scrollAreaProps('Mock news article, scrollable')}
               data-cursor="scroll"
             >
               <p className="ss-masthead">Tidewatch</p>
@@ -382,7 +384,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             <div className="ss-gl" ref={glRef} aria-hidden="true" />
           </div>
         </div>
-        <p className="ss-readout mono" data-testid="safesurf-status">
+        <p className="ss-readout mono" data-testid="safesurf-status" {...statusArea}>
           <span className="ss-readout__dot" aria-hidden="true" />
           {status}
         </p>
@@ -567,7 +569,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               </Button>
             ))}
           </div>
-          <div className="ss-display ss-display--small well mono">
+          <div className="ss-display ss-display--small well mono" {...bypassArea}>
             <p
               className="ss-bypass ss-bypass__main"
               data-testid="safesurf-bypass-result"
@@ -580,7 +582,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
         </div>
       </div>
 
-      <p className="ss-caption mono">
+      <p className="ss-caption mono" {...captionArea}>
         Simulation in your browser. The real filter runs on the device, with no VPN or proxy.
       </p>
       <div

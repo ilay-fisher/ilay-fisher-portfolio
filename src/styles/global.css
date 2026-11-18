@@ -510,3 +510,28 @@ html.has-cursor
     scroll-behavior: auto !important;
   }
 }
+
+/* Inner scroll areas (`data-scroll-area`, see src/lib/scrollArea.ts): slim token-coloured scrollbar and a visible focus
+   ring. No `overscroll-behavior: contain`: at the end of the area the page must take over, never trap the visitor. */
+[data-scroll-area] {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+[data-scroll-area]::-webkit-scrollbar {
+  width: 8px;
+}
+[data-scroll-area]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-scroll-area]::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+[data-scroll-area]:focus-visible {
+  outline: 2px solid var(--paint-deep, var(--paint));
+  outline-offset: 2px;
+}
