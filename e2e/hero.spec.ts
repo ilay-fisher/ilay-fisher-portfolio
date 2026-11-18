@@ -12,6 +12,12 @@ interface Snap {
   pos: { x: number; y: number; z: number };
   asleep: boolean;
 }
+interface Rect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
 interface Pixels {
   width: number;
   height: number;
@@ -25,6 +31,8 @@ interface Hero {
   nameSnapshot(): number[][];
   bounds(): { minX: number; maxX: number; minZ: number; maxZ: number };
   project(id: string): { x: number; y: number } | null;
+  nameBounds(): Rect | null;
+  bodyBounds(id: string): Rect | null;
   throwBody(id: string, v: { x: number; y: number; z: number }): void;
   step(n?: number): void;
   settle(): boolean;
@@ -74,9 +82,12 @@ test.describe('hero scene', () => {
   test('is ready already settled, with every body inside the bounds', async ({ page }) => {
     const errors = await openHero(page);
     const ids = await hero(page, (h) => h.ids());
-    // 32 on a GPU, fewer on small screens or software renderers; never fewer than the top ten plus pieces.
+    // 30 on a wide GPU screen (25 technologies and 5 projects), 17 on a phone; fewer on software renderers.
     expect(ids.length).toBeGreaterThanOrEqual(14);
-    expect(ids.length).toBeLessThanOrEqual(32);
+    expect(ids.length).toBeLessThanOrEqual(30);
+    // Everything is a technology or a project: no generic hardware.
+    expect(ids.filter((id) => /dial|toggle|switch/.test(id))).toEqual([]);
+    for (const id of ['shield', 'phone', 'drone', 'lens']) expect(ids).toContain(id);
     await expect(canvas(page)).toHaveAttribute('data-bodies', String(ids.length));
     // Fast path is already at rest; `settle()` re-publishes synchronously, so this never races a frame.
     expect(await hero(page, (h) => h.settle())).toBe(true);
@@ -93,11 +104,32 @@ test.describe('hero scene', () => {
     expect(errors).toEqual([]);
   });
 
+  for (const [width, height] of [
+    [1440, 900],
+    [768, 1024],
+  ] as const) {
+    test(`after the intro no piece covers the name, at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await openHero(page);
+      const name = await hero(page, (h) => h.nameBounds());
+      expect(name).not.toBeNull();
+      const n = name!;
+      const tolerance = 8;
+      for (const id of await hero(page, (h) => h.ids())) {
+        const b = await hero(page, (h, i: string) => h.bodyBounds(i), id);
+        if (!b) continue;
+        const ox = Math.min(b.x1, n.x1) - Math.max(b.x0, n.x0);
+        const oy = Math.min(b.y1, n.y1) - Math.max(b.y0, n.y0);
+        expect(Math.min(ox, oy), `${id} overlaps the name`).toBeLessThanOrEqual(tolerance);
+      }
+    });
+  }
+
   test('a throw moves other objects and the name never moves', async ({ page }) => {
     const errors = await openHero(page);
     const nameBefore = await hero(page, (h) => h.nameSnapshot());
     const before = await snap(page);
-    const a = before.find((s) => s.id === 'key-node') ?? before[0]!;
+    const a = before.find((s) => s.id === 'token-node') ?? before[0]!;
     const b = [...before].filter((s) => s.id !== a.id).sort((p, q) => dist(p, a) - dist(q, a))[0]!;
     await hero(page, (h, id: string) => h.throwBody(id, { x: 0, y: 1, z: -22 }), a.id);
     await hero(page, (h) => h.step(240));
