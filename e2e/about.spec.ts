@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { expectScrolledTo } from './helpers';
 
 const SECTIONS = [
   ['about', 'About'],
@@ -26,17 +27,21 @@ test('about, experience and contact are visible with their headings', async ({ p
   expect(errors).toEqual([]);
 });
 
-test('nav highlights the section in view while scrolling', async ({ page }) => {
-  await page.goto('/');
-  const nav = page.getByRole('navigation', { name: 'Sections' });
-  for (const [id, label] of SECTIONS) {
-    await page.evaluate((target) => {
-      const el = document.getElementById(target);
-      if (el) window.scrollTo({ top: el.offsetTop + 200, behavior: 'instant' });
-    }, id);
-    await expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'true');
-    await expect(nav.locator('[aria-current]')).toHaveCount(1);
-  }
+test.describe('under reduced motion (instant jumps, so nothing animates under test)', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  test('nav highlights the section in view while scrolling', async ({ page }) => {
+    await page.goto('/');
+    const nav = page.getByRole('navigation', { name: 'Sections' });
+    for (const [id, label] of SECTIONS) {
+      await page.evaluate((target) => {
+        const el = document.getElementById(target);
+        if (el) window.scrollTo({ top: el.offsetTop + 200, behavior: 'instant' });
+      }, id);
+      await expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'true');
+      await expect(nav.locator('[aria-current]')).toHaveCount(1);
+    }
+  });
 });
 
 test('scroll-progress hairline follows the scroll position', async ({ page }) => {
@@ -50,39 +55,34 @@ test('scroll-progress hairline follows the scroll position', async ({ page }) =>
   await expect.poll(async () => Number(await read())).toBeGreaterThan(0.95);
 });
 
-test('mobile nav reaches every section at 390x844 with keyboard and Escape', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
-  const toggle = page.getByRole('button', { name: 'Menu' });
-  await expect(toggle).toBeVisible();
-  const items = ['About', 'SafeSurf', 'Drone', 'X-Ray', 'Experience', 'Contact'];
-  for (const label of items) {
-    await toggle.click();
+test.describe('mobile nav at 390x844', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  test('mobile nav reaches every section at 390x844 with keyboard and Escape', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    const toggle = page.getByRole('button', { name: 'Menu' });
+    await expect(toggle).toBeVisible();
+    const items = ['About', 'SafeSurf', 'Drone', 'X-Ray', 'Experience', 'Contact'];
+    for (const label of items) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      const link = page
+        .getByRole('navigation', { name: 'Sections' })
+        .getByRole('link', { name: label });
+      await expect(link).toBeVisible();
+      await link.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      const id = label === 'X-Ray' ? 'xray' : label.toLowerCase();
+      await expectScrolledTo(page, id);
+    }
+    await toggle.focus();
+    await page.keyboard.press('Enter');
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    const link = page
-      .getByRole('navigation', { name: 'Sections' })
-      .getByRole('link', { name: label });
-    await expect(link).toBeVisible();
-    await link.click();
+    await page.keyboard.press('Escape');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    const id = label === 'X-Ray' ? 'xray' : label.toLowerCase();
-    await expect
-      .poll(() =>
-        page.locator(`#${id}`).evaluate((el) => {
-          const top = Math.round(el.getBoundingClientRect().top);
-          const atEnd =
-            window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-          return top < 120 || atEnd;
-        }),
-      )
-      .toBe(true);
-  }
-  await toggle.focus();
-  await page.keyboard.press('Enter');
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  await page.keyboard.press('Escape');
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  await expect(toggle).toBeFocused();
+    await expect(toggle).toBeFocused();
+  });
 });
 
 test('skip link still works', async ({ page }) => {

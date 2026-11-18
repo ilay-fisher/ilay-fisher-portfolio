@@ -1,5 +1,6 @@
 name: CI
 
+# Pull requests and main only (a branch push with an open PR would otherwise run everything twice).
 on:
   pull_request:
   push:
@@ -13,7 +14,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,21 +27,21 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      # e2e runs against `vite preview` of the build above. Ordinary specs run in parallel, then the GL-heavy ones
-      # run alone so they never starve UI tests (see playwright.config.ts).
+      # e2e runs against `vite preview` of the build above, in two steps: ordinary specs in parallel, then the
+      # GL-heavy and smooth-scroll specs alone on one worker so they never starve (or get starved by) anything else.
+      # See playwright.config.ts. One retry is allowed and always reported: see the summary step.
       - name: e2e (default project, parallel)
-        run: npm run e2e -- --project=default
+        run: npx playwright test --project=default
         env:
           PORT: 5173
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-default.json
       - name: e2e (gl-heavy project, one worker)
         if: ${{ !cancelled() }}
-        run: npm run e2e -- --project=gl-heavy --workers=1
+        run: npx playwright test --project=gl-heavy --workers=1
         env:
           PORT: 5173
-          E2E_DEV_PORT: 5174
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-gl-heavy.json
-      - name: e2e summary (flaky tests are listed here)
+      - name: e2e summary (every test that needed a retry is listed)
         if: ${{ !cancelled() }}
         run: node scripts/e2e-summary.mjs e2e-default.json e2e-gl-heavy.json
       - uses: actions/upload-artifact@v4

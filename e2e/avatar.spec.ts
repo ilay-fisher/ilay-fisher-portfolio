@@ -101,14 +101,16 @@ test('the avatar is lazy: nothing from the turn set loads until About is near', 
   await expect.poll(() => urls.length, { timeout: 15000 }).toBeGreaterThan(30);
 });
 
-test('he blinks: within a bounded time a blink starts and ends, and the head and layout do not move', async ({
+test('he blinks: a blink starts and ends on request, and the head and layout do not move', async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
+  // `?avatarBlink=manual`: the clock schedules no blink, so none can start before the test is ready for it, and one
+  // starts exactly when the `avatar:blink` event says so. (The 3 to 7 s random rhythm is unit-tested in blinkLogic.)
+  await page.goto('/?avatarBlink=manual');
   await page.locator('#about').scrollIntoViewIfNeeded();
   await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
   const stage = page.locator(glass);
@@ -118,6 +120,7 @@ test('he blinks: within a bounded time a blink starts and ends, and the head and
   // hold the pointer over the face so he faces the visitor and never wanders off on an idle glance
   await page.mouse.move(x, y);
   await settled(page, x, y);
+  expect(await stage.getAttribute('data-blink-started'), 'nothing blinks on its own').toBe('0');
   const layoutOf = () =>
     page.evaluate(() => {
       const r = (s: string) => {
@@ -138,19 +141,25 @@ test('he blinks: within a bounded time a blink starts and ends, and the head and
       if (el.dataset.blink === 'blinking') w.__blink.frames.push(el.dataset.frame ?? '');
     }).observe(el, { attributes: true, attributeFilter: ['data-blink', 'data-frame'] });
   });
-  let started = 0;
-  let ended = 0;
-  for (let i = 0; i < 130 && !(started >= 1 && ended >= started); i++) {
-    await page.mouse.move(x + (i % 2), y);
-    await page.waitForTimeout(100);
-    started = Number(await stage.getAttribute('data-blink-started'));
-    ended = Number(await stage.getAttribute('data-blink-ended'));
-  }
-  expect(started, 'a blink started within 13 s').toBeGreaterThanOrEqual(1);
-  expect(ended, 'and it ended').toBeGreaterThanOrEqual(started);
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('avatar:blink')));
+  // The blink runs on the page's own clock, so wait for the page to say it started and ended. The pointer is nudged
+  // each poll so the head never counts as idle.
+  let n = 0;
+  await expect
+    .poll(
+      async () => {
+        await page.mouse.move(x + (n++ % 2), y);
+        const started = Number(await stage.getAttribute('data-blink-started'));
+        const ended = Number(await stage.getAttribute('data-blink-ended'));
+        return started >= 1 && ended >= started;
+      },
+      { message: 'a blink starts and ends', timeout: 30_000, intervals: [100] },
+    )
+    .toBe(true);
   const seen = await page.evaluate(
     () => (window as unknown as { __blink: { frames: string[]; states: string[] } }).__blink,
   );
+  expect(await stage.getAttribute('data-blink-started'), 'exactly one blink').toBe('1');
   expect(seen.states).toContain('blinking');
   expect(seen.states[seen.states.length - 1]).toBe('idle');
   expect(new Set(seen.frames), 'the frame index stays put during a blink').toEqual(
@@ -169,9 +178,9 @@ test('blinking pauses under reduced motion, and a missing atlas just means no bl
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
   await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'static', { timeout: 15000 });
-  await page.waitForTimeout(4500);
-  expect(await page.locator(glass).getAttribute('data-blink')).toBe('off');
-  expect(await page.locator(glass).getAttribute('data-blink-started')).toBe('0');
+  // No scheduler exists under reduced motion: the stage says so as soon as it is up, no waiting for a blink that never comes.
+  await expect(page.locator(glass)).toHaveAttribute('data-blink', 'off');
+  await expect(page.locator(glass)).toHaveAttribute('data-blink-started', '0');
 
   const other = await page.context().newPage();
   await other.route('**/images/avatar/turn/blinks.webp', (r) => r.abort());
@@ -179,6 +188,6 @@ test('blinking pauses under reduced motion, and a missing atlas just means no bl
   await other.goto('/');
   await other.locator('#about').scrollIntoViewIfNeeded();
   await expect(other.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
-  await other.waitForTimeout(4500);
-  expect(await other.locator(glass).getAttribute('data-blink')).toBe('off');
+  await expect(other.locator(glass)).toHaveAttribute('data-blink', 'off');
+  await expect(other.locator(glass)).toHaveAttribute('data-blink-started', '0');
 });

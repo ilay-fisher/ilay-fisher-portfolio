@@ -45,6 +45,11 @@ export interface AvatarEngineOptions {
   blinks?: BlinkAssets | null;
   /** Seed for the blink scheduler (tests); random by default. */
   seed?: number;
+  /**
+   * Test hook (`?avatarBlink=manual`): no blink is ever scheduled by the clock. One starts, as soon as a recorded blink
+   * is in reach of the head angle, only after a `avatar:blink` event on window; there are no doubles.
+   */
+  blinkManual?: boolean;
 }
 
 const TAP_HOLD = 1800;
@@ -72,7 +77,15 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
   const anchors = bl ? bl.data.sets.map((x) => x.anchor) : [];
   const reach = bl ? Math.min(...bl.data.sets.map((x) => x.reach)) : 0;
   const rng = mulberry32(o.seed ?? Math.floor(Math.random() * 4294967296));
-  let blinkS: BlinkState = initBlink(0, rng);
+  const manual = !!o.blinkManual;
+  let manualDue = false;
+  const firstBlink = (now: number): BlinkState =>
+    manual ? { phase: 'wait', until: Infinity, second: false } : initBlink(now, rng);
+  let blinkS: BlinkState = firstBlink(0);
+  const onBlinkEvent = () => {
+    manualDue = true;
+  };
+  if (manual) window.addEventListener('avatar:blink', onBlinkEvent);
   let active = -1;
   let blinkAt = 0;
   let started = 0;
@@ -213,9 +226,12 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
 
     let blinkPos: number | null = null;
     if (bl) {
+      if (manual && blinkS.phase === 'wait')
+        blinkS = { phase: 'wait', until: manualDue ? 0 : Infinity, second: false };
       const step = stepBlink(blinkS, t, rng, false, pickBlinkSet(anchors, index, reach) >= 0);
       blinkS = step.state;
       if (step.started) {
+        manualDue = false;
         active = pickBlinkSet(anchors, index, reach);
         blinkAt = t;
         o.stage.dataset.blink = 'blinking';
@@ -266,7 +282,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
       : new IntersectionObserver((entries) => {
           visible = entries[entries.length - 1]?.isIntersecting ?? false;
           endBlink(); // never blink off screen; a fresh wait starts when he is seen again
-          if (bl) blinkS = initBlink(performance.now(), rng);
+          if (bl) blinkS = firstBlink(performance.now());
           if (visible) kick();
         });
   if (io) io.observe(o.stage);
@@ -279,6 +295,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     stop() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('avatar:blink', onBlinkEvent);
       io?.disconnect();
       endBlink();
       if (raf) cancelAnimationFrame(raf);

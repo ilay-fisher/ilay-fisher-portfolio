@@ -18,21 +18,38 @@ const scrollY = (page: Page) => page.evaluate(() => window.scrollY);
 const top = (el: Locator) => el.evaluate((n) => n.scrollTop);
 const room = (el: Locator) => el.evaluate((n) => n.scrollHeight - n.clientHeight - n.scrollTop);
 
+/**
+ * Waits until neither the page nor the inner scroller has moved for several consecutive reads. Smoothing runs on the
+ * page's frame clock, so on a slow machine it takes longer; waiting for it to stop is right at any speed, a fixed
+ * pause is not.
+ */
+async function still(page: Page, el: Locator) {
+  let last = '';
+  let same = 0;
+  await expect
+    .poll(
+      async () => {
+        const now = `${await scrollY(page)}|${await top(el)}`;
+        same = now === last ? same + 1 : 0;
+        last = now;
+        return same;
+      },
+      { message: 'page and inner scroller stop moving', timeout: 60_000, intervals: [150] },
+    )
+    .toBeGreaterThanOrEqual(6);
+}
+
 async function wheelOver(page: Page, el: Locator, dy: number, steps = 1) {
   const box = (await el.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  for (let i = 0; i < steps; i++) {
-    await page.mouse.wheel(0, dy);
-    await page.waitForTimeout(60);
-  }
-  // Let any smoothing settle.
-  await page.waitForTimeout(900);
+  for (let i = 0; i < steps; i++) await page.mouse.wheel(0, dy);
+  await still(page, el);
 }
 
 /** Centres the element in the viewport and waits for the page to be still. */
 async function centre(page: Page, el: Locator) {
   await el.evaluate((n) => n.scrollIntoView({ block: 'center', behavior: 'instant' }));
-  await page.waitForTimeout(900);
+  await still(page, el);
 }
 
 async function expectInnerThenPage(page: Page, el: Locator) {
@@ -82,7 +99,7 @@ async function openXrayDiagnosis(page: Page) {
 }
 
 for (const s of sizes) {
-  test.describe(`inner scroll at ${s.name}`, () => {
+  test.describe(`inner scroll at ${s.name} @gl-heavy`, () => {
     test.use({ viewport: { width: s.width, height: s.height } });
 
     test('SafeSurf phone article scrolls under the wheel, then hands off to the page', async ({
@@ -93,7 +110,7 @@ for (const s of sizes) {
   });
 }
 
-test.describe('inner scroll at 390x844 (diagnosis panel)', () => {
+test.describe('inner scroll at 390x844 (diagnosis panel) @gl-heavy', () => {
   test.use({ viewport: { width: 390, height: 844 } });
   test('X-Ray diagnosis panel scrolls under the wheel, then hands off', async ({ page }) => {
     const panel = await openXrayDiagnosis(page);
