@@ -22,7 +22,7 @@ One shared WebGL2 canvas (`loadGlStage()`, dynamic import so OGL stays a lazy ch
 
 Reservations do not depend on text metrics (macOS and Linux fonts differ). The invitation line, both displays, the Cancel/Ask slot, the key rows, the status readout and the caption each have a fixed CSS `height` per breakpoint (base, up to 380 px, 900 px and up, 1200 px and up). Appearing or streaming text never grows a box; anything that can overflow scrolls inside its box. The Cancel and Ask sponsor row lives in a permanent slot. `e2e/safesurf.spec.ts` records `scrollHeight`, `#drone` `offsetTop` and the rig height after load, after the stage is ready, and through a request, countdown, sponsor allow, all four bypass refusals and block again, and asserts they never change at 360, 390, 768, 1000 and 1440 px.
 
-The WebGL stage is created only once the rig is near the viewport and the page has been still for 500 ms. Creating a GL context and compiling shaders mid-scroll starved the Lenis ticker, so anchor jumps that pass the section (the nav tests in `about.spec.ts` and `smoke.spec.ts`) crawled on slow CI machines.
+The WebGL stage is created only once the rig is near the viewport and the page has been still for 1.5 s (slow frames can leave more than 500 ms between scroll events, which fooled a shorter quiet period). CPU-raster-heavy effects (backdrop blur, blurred pseudo-element shadow, per-tick drop-shadow) were removed so scrolling past the rig stays cheap on software-rendered CI. Creating a GL context and compiling shaders mid-scroll starved the Lenis ticker, so anchor jumps that pass the section (the nav tests in `about.spec.ts` and `smoke.spec.ts`) crawled on slow CI machines.
 
 ## Design v2 adoption
 

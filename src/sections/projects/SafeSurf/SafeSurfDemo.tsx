@@ -29,7 +29,7 @@ const log = createLogger('safesurf');
 
 /** Props for {@link SafeSurfDemo}. */
 /** How long the page must be still before the WebGL stage is created. */
-const SCROLL_QUIET_MS = 500;
+const SCROLL_QUIET_MS = 1500;
 
 export interface SafeSurfDemoProps {
   /** How long a loosening waits, in ms. The product uses an hour; the rig compresses it. Default 8000. */
@@ -128,7 +128,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
   const [lastBypass, setLastBypass] = useState<BypassId | null>(null);
   const [render, setRender] = useState<'css' | 'webgl'>('css');
   const reduced = usePrefersReducedMotion();
-  const [rootRef, inView] = useInView<HTMLDivElement>({ rootMargin: '100% 0px' });
+  const [rootRef, inView] = useInView<HTMLDivElement>({ rootMargin: '50% 0px' });
   const [wantGl, setWantGl] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLDivElement>(null);
