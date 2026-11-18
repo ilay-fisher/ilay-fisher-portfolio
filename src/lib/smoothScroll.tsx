@@ -52,6 +52,10 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
     };
+    // Where an instant jump put the page. If the page is somewhere else at the next step, something other than us
+    // (the visitor dragging the scrollbar, a script) scrolled it, and the tracker must not drag it back.
+    let lastJump: number | null = null;
+    const maxScroll = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const track = (
       id: string,
       immediate: boolean,
@@ -63,6 +67,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
         current: () => lenis?.scroll ?? window.scrollY,
         scrolling: () => (lenis ? lenis.isScrolling !== false : false),
         go: (y, now) => {
+          lastJump = now ? Math.min(y, maxScroll()) : null;
           if (lenis) lenis.scrollTo(y, { immediate: now });
           else window.scrollTo({ top: y, behavior: 'instant' });
         },
@@ -75,6 +80,10 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       const loop = (now: number) => {
         raf = 0;
         if (tracker !== t) return;
+        if (lastJump !== null && Math.abs(window.scrollY - lastJump) > 3) {
+          stopTracking();
+          return;
+        }
         const status = t.step(now);
         if (status === 'active') raf = requestAnimationFrame(loop);
         else {
