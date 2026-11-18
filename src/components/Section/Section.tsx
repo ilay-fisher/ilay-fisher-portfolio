@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Reveal } from '../Reveal/Reveal';
 import './Section.css';
 
 /** One bench label: a small `label value` pair such as `case CASE-01`. */
@@ -58,7 +59,13 @@ export function Section({
           </dl>
         )}
         <Heading id={headingId} className={hideTitle ? 'visually-hidden' : 'section__title'}>
-          {title}
+          {hideTitle ? (
+            title
+          ) : (
+            <Reveal as="span" variant="lines" className="section__title-text">
+              {title}
+            </Reveal>
+          )}
         </Heading>
         {summary && <p className="section__summary">{summary}</p>}
         {children}

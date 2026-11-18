@@ -1,17 +1,23 @@
 import '@fontsource-variable/bricolage-grotesque/wdth.css';
+import '@fontsource-variable/fredoka/wght.css';
 import '@fontsource-variable/instrument-sans/index.css';
 import '@fontsource-variable/martian-mono/wdth.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { createLogger } from './lib/logger';
+import { SmoothScroll } from './lib/smoothScroll';
 import './styles/global.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <SmoothScroll>
+      <App />
+    </SmoothScroll>
   </StrictMode>,
 );
 createLogger('app').info('mounted');
+// Tells the inline failsafe in index.html that the app booted, so reveals may stay hidden-until-played.
+(window as Window & { __appReady?: boolean }).__appReady = true;

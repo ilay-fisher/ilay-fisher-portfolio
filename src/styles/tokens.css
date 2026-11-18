@@ -20,6 +20,8 @@
   /* type families (the hero canvas reads these names too) */
   --font-display: 'Bricolage Grotesque Variable', 'Arial Narrow', system-ui, sans-serif;
   --font-body: 'Instrument Sans Variable', system-ui, sans-serif;
+  /* the hero paint face: heavy and round-terminalled so thick letters can inflate */
+  --font-paint: 'Fredoka Variable', 'Arial Rounded MT Bold', system-ui, sans-serif;
   --font-mono: 'Martian Mono Variable', ui-monospace, Menlo, monospace;
 
   /* fluid type scale, 360 to 1920 px */

@@ -11,27 +11,27 @@ GL or canvas shell that is screenshot-tested in Playwright.
 
 ## 1. Summary
 
-| Item | Technique | Library | Difficulty | Fallback |
-|---|---|---|---|---|
-| A Hero text paint | Canvas-2D text raster, CPU Euclidean distance transform (EDT) to a balloon height profile, capsule-stamped paint buffer (ping-pong, half-float) with decay and diffusion, damped-wave ripple, normals from height gradient, procedural matcap plus fresnel/spec | OGL | High | CSS gradient text with `background-clip:text` and text-shadow; same shader rendered once for reduced motion |
-| B SafeSurf dissolve | One shared WebGL2 canvas over the mock page, one quad per `<img>`, baked-noise threshold with emissive edge, CPU-spawned ember points | OGL | Medium | CSS opacity/blur/scale swap to a "blocked" tile; instant swap for reduced motion |
-| C Voronoi glass | Fragment-shader jittered-grid Voronoi, per-cell offset/refraction, IQ border distance for edges | OGL (same stage) | Medium | Static image with CSS cracks overlay (SVG) |
-| D Drone grid | Canvas 2D, cached static layer, 40x24 `ImageData` heat layer scaled up, arc-length drone motion with critically damped follow | none | Medium | Not needed (2D canvas); reduced motion drops easing and flashes |
-| E Before/after + heatmap | Stacked `<img>` with `clip-path: inset()`, native `input[type=range]` overlay, 320 px absdiff, blur, LUT colormap, SVG ROI boxes | none | Low-medium | Heatmap precomputed as a PNG if `getImageData` fails |
-| F Motion system | GSAP (core + ScrollTrigger + SplitText) driven by Lenis | gsap, @gsap/react, lenis | Medium | Native scroll, content visible, no transforms |
-| G WebGL layer | OGL behind a small `GlStage` wrapper | ogl | n/a | See H |
-| H Robustness | DPR cap, IO pause, adaptive resolution, context-loss rebuild, font preload, Playwright hooks | none | n/a | n/a |
+| Item                     | Technique                                                                                                                                                                                                                                                       | Library                  | Difficulty | Fallback                                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| A Hero text paint        | Canvas-2D text raster, CPU Euclidean distance transform (EDT) to a balloon height profile, capsule-stamped paint buffer (ping-pong, half-float) with decay and diffusion, damped-wave ripple, normals from height gradient, procedural matcap plus fresnel/spec | OGL                      | High       | CSS gradient text with `background-clip:text` and text-shadow; same shader rendered once for reduced motion |
+| B SafeSurf dissolve      | One shared WebGL2 canvas over the mock page, one quad per `<img>`, baked-noise threshold with emissive edge, CPU-spawned ember points                                                                                                                           | OGL                      | Medium     | CSS opacity/blur/scale swap to a "blocked" tile; instant swap for reduced motion                            |
+| C Voronoi glass          | Fragment-shader jittered-grid Voronoi, per-cell offset/refraction, IQ border distance for edges                                                                                                                                                                 | OGL (same stage)         | Medium     | Static image with CSS cracks overlay (SVG)                                                                  |
+| D Drone grid             | Canvas 2D, cached static layer, 40x24 `ImageData` heat layer scaled up, arc-length drone motion with critically damped follow                                                                                                                                   | none                     | Medium     | Not needed (2D canvas); reduced motion drops easing and flashes                                             |
+| E Before/after + heatmap | Stacked `<img>` with `clip-path: inset()`, native `input[type=range]` overlay, 320 px absdiff, blur, LUT colormap, SVG ROI boxes                                                                                                                                | none                     | Low-medium | Heatmap precomputed as a PNG if `getImageData` fails                                                        |
+| F Motion system          | GSAP (core + ScrollTrigger + SplitText) driven by Lenis                                                                                                                                                                                                         | gsap, @gsap/react, lenis | Medium     | Native scroll, content visible, no transforms                                                               |
+| G WebGL layer            | OGL behind a small `GlStage` wrapper                                                                                                                                                                                                                            | ogl                      | n/a        | See H                                                                                                       |
+| H Robustness             | DPR cap, IO pause, adaptive resolution, context-loss rebuild, font preload, Playwright hooks                                                                                                                                                                    | none                     | n/a        | n/a                                                                                                         |
 
 ## 2. Recommended dependency list (foundation worker installs exactly this)
 
 Runtime (`dependencies`):
 
-| Package | Version | Licence | Measured min+gzip | Why |
-|---|---|---|---|---|
-| `ogl` | 1.0.11 | Unlicense | 14.5 KB (Renderer, Program, Mesh, Triangle, Texture, RenderTarget) | WebGL layer for A, B, C |
-| `gsap` | 3.15.1 | GSAP Standard "no charge" licence | 48.4 KB (core + ScrollTrigger + SplitText) | Reveals, scroll triggers, split text, quickTo |
-| `@gsap/react` | 2.1.2 | same GSAP licence | about 1 KB (not measured) | `useGSAP` cleanup under StrictMode |
-| `lenis` | 1.3.27 | MIT | 6.1 KB with `lenis/react` | Smooth scroll |
+| Package       | Version | Licence                           | Measured min+gzip                                                  | Why                                           |
+| ------------- | ------- | --------------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| `ogl`         | 1.0.11  | Unlicense                         | 14.5 KB (Renderer, Program, Mesh, Triangle, Texture, RenderTarget) | WebGL layer for A, B, C                       |
+| `gsap`        | 3.15.1  | GSAP Standard "no charge" licence | 48.4 KB (core + ScrollTrigger + SplitText)                         | Reveals, scroll triggers, split text, quickTo |
+| `@gsap/react` | 2.1.2   | same GSAP licence                 | about 1 KB (not measured)                                          | `useGSAP` cleanup under StrictMode            |
+| `lenis`       | 1.3.27  | MIT                               | 6.1 KB with `lenis/react`                                          | Smooth scroll                                 |
 
 Fonts, self-hosted (no runtime Google Fonts call, per AGENT_RULES section 3): pick one heavy rounded display face for
 the inflated hero from `@fontsource-variable/fredoka` 5.3.0 (OFL-1.1), `@fontsource-variable/rubik` 5.3.0 (OFL-1.1) or
@@ -59,14 +59,14 @@ The look is a height field, lit like a glossy surface. Letters are not geometry.
 
 Pass list per frame (all full-quad, all WebGL2, three persistent render targets):
 
-| # | Pass | Reads | Writes | Notes |
-|---|---|---|---|---|
-| init | Text raster (CPU) | font | `textMask` | Canvas 2D `fillText`, word-wrapped, white on black |
-| init | EDT (CPU, TS) | `textMask` | `profile` texture (R8) | Balloon profile of distance to edge; unit-testable |
-| 1 | Stamp + decay + diffuse | `paintPrev`, pointer segments | `paintNext` (ping-pong) | R = paint amount |
-| 2 | Ripple (damped wave) | `wavePrev`, `paintNext` | `waveNext` (ping-pong) | RG = height, previous height; optional |
-| 3 | Height compose | `profile`, `paintNext`, `waveNext` | `height` (R16F or RGBA8) | `h = profile * smooth(paint) + ripple` |
-| 4 | Shade to screen | `height`, `ramp`, matcap math | canvas | normals by 4 taps, lighting, dither |
+| #    | Pass                    | Reads                              | Writes                   | Notes                                              |
+| ---- | ----------------------- | ---------------------------------- | ------------------------ | -------------------------------------------------- |
+| init | Text raster (CPU)       | font                               | `textMask`               | Canvas 2D `fillText`, word-wrapped, white on black |
+| init | EDT (CPU, TS)           | `textMask`                         | `profile` texture (R8)   | Balloon profile of distance to edge; unit-testable |
+| 1    | Stamp + decay + diffuse | `paintPrev`, pointer segments      | `paintNext` (ping-pong)  | R = paint amount                                   |
+| 2    | Ripple (damped wave)    | `wavePrev`, `paintNext`            | `waveNext` (ping-pong)   | RG = height, previous height; optional             |
+| 3    | Height compose          | `profile`, `paintNext`, `waveNext` | `height` (R16F or RGBA8) | `h = profile * smooth(paint) + ripple`             |
+| 4    | Shade to screen         | `height`, `ramp`, matcap math      | canvas                   | normals by 4 taps, lighting, dither                |
 
 Passes 2 and 3 can merge. Skip passes 1 to 3 entirely when the pointer is idle, the intro has finished and the buffers
 have settled (render on demand; see H).
@@ -397,11 +397,11 @@ shattered frame statically. Sources: IQ above; Book of Shaders cellular noise ht
 
 Three canvases stacked in one wrapper, all sized `cssW*dpr` by `cssH*dpr`, `ctx.setTransform(dpr,0,0,dpr,0,0)`:
 
-| Layer | Redraw when | How |
-|---|---|---|
-| `bg` | resize | grid lines and background, cached; one `drawImage` from an offscreen canvas |
+| Layer  | Redraw when         | How                                                                                                                                                                                                                                                                              |
+| ------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bg`   | resize              | grid lines and background, cached; one `drawImage` from an offscreen canvas                                                                                                                                                                                                      |
 | `heat` | search steps reveal | 40x24 `ImageData` (960 px) filled from a `Uint8Array` via a 256-entry colour LUT, `putImageData` to a 40x24 offscreen canvas, then one `drawImage` scaled up with `imageSmoothingEnabled = false` (or true with a blur for a soft look). One draw call instead of 960 `fillRect` |
-| `fg` | each animated frame | obstacles (dirty cells only), path polyline, drone, flash |
+| `fg`   | each animated frame | obstacles (dirty cells only), path polyline, drone, flash                                                                                                                                                                                                                        |
 
 - Snap the cell size to an integer number of **device** pixels: `cell = Math.floor(cssW*dpr/40)`, centre the grid, draw
   1 px lines at `+0.5` offsets. Prevents blurry lines at fractional DPR (1.25, 1.5).
@@ -442,12 +442,12 @@ Red Blob Games grid pathfinding (A*, heuristics) https://www.redblobgames.com/pa
 
 ### 7.1 Compositing choice
 
-| Option | Verdict |
-|---|---|
+| Option                                                    | Verdict                                                                                  |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `clip-path: inset(0 0 0 var(--split))` on the top `<img>` | **Use.** Supported everywhere, no extra canvas, crisp. Repaints, fine for one image pair |
-| `mask-image` gradient | Same cost, more verbose, only needed for soft edge |
-| Canvas compositing | Only if the heat layer must be blended with a mode not available in CSS |
-| Counter-translate trick (overflow hidden wrapper) | Compositor-only, use if profiling shows paint cost on low-end phones |
+| `mask-image` gradient                                     | Same cost, more verbose, only needed for soft edge                                       |
+| Canvas compositing                                        | Only if the heat layer must be blended with a mode not available in CSS                  |
+| Counter-translate trick (overflow hidden wrapper)         | Compositor-only, use if profiling shows paint cost on low-end phones                     |
 
 Update `--split` from the input's `input` event inside `requestAnimationFrame` (coalesce), not on every event.
 
@@ -469,7 +469,9 @@ Reference: WAI-ARIA Authoring Practices slider pattern https://www.w3.org/WAI/AR
 ```ts
 /** Perceptual-ish difference in [0,1] for two RGBA pixels. */
 export function pixelDiff(a: Uint8ClampedArray, b: Uint8ClampedArray, i: number): number {
-  const dr = Math.abs(a[i] - b[i]), dg = Math.abs(a[i + 1] - b[i + 1]), db = Math.abs(a[i + 2] - b[i + 2]);
+  const dr = Math.abs(a[i] - b[i]),
+    dg = Math.abs(a[i + 1] - b[i + 1]),
+    db = Math.abs(a[i + 2] - b[i + 2]);
   return (0.3 * dr + 0.59 * dg + 0.11 * db) / 255;
 }
 ```
@@ -492,7 +494,7 @@ need CORS handling; for bundled assets they do not. Use a precomputed PNG as fal
 ### 7.4 ROI boxes and streamed diagnosis
 
 - ROI boxes: SVG overlay with `viewBox` = image natural size, `preserveAspectRatio` matching the image, `<rect pathLength="1"
-  stroke-dasharray="1" stroke-dashoffset="1" vector-effect="non-scaling-stroke">`; animate `stroke-dashoffset 1 -> 0`
+stroke-dasharray="1" stroke-dashoffset="1" vector-effect="non-scaling-stroke">`; animate `stroke-dashoffset 1 -> 0`
   (GSAP, 450 ms, stagger 120 ms) when the slider first passes 15 percent or the section enters view. Labels fade after.
   Reduced motion: boxes appear instantly.
 - Streaming text: pure function `streamPlan(text, { cps: 38, jitter: 0.4, punctuationPause: 160 })` returns
@@ -517,8 +519,7 @@ Native alternatives, for the record:
 
 - **CSS scroll-driven animations** (`animation-timeline: view()`): web-features lists "Newly available" since 2026-10-27
   (Chrome/Edge 115, Safari 26, Firefox 159)
-  https://web-platform-dx.github.io/web-features-explorer/features/scroll-driven-animations ; MDN marks `view()` Baseline
-  2026. Great for simple parallax with zero JS, but you cannot mix it with SplitText line masks, timelines or the
+  https://web-platform-dx.github.io/web-features-explorer/features/scroll-driven-animations ; MDN marks `view()` Baseline 2026. Great for simple parallax with zero JS, but you cannot mix it with SplitText line masks, timelines or the
   Lenis smoothed position consistently, and old Firefox/Safari installs will not run it. Keep it as a v2 enhancement
   for trivial effects behind `@supports (animation-timeline: view())`.
 - **View Transitions API**: same-document transitions are Baseline newly available since Firefox 144 (Oct 2025);
@@ -541,13 +542,17 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 export function SmoothScroll({ children }: { children: React.ReactNode }) {
   const ref = useRef<LenisRef>(null);
   useEffect(() => {
-    const tick = (t: number) => ref.current?.lenis?.raf(t * 1000);   // GSAP time is seconds
+    const tick = (t: number) => ref.current?.lenis?.raf(t * 1000); // GSAP time is seconds
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
     ref.current?.lenis?.on('scroll', ScrollTrigger.update);
     return () => gsap.ticker.remove(tick);
   }, []);
-  return <ReactLenis root ref={ref} options={{ autoRaf: false, anchors: true, lerp: 0.1 }}>{children}</ReactLenis>;
+  return (
+    <ReactLenis root ref={ref} options={{ autoRaf: false, anchors: true, lerp: 0.1 }}>
+      {children}
+    </ReactLenis>
+  );
 }
 ```
 
@@ -593,15 +598,15 @@ Nav links must use `lenis.scrollTo('#drone', { offset: -72 })` or anchors mode, 
 
 ## 9. G. WebGL layer choice
 
-| | Raw WebGL2 | **OGL 1.0.11** | three 0.187.0 | react-three-fiber 9.8.2 |
-|---|---|---|---|---|
-| Measured min+gz | 0 plus about 300 lines of our own helpers | **14.5 KB** | 132 KB (minimal import set) | three plus reconciler (not measured, larger) |
-| Licence | n/a | Unlicense | MIT | MIT |
-| Types | built-in DOM types | ships `types/` | ships | ships |
-| Fit for 2 to 3 independent full-quad canvases | fine, verbose | **ideal** | oversized | oversized, React reconciler per canvas |
-| Utilities we use | none | `RenderTarget`, `Triangle`, `Flowmap`, `GPGPU`, `Post` | many | many |
-| Context loss | manual | manual (none built in) | manual (`WebGLRenderer` has events) | manual |
-| Testability | thin shell if we wrap it | thin shell if we wrap it | heavy mocks | heavy mocks |
+|                                               | Raw WebGL2                                | **OGL 1.0.11**                                         | three 0.187.0                       | react-three-fiber 9.8.2                      |
+| --------------------------------------------- | ----------------------------------------- | ------------------------------------------------------ | ----------------------------------- | -------------------------------------------- |
+| Measured min+gz                               | 0 plus about 300 lines of our own helpers | **14.5 KB**                                            | 132 KB (minimal import set)         | three plus reconciler (not measured, larger) |
+| Licence                                       | n/a                                       | Unlicense                                              | MIT                                 | MIT                                          |
+| Types                                         | built-in DOM types                        | ships `types/`                                         | ships                               | ships                                        |
+| Fit for 2 to 3 independent full-quad canvases | fine, verbose                             | **ideal**                                              | oversized                           | oversized, React reconciler per canvas       |
+| Utilities we use                              | none                                      | `RenderTarget`, `Triangle`, `Flowmap`, `GPGPU`, `Post` | many                                | many                                         |
+| Context loss                                  | manual                                    | manual (none built in)                                 | manual (`WebGLRenderer` has events) | manual                                       |
+| Testability                                   | thin shell if we wrap it                  | thin shell if we wrap it                               | heavy mocks                         | heavy mocks                                  |
 
 **Recommendation: OGL**, wrapped by our own `GlStage` (about 80 lines) so the rest of the code never imports OGL
 directly (swap to raw later without touching effects). Facts verified from the installed package: `sideEffects: false`
@@ -622,8 +627,18 @@ and only call `WEBGL_lose_context.loseContext()` if a section is removed from th
 Context-loss pattern (all three stages share it):
 
 ```ts
-canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); stage.status = 'lost'; log.warn('context lost'); showFallback(); });
-canvas.addEventListener('webglcontextrestored', () => { stage.dispose(); stage.init(); log.info('context restored'); hideFallback(); });
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  stage.status = 'lost';
+  log.warn('context lost');
+  showFallback();
+});
+canvas.addEventListener('webglcontextrestored', () => {
+  stage.dispose();
+  stage.init();
+  log.info('context restored');
+  hideFallback();
+});
 ```
 
 After a restore **every** GL object is invalid (programs, textures, render targets); rebuild from the CPU state (text mask,
@@ -632,24 +647,24 @@ noise array, image elements) rather than trying to patch. E2E: `gl.getExtension(
 
 ## 10. H. Performance and robustness checklist
 
-| Area | Rule |
-|---|---|
-| DPR | `Math.min(devicePixelRatio, 2)`; hero sim at CSS pixels, not DPR; adaptive scale below |
-| Adaptive quality | Average frame time over 30 frames; if above 20 ms step sim scale 1 -> 0.75 -> 0.5 then DPR 2 -> 1.5; never step back up (no thrashing). Log `info` on each step |
-| Off-screen | `IntersectionObserver` stops the loop; `visibilitychange` stops it; use `useRafLoop` from the foundation |
-| Render on demand | Stop the loop when idle and settled; restart on pointer, resize or toggle |
-| Power | `powerPreference: 'high-performance'` only for the hero; `'low-power'` for B and C |
-| Precision | Declare `precision highp float;` in every fragment shader (ES 3.00 requires highp support in fragment shaders); use `highp sampler2D` for float textures (iOS returns `lowp` otherwise, per MDN best practices https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices ); never use `fract(sin(x))` hashes at `mediump`; use the integer hash in section 5 |
-| Float targets | Detect: create RGBA16F target, check `checkFramebufferStatus`. iOS has no `EXT_color_buffer_float` (WebKit bug 247240) and no `EXT_float_blend`; use `EXT_color_buffer_half_float` or RGBA8 with subtractive decay. Do not rely on linear filtering of 32-bit float on iOS |
-| Texture size | Hero buffers at most 1280 px wide; thumbnails at most 1.5x display size; call `texStorage`-style allocation once, not per frame |
-| Shader compile | Compile every program, then link, and use `KHR_parallel_shader_compile` where present (MDN above); do not call `getError` or `readPixels` in the loop |
-| Fonts | `await document.fonts.load(...)` then `fonts.ready`, then rasterise (section 3.2) |
-| Resize | One `ResizeObserver` per stage, debounce 150 ms for expensive rebuilds (EDT, noise placement), cheap for `viewport`/uniform updates |
-| Reduced motion | Static frame or fade; no pointer-reactive loops; Lenis smoothing off (default); grain static; cursor, magnet off |
-| Safari / iOS | Use `svh`/`dvh` not `vh` for the hero; low-power mode caps rAF at 30 FPS (Lenis README); contexts are lost more aggressively when the tab backgrounds, so the restore path must work; canvas area is limited on iOS (about 16.7 million pixels, old knowledge **[unverified]**); no `OES_texture_float_linear`; `touch-action` as above |
-| Memory | Dispose textures and render targets on unmount; do not leak `ResizeObserver` or `IntersectionObserver` |
-| Logging | `createLogger('hero' / 'safesurf' / 'glass')`; log lifecycle only, never inside the frame loop |
-| Fallback never blank | Every WebGL piece renders its DOM/CSS fallback first and swaps to canvas after the first successful frame |
+| Area                 | Rule                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DPR                  | `Math.min(devicePixelRatio, 2)`; hero sim at CSS pixels, not DPR; adaptive scale below                                                                                                                                                                                                                                                                                             |
+| Adaptive quality     | Average frame time over 30 frames; if above 20 ms step sim scale 1 -> 0.75 -> 0.5 then DPR 2 -> 1.5; never step back up (no thrashing). Log `info` on each step                                                                                                                                                                                                                    |
+| Off-screen           | `IntersectionObserver` stops the loop; `visibilitychange` stops it; use `useRafLoop` from the foundation                                                                                                                                                                                                                                                                           |
+| Render on demand     | Stop the loop when idle and settled; restart on pointer, resize or toggle                                                                                                                                                                                                                                                                                                          |
+| Power                | `powerPreference: 'high-performance'` only for the hero; `'low-power'` for B and C                                                                                                                                                                                                                                                                                                 |
+| Precision            | Declare `precision highp float;` in every fragment shader (ES 3.00 requires highp support in fragment shaders); use `highp sampler2D` for float textures (iOS returns `lowp` otherwise, per MDN best practices https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices ); never use `fract(sin(x))` hashes at `mediump`; use the integer hash in section 5 |
+| Float targets        | Detect: create RGBA16F target, check `checkFramebufferStatus`. iOS has no `EXT_color_buffer_float` (WebKit bug 247240) and no `EXT_float_blend`; use `EXT_color_buffer_half_float` or RGBA8 with subtractive decay. Do not rely on linear filtering of 32-bit float on iOS                                                                                                         |
+| Texture size         | Hero buffers at most 1280 px wide; thumbnails at most 1.5x display size; call `texStorage`-style allocation once, not per frame                                                                                                                                                                                                                                                    |
+| Shader compile       | Compile every program, then link, and use `KHR_parallel_shader_compile` where present (MDN above); do not call `getError` or `readPixels` in the loop                                                                                                                                                                                                                              |
+| Fonts                | `await document.fonts.load(...)` then `fonts.ready`, then rasterise (section 3.2)                                                                                                                                                                                                                                                                                                  |
+| Resize               | One `ResizeObserver` per stage, debounce 150 ms for expensive rebuilds (EDT, noise placement), cheap for `viewport`/uniform updates                                                                                                                                                                                                                                                |
+| Reduced motion       | Static frame or fade; no pointer-reactive loops; Lenis smoothing off (default); grain static; cursor, magnet off                                                                                                                                                                                                                                                                   |
+| Safari / iOS         | Use `svh`/`dvh` not `vh` for the hero; low-power mode caps rAF at 30 FPS (Lenis README); contexts are lost more aggressively when the tab backgrounds, so the restore path must work; canvas area is limited on iOS (about 16.7 million pixels, old knowledge **[unverified]**); no `OES_texture_float_linear`; `touch-action` as above                                            |
+| Memory               | Dispose textures and render targets on unmount; do not leak `ResizeObserver` or `IntersectionObserver`                                                                                                                                                                                                                                                                             |
+| Logging              | `createLogger('hero' / 'safesurf' / 'glass')`; log lifecycle only, never inside the frame loop                                                                                                                                                                                                                                                                                     |
+| Fallback never blank | Every WebGL piece renders its DOM/CSS fallback first and swaps to canvas after the first successful frame                                                                                                                                                                                                                                                                          |
 
 ### Playwright and WebGL
 

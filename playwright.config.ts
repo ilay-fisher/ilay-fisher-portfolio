@@ -17,13 +17,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          // Software GL so WebGL works in headless Chromium without a GPU.
-          args: [
-            '--use-gl=angle',
-            '--use-angle=swiftshader',
-            '--enable-unsafe-swiftshader',
-            '--ignore-gpu-blocklist',
-          ],
+          // Software GL for Linux CI runners. On macOS WebGL2 works without flags (research
+          // ANIMATIONS.md section 10), and these flags are harmless there.
+          args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
         },
       },
     },

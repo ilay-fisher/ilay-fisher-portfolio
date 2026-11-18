@@ -2,7 +2,6 @@
   position: relative;
   padding-block: var(--section-pad);
   border-top: var(--hairline);
-  scroll-margin-top: var(--nav-h);
 }
 .section__title {
   margin-top: var(--space-4);

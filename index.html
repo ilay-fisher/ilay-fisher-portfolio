@@ -20,6 +20,19 @@
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
+    <script>
+      // Reveals hide content until GSAP plays them. `js` enables that; it is removed again if the
+      // app has not booted after 4 s, and `reduce-motion` keeps everything visible.
+      (function () {
+        var r = document.documentElement;
+        r.classList.add('js');
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+          r.classList.add('reduce-motion');
+        setTimeout(function () {
+          if (!window.__appReady) r.classList.remove('js');
+        }, 4000);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
