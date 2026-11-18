@@ -112,3 +112,19 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 - Key idea: deterministic localization, probabilistic interpretation. Do the cheap thing first.
 - Stack: Python, OpenCV, FastAPI, Pydantic, SSE, React, TypeScript, Canvas, Docker
 - Local source for reference and images: `/Users/ilayfisher/Documents/proj2` (`docs/images/haiku-u2.png`, sample presets under `backend/` or `frontend/`)
+
+## Voice: a little wit (owner approved, 2026-11-18)
+
+The owner wants the page to be a bit witty, sparingly. He rejected jokes about tech stats,
+developer in-jokes and anything that makes claims about him. The one line he approved shows
+the tone: an invitation to play, one human beat, then the thesis as the payoff.
+
+Approved lines (use exactly):
+
+- Hero invitation: "Throw things at my name. Cheaper than therapy. It holds."
+
+Rules:
+
+- Only lines listed here may be used as wit. Workers do not invent jokes.
+- At most one witty line per section, in microcopy (hints, status lines), never in facts.
+- Deadpan, short, no exclamation marks, no emoji.
