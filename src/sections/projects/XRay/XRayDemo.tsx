@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createLogger } from '../../../lib/logger';
 import { useInView, usePrefersReducedMotion } from '../../../lib/motion';
 import { analyzePreset, fallbackAnalysis, type Analysis, type AnalyzeFn } from './analysis';
-import { clampPercent, handleLeft, sliderToClip, sliderValueText, sweepValue } from './clip';
+import {
+  clampPercent,
+  handleLeft,
+  sliderToClip,
+  sliderValueText,
+  springStep,
+  sweepPath,
+  type SpringState,
+} from './clip';
 import { pairLayout } from './crop';
 import { BENCHMARK, PRESETS, diagnosisFor, type Diagnosis, type Preset } from './data';
 import { formatMs, formatPct, formatTokens } from './readout';
@@ -11,6 +19,9 @@ import './XRay.css';
 
 const log = createLogger('xray');
 const SWEEP_MS = 2600;
+/** Delay before the description starts typing, after the crop has flown in and fields appeared. */
+const DESC_DELAY_MS = 900;
+const FLIGHT_MS = 480;
 const STREAM_CPS = 90;
 const SEVERITY_LABEL = {
   low: 'Low',
@@ -57,11 +68,13 @@ function Crop({
   preset,
   box,
   label,
+  which,
 }: {
   src: string;
   preset: Preset;
   box: { x: number; y: number; w: number; h: number };
   label: string;
+  which: string;
 }) {
   const px = preset.width - box.w > 0 ? (box.x / (preset.width - box.w)) * 100 : 0;
   const py = preset.height - box.h > 0 ? (box.y / (preset.height - box.h)) * 100 : 0;
@@ -70,6 +83,7 @@ function Crop({
       <div
         className="xray__crop-img"
         role="img"
+        data-crop={which}
         aria-label={label}
         style={{
           aspectRatio: `${box.w} / ${box.h}`,
@@ -101,6 +115,17 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
 
   const [rigRef, rigInView] = useInView<HTMLDivElement>({ rootMargin: '200px 0px' });
   const [stageRef, stageInView] = useInView<HTMLDivElement>({ threshold: 0.5 });
+  // Latch: lock-on and scan play when the stage is first seen, not while it is off screen.
+  const [seen, setSeen] = useState(false);
+  if (stageInView && !seen) setSeen(true);
+  const [readoutRef, readoutInView] = useInView<HTMLDivElement>({ threshold: 0.6 });
+  // The ROI bars start at the full-frame length and settle to their real share once seen.
+  const [barsOn, setBarsOn] = useState(false);
+  useEffect(() => {
+    if (!readoutInView || barsOn) return;
+    const id = window.setTimeout(() => setBarsOn(true), reduced ? 0 : 350);
+    return () => window.clearTimeout(id);
+  }, [readoutInView, barsOn, reduced]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const swept = useRef(false);
   const touched = useRef(false);
@@ -144,16 +169,17 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   useEffect(() => {
     if (reduced || swept.current || touched.current || !stageInView || !analysis || guess) return;
     swept.current = true;
-    log.info('intro sweep');
+    const stops = analysis.regions.map((r) => ((r.x + r.w / 2) / preset.width) * 100);
+    log.info('intro sweep', { stops: stops.length });
     const t0 = performance.now();
     const frame = (now: number) => {
       const t = (now - t0) / SWEEP_MS;
-      setValue(sweepValue(t));
+      setValue(sweepPath(t, stops));
       sweepId.current = t < 1 ? requestAnimationFrame(frame) : 0;
     };
     sweepId.current = requestAnimationFrame(frame);
     return stopSweep;
-  }, [reduced, stageInView, analysis, guess, stopSweep]);
+  }, [reduced, stageInView, analysis, guess, stopSweep, preset.width]);
 
   const regions = useMemo(() => (analysis ? analysis.regions : []), [analysis]);
   const sel = selected !== null ? regions[selected] : undefined;
@@ -164,16 +190,73 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
     if (!diag) return;
     const key = `${presetId}:${selected}`;
     log.debug('replay start', { region: selected, category: diag.category });
-    return runStream(diag.description, {
-      cps: STREAM_CPS,
-      reduced,
-      onProgress: (n) => setStream({ key, visible: n, done: false }),
-      onDone: () => {
-        setStream((st) => ({ ...st, key, done: true }));
-        log.debug('replay done');
-      },
-    });
+    let cancel = () => {};
+    const begin = () => {
+      cancel = runStream(diag.description, {
+        cps: STREAM_CPS,
+        reduced,
+        onProgress: (n) => setStream({ key, visible: n, done: false }),
+        onDone: () => {
+          setStream((st) => ({ ...st, key, done: true }));
+          log.debug('replay done');
+        },
+      });
+    };
+    if (reduced) {
+      begin();
+      return () => cancel();
+    }
+    // Let the crop fly in and the fields appear first, then type the description.
+    const wait = window.setTimeout(begin, DESC_DELAY_MS);
+    return () => {
+      window.clearTimeout(wait);
+      cancel();
+    };
   }, [diag, reduced, selected, presetId]);
+
+  // Connected transition: the selected box flies to the crop in the diagnosis panel.
+  const pairRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const regionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  useLayoutEffect(() => {
+    if (selected === null || !sel || reduced) return;
+    const from = regionRefs.current[selected]?.getBoundingClientRect();
+    const dest = pairRef.current?.querySelector<HTMLElement>('[data-crop="target"]');
+    if (!from || !dest || typeof dest.animate !== 'function') return;
+    const to = dest.getBoundingClientRect();
+    if (to.width === 0 || from.width === 0) return;
+    const fly = document.createElement('div');
+    fly.className = 'xray__fly';
+    fly.setAttribute('aria-hidden', 'true');
+    fly.style.backgroundImage = `url(${preset.target})`;
+    document.body.appendChild(fly);
+    const frame = (r: DOMRect, scale: number) => ({
+      left: `${r.left}px`,
+      top: `${r.top}px`,
+      width: `${r.width}px`,
+      height: `${r.height}px`,
+      backgroundSize: `${preset.width * scale}px ${preset.height * scale}px`,
+      backgroundPosition: `${-sel.x * scale}px ${-sel.y * scale}px`,
+    });
+    const a = fly.animate(
+      [
+        { ...frame(from, from.width / sel.w), opacity: 1 },
+        { ...frame(to, to.width / sel.w), opacity: 1, offset: 0.85 },
+        { ...frame(to, to.width / sel.w), opacity: 0 },
+      ],
+      { duration: FLIGHT_MS + 120, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'both' },
+    );
+    const done = () => fly.remove();
+    a.onfinish = done;
+    a.oncancel = done;
+    if (window.matchMedia('(max-width: 899px)').matches) {
+      panelRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    }
+    return () => {
+      a.cancel();
+      fly.remove();
+    };
+  }, [selected, presetId, sel, reduced, preset]);
 
   const selectPreset = (id: Preset['id']) => {
     if (id === presetId) return;
@@ -216,7 +299,28 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
     }
   };
 
-  const shown = guess ? 0 : value;
+  const target = guess ? 0 : value;
+  // The drawn divider follows the input with slight inertia; reduced motion follows it exactly.
+  const [follow, setFollow] = useState(50);
+  const spring = useRef<SpringState>({ x: 50, v: 0 });
+  useEffect(() => {
+    if (reduced) return;
+    let id = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      spring.current = springStep(spring.current, target, dt);
+      const settled =
+        Math.abs(spring.current.x - target) < 0.04 && Math.abs(spring.current.v) < 0.2;
+      if (settled) spring.current = { x: target, v: 0 };
+      setFollow(spring.current.x);
+      id = settled ? 0 : requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [target, reduced]);
+  const shown = reduced ? target : follow;
   const total = regions.length;
   const layout = sel ? pairLayout(sel) : null;
   const live = stream.key === `${presetId}:${selected}`;
@@ -296,6 +400,9 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                 <canvas ref={canvasRef} width={analysis.heat.width} height={analysis.heat.height} />
               )}
               {analysis?.source === 'fallback' && <img src={preset.heatFallback} alt="" />}
+              {analysis && (seen || !canObserve) && (
+                <span key={`${presetId}-${analysis.source}`} className="xray__scan" />
+              )}
             </div>
             <img
               className="xray__img xray__base"
@@ -307,32 +414,16 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
               width={preset.width}
               height={preset.height}
             />
-            {analysis && !guess && (
+            {analysis && !guess && (seen || !canObserve) && (
               <>
-                <svg
-                  className="xray__boxes"
-                  viewBox={`0 0 ${preset.width} ${preset.height}`}
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  {regions.map((r, i) => (
-                    <rect
-                      key={`${presetId}-${i}`}
-                      className={i === selected ? 'is-selected' : undefined}
-                      style={{ animationDelay: `${120 * i}ms` }}
-                      x={r.x}
-                      y={r.y}
-                      width={r.w}
-                      height={r.h}
-                      pathLength={1}
-                    />
-                  ))}
-                </svg>
                 {regions.map((r, i) => (
                   <button
                     key={`${presetId}-b${i}`}
                     type="button"
                     className="xray__region"
+                    ref={(el) => {
+                      regionRefs.current[i] = el;
+                    }}
                     data-testid={`xray-region-${i + 1}`}
                     aria-label={`Region ${i + 1} of ${total}`}
                     aria-pressed={i === selected}
@@ -342,20 +433,31 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                       top: `${(r.y / preset.height) * 100}%`,
                       width: `${(r.w / preset.width) * 100}%`,
                       height: `${(r.h / preset.height) * 100}%`,
+                      ['--i' as string]: i,
                     }}
                     onClick={() => {
                       log.debug('region selected', { region: i + 1 });
                       setSelected(i);
                     }}
                   >
+                    <span className="xray__flash" aria-hidden="true" />
+                    <span className="xray__ring" aria-hidden="true" />
+                    <span className="xray__corner xray__corner--tl" aria-hidden="true" />
+                    <span className="xray__corner xray__corner--tr" aria-hidden="true" />
+                    <span className="xray__corner xray__corner--bl" aria-hidden="true" />
+                    <span className="xray__corner xray__corner--br" aria-hidden="true" />
                     <span className="xray__num mono" aria-hidden="true">
-                      {i + 1}
+                      Region {i + 1}
                     </span>
                   </button>
                 ))}
               </>
             )}
             <div className="xray__handle" aria-hidden="true" style={{ left: handleLeft(shown) }}>
+              <span className="xray__fringe xray__fringe--a" />
+              <span className="xray__fringe xray__fringe--b" />
+              <span className="xray__glow" />
+              <span className="xray__edge" />
               <span className="xray__grip" />
             </div>
             <input
@@ -364,10 +466,10 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
               min={0}
               max={100}
               step={1}
-              value={shown}
+              value={Math.round(target)}
               data-testid="xray-slider"
               aria-label="Compare the diff heatmap with the plain target"
-              aria-valuetext={sliderValueText(shown)}
+              aria-valuetext={sliderValueText(target)}
               onChange={(e) => onSlide(Number(e.target.value))}
               onPointerDown={() => {
                 stopSweep();
@@ -386,7 +488,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           </p>
         </div>
 
-        <aside className="xray__panel" data-testid="xray-diagnosis" aria-label="Diagnosis">
+        <aside
+          className="xray__panel"
+          data-testid="xray-diagnosis"
+          aria-label="Diagnosis"
+          ref={panelRef}
+        >
           {!diag || !sel || !layout ? (
             <p className="xray__idle">
               {guess
@@ -394,13 +501,19 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                 : 'Select a region to see what the model is asked.'}
             </p>
           ) : (
-            <>
+            <div className="xray__body" key={`${presetId}-${selected}`}>
               <h3 className="xray__panel-title">
                 Region {(selected ?? 0) + 1} of {total}: {diag.label}
               </h3>
-              <div className="xray__pair" data-testid="xray-crop-pair">
-                <Crop src={preset.baseline} preset={preset} box={sel} label="baseline" />
-                <Crop src={preset.target} preset={preset} box={sel} label="target" />
+              <div className="xray__pair" data-testid="xray-crop-pair" ref={pairRef}>
+                <Crop
+                  src={preset.baseline}
+                  preset={preset}
+                  box={sel}
+                  label="baseline"
+                  which="baseline"
+                />
+                <Crop src={preset.target} preset={preset} box={sel} label="target" which="target" />
               </div>
               <p className="xray__sent mono">
                 Composite sent to the model: {layout.width} x {layout.height} px
@@ -409,7 +522,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
               <dl className="xray__fields">
                 <div>
                   <dt>Category</dt>
-                  <dd className="mono">{diag.category}</dd>
+                  <dd
+                    className="mono xray__type"
+                    style={{ ['--n' as string]: diag.category.length }}
+                  >
+                    {diag.category}
+                  </dd>
                 </div>
                 <div>
                   <dt>Severity</dt>
@@ -428,7 +546,7 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
               </dl>
               <p
                 id={descId}
-                className={`xray__desc${done ? ' is-done' : ''}`}
+                className={`xray__desc${done ? ' is-done' : text ? ' is-typing' : ''}`}
                 data-testid="xray-description"
                 aria-hidden={!done}
               >
@@ -441,12 +559,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                 <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
                 {diag.provenance}
               </p>
-            </>
+            </div>
           )}
         </aside>
       </div>
 
-      <div className="xray__readout" data-testid="xray-readout">
+      <div className="xray__readout" data-testid="xray-readout" ref={readoutRef}>
         <h3 className="xray__readout-title">Why it matters</h3>
         <p className="xray__readout-lead">
           The model never sees the whole frame, only the regions that changed.
@@ -464,7 +582,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
             <dd>
               <span
                 className="xray__bar-fill"
-                style={{ width: `${(BENCHMARK.roiTokens[1] / BENCHMARK.fullTokens) * 100}%` }}
+                style={{
+                  width:
+                    barsOn || reduced || !canObserve
+                      ? `${(BENCHMARK.roiTokens[1] / BENCHMARK.fullTokens) * 100}%`
+                      : '100%',
+                }}
               />
               <span className="mono">
                 {BENCHMARK.roiTokens[0]} to {BENCHMARK.roiTokens[1]}
@@ -483,7 +606,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
             <dd>
               <span
                 className="xray__bar-fill"
-                style={{ width: `${(BENCHMARK.cloudMs.roi / BENCHMARK.cloudMs.full) * 100}%` }}
+                style={{
+                  width:
+                    barsOn || reduced || !canObserve
+                      ? `${(BENCHMARK.cloudMs.roi / BENCHMARK.cloudMs.full) * 100}%`
+                      : '100%',
+                }}
               />
               <span className="mono">{formatMs(BENCHMARK.cloudMs.roi)}</span>
             </dd>

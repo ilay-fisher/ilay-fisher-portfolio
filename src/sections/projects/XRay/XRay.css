@@ -1,4 +1,13 @@
+/*
+ * X-Ray lens rig. Shapes are soft: every radius below goes through the three aliases here, which
+ * resolve to the shared radius tokens once the design-system revision lands (the second value in
+ * each var() is only a fallback for the tokens that exist today).
+ */
 .xray {
+  --xr-r-lg: var(--radius-lg, 28px);
+  --xr-r-md: var(--radius-md, 18px);
+  --xr-r-sm: var(--radius-sm, 12px);
+  --xr-glow: color-mix(in srgb, var(--paint) 55%, transparent);
   display: grid;
   gap: var(--space-5);
   padding: var(--space-4);
@@ -9,7 +18,7 @@
   }
 }
 
-/* controls */
+/* controls: pills */
 .xray__bar {
   display: flex;
   flex-wrap: wrap;
@@ -23,32 +32,35 @@
   gap: var(--space-2);
 }
 .xray__chip {
-  min-height: 40px;
-  padding: 0 var(--space-3);
+  min-height: 44px;
+  padding: 0 var(--space-4);
   font-size: var(--step--1);
-  background: transparent;
+  background: var(--surface-raised);
   color: var(--text-dim);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-1);
+  border: 0;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition:
     color var(--dur-fast) var(--ease-out),
     background-color var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out);
-}
-@media (min-width: 600px) {
-  .xray__chip {
-    padding: 0 var(--space-4);
-  }
+    transform var(--dur-fast) var(--ease-out);
 }
 .xray__chip:hover {
   color: var(--text);
-  background: var(--surface-raised);
+  background: var(--line);
+  transform: translateY(-1px);
+}
+.xray__chip:active {
+  transform: scale(0.96);
 }
 .xray__chip[aria-pressed='true'] {
-  color: var(--text);
-  background: var(--surface-raised);
-  border-color: var(--text);
+  color: var(--on-paint);
+  background: var(--text);
+}
+.xray__chip:focus-visible,
+.xray__region:focus-visible {
+  outline: 2px solid var(--paint);
+  outline-offset: 3px;
 }
 .xray__hint {
   margin: 0;
@@ -73,7 +85,7 @@
   width: 100%;
   overflow: hidden;
   background: var(--stage);
-  border: var(--hairline);
+  border-radius: var(--xr-r-lg);
   touch-action: pan-y;
   user-select: none;
 }
@@ -96,6 +108,7 @@
 .xray__heat {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   background: color-mix(in srgb, var(--stage) 62%, transparent);
   pointer-events: none;
 }
@@ -107,49 +120,140 @@
   height: 100%;
   max-width: none;
 }
+/* one scan pass when the heatmap arrives; it does not repeat */
+.xray__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--paint-hi);
+  opacity: 0;
+  animation: xray-scan 1100ms var(--ease-in-out) 150ms 1 both;
+}
+.xray__scan::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 22px;
+  background: var(--paint);
+  opacity: 0.12;
+}
+@keyframes xray-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  88% {
+    opacity: 0.85;
+  }
+  100% {
+    top: calc(100% - 2px);
+    opacity: 0;
+  }
+}
 
-/* the handle is drawn from the input value; the input itself is invisible */
+/* the divider: hairline, a soft scan glow, a faint colour fringe and a round knob */
 .xray__handle {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 0;
   pointer-events: none;
-  border-left: 2px solid var(--text);
+}
+.xray__edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: var(--text);
+}
+.xray__glow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9px;
+  width: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--paint-hi);
+  opacity: 0.1;
+}
+.xray__glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--paint-hi);
+  opacity: 0.9;
+}
+.xray__fringe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+.xray__fringe--a {
+  left: -4px;
+  background: var(--paint);
+}
+.xray__fringe--b {
+  left: 3px;
+  background: var(--pass);
 }
 .xray__grip {
   position: absolute;
   top: 50%;
-  left: -17px;
-  width: 32px;
-  height: 32px;
-  margin-top: -16px;
-  background: var(--stage);
-  border: 2px solid var(--text);
+  left: -22px;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
   border-radius: var(--radius-pill);
-}
-.xray__grip::before,
-.xray__grip::after {
-  content: '';
-  position: absolute;
-  top: 9px;
-  width: 6px;
-  height: 10px;
-  border: solid var(--text);
-  border-width: 0 0 2px 2px;
+  background: var(--text);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--text) 16%, transparent),
+    0 6px 18px color-mix(in srgb, var(--stage) 80%, transparent);
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 .xray__grip::before {
-  left: 5px;
-  transform: translateX(1px) rotate(45deg) scale(0.8);
-  transform-origin: center;
+  /* gloss: a soft highlight along the top of the knob */
+  content: '';
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  top: 4px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  opacity: 0.55;
 }
 .xray__grip::after {
-  right: 5px;
-  transform: translateX(-1px) rotate(-135deg) scale(0.8);
+  /* two small chevrons */
+  content: '\2039\00a0\203a';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--on-paint);
+  font: 700 18px/1 var(--font-body);
+  white-space: pre;
+}
+.xray__stage:active .xray__grip {
+  transform: scale(0.92);
 }
 .xray__stage:has(.xray__range:focus-visible) .xray__grip {
   outline: 2px solid var(--paint);
-  outline-offset: 3px;
+  outline-offset: 4px;
 }
 .xray__range {
   position: absolute;
@@ -187,42 +291,19 @@
   border: 0;
 }
 .xray__range:focus-visible {
-  outline: none; /* the handle shows focus instead */
+  outline: none; /* the knob shows focus instead */
 }
 
-/* regions: svg drawing under real buttons */
-.xray__boxes {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-.xray__boxes rect {
-  fill: none;
-  stroke: var(--text);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  animation: xray-draw 450ms var(--ease-out) backwards;
-}
-.xray__boxes rect.is-selected {
-  stroke: var(--paint);
-  stroke-width: 2.5;
-}
-@keyframes xray-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-}
+/* regions: rounded brackets that lock on, then a soft pulse */
 .xray__region {
+  --lock: 120ms;
   position: absolute;
   z-index: 2;
   padding: 0;
   margin: 0;
   background: transparent;
   border: 0;
+  border-radius: var(--xr-r-sm);
   cursor: pointer;
   font: inherit;
 }
@@ -236,21 +317,132 @@
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
 }
-.xray__region:hover {
-  background: color-mix(in srgb, var(--text) 10%, transparent);
+.xray__flash,
+.xray__ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--xr-r-sm);
+  pointer-events: none;
+}
+.xray__flash {
+  background: var(--paint);
+  opacity: 0;
+  animation: xray-flash 380ms var(--ease-out) calc(420ms + var(--i, 0) * var(--lock)) 1 both;
+}
+.xray__ring {
+  border: 2px solid var(--paint);
+  opacity: 0;
+  animation: xray-pulse 1200ms var(--ease-out) calc(800ms + var(--i, 0) * var(--lock)) 2 both;
+}
+@keyframes xray-flash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xray-pulse {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+.xray__corner {
+  --sx: 1;
+  --sy: 1;
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 0 solid var(--text);
+  border-radius: 6px;
+  filter: drop-shadow(0 0 5px var(--xr-glow));
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+  animation: xray-lock 520ms var(--ease-out) calc(var(--i, 0) * var(--lock)) 1 backwards;
+}
+.xray__corner--tl {
+  --sx: -1;
+  --sy: -1;
+  left: -3px;
+  top: -3px;
+  border-width: 2.5px 0 0 2.5px;
+}
+.xray__corner--tr {
+  --sx: 1;
+  --sy: -1;
+  right: -3px;
+  top: -3px;
+  border-width: 2.5px 2.5px 0 0;
+}
+.xray__corner--bl {
+  --sx: -1;
+  --sy: 1;
+  left: -3px;
+  bottom: -3px;
+  border-width: 0 0 2.5px 2.5px;
+}
+.xray__corner--br {
+  --sx: 1;
+  --sy: 1;
+  right: -3px;
+  bottom: -3px;
+  border-width: 0 2.5px 2.5px 0;
+}
+@keyframes xray-lock {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--sx) * 26px), calc(var(--sy) * 26px)) scale(1.6);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+.xray__region:hover .xray__corner--tl {
+  transform: translate(-2px, -2px);
+}
+.xray__region:hover .xray__corner--tr {
+  transform: translate(2px, -2px);
+}
+.xray__region:hover .xray__corner--bl {
+  transform: translate(-2px, 2px);
+}
+.xray__region:hover .xray__corner--br {
+  transform: translate(2px, 2px);
+}
+.xray__region[aria-pressed='true'] .xray__corner {
+  border-color: var(--paint);
 }
 .xray__num {
   position: absolute;
-  left: 0;
-  top: 0;
-  transform: translateY(-100%);
-  min-width: 20px;
-  padding: 0 5px;
-  line-height: 20px;
-  text-align: center;
+  left: 50%;
+  top: -8px;
+  transform: translate(-50%, -100%);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--on-paint);
   font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: xray-label 360ms steps(8, end) calc(520ms + var(--i, 0) * var(--lock)) 1 backwards;
+}
+@keyframes xray-label {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 .xray__region[aria-pressed='true'] .xray__num {
   background: var(--paint);
@@ -260,27 +452,47 @@
   left: var(--space-3);
   bottom: var(--space-3);
   margin: 0;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
   background: var(--stage);
   color: var(--text-dim);
   font-size: var(--step--1);
   pointer-events: none;
 }
 .xray__caption {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-3) 0 0;
   color: var(--text-faint);
   font-size: var(--step--1);
 }
 
+/* the crop in flight from a region to the panel */
+.xray__fly {
+  position: fixed;
+  z-index: 60;
+  border-radius: var(--xr-r-md);
+  background-repeat: no-repeat;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--paint);
+}
+
 /* diagnosis panel */
 .xray__panel {
+  min-height: 220px;
+  padding: var(--space-5);
+  border-radius: var(--xr-r-lg);
+  background: var(--surface);
+}
+.xray__body {
   display: grid;
   gap: var(--space-4);
-  min-height: 220px;
-  padding: var(--space-4);
-  border: var(--hairline);
-  background: var(--stage);
   align-content: start;
+  animation: xray-rise var(--dur-base) var(--ease-out) 1 both;
+}
+@keyframes xray-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 .xray__idle {
   margin: 0;
@@ -293,17 +505,25 @@
 .xray__pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px; /* the real composite uses an 8 px gray gap */
-  background: rgb(128 128 128);
+  gap: var(--space-2);
   align-items: start;
 }
 .xray__crop {
   margin: 0;
-  background: var(--stage);
 }
 .xray__crop-img {
   width: 100%;
+  border-radius: var(--xr-r-md);
   background-repeat: no-repeat;
+}
+.xray__crop:last-child .xray__crop-img {
+  /* the target crop is the landing spot of the flying crop */
+  animation: xray-land var(--dur-base) var(--ease-out) 460ms 1 backwards;
+}
+@keyframes xray-land {
+  from {
+    opacity: 0;
+  }
 }
 .xray__crop figcaption {
   padding: var(--space-1) var(--space-2);
@@ -321,8 +541,33 @@
   gap: var(--space-3) var(--space-5);
   margin: 0;
 }
-.xray__fields > div:first-child {
+.xray__fields > div {
+  animation: xray-rise var(--dur-base) var(--ease-out) 1 backwards;
+}
+.xray__fields > div:nth-child(1) {
   flex-basis: 100%;
+  animation-delay: 520ms;
+}
+.xray__fields > div:nth-child(2) {
+  animation-delay: 640ms;
+}
+.xray__fields > div:nth-child(3) {
+  animation-delay: 760ms;
+}
+.xray__type {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: xray-type 420ms steps(var(--n, 12), end) 560ms 1 backwards;
+}
+@keyframes xray-type {
+  from {
+    width: 0;
+  }
+  to {
+    width: calc(var(--n, 12) * 1ch);
+  }
 }
 .xray__note strong {
   color: var(--text-dim);
@@ -350,13 +595,14 @@
   min-height: 4.8em;
   color: var(--text);
 }
-.xray__desc:not(.is-done)::after {
+.xray__desc.is-typing::after {
   content: '';
   display: inline-block;
   width: 0.5ch;
   height: 1em;
   margin-left: 2px;
   vertical-align: text-bottom;
+  border-radius: var(--radius-pill);
   background: var(--paint);
   animation: xray-caret 900ms steps(1) infinite;
 }
@@ -377,8 +623,9 @@
 .xray__readout {
   display: grid;
   gap: var(--space-3);
-  padding-top: var(--space-5);
-  border-top: var(--hairline);
+  padding: var(--space-5);
+  border-radius: var(--xr-r-lg);
+  background: var(--surface);
 }
 .xray__readout-title {
   font-size: var(--step-2);
@@ -403,6 +650,7 @@
   font-size: var(--step--1);
 }
 .xray__bench dd {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -412,16 +660,15 @@
   flex: none;
   min-width: 9ch;
 }
-.xray__bench dd {
-  position: relative;
-}
 .xray__bar-fill {
   display: block;
   height: 14px;
-  min-width: 3px;
+  min-width: 14px;
   flex: none;
   max-width: calc(100% - 10ch - var(--space-3));
+  border-radius: var(--radius-pill);
   background: var(--text);
+  transition: width 900ms var(--ease-in-out);
 }
 .xray__bar-fill--full {
   background: var(--line-strong);
@@ -441,10 +688,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .xray__boxes rect {
+  .xray__scan,
+  .xray__flash,
+  .xray__ring {
+    display: none;
+  }
+  .xray__corner,
+  .xray__num,
+  .xray__type,
+  .xray__body,
+  .xray__fields > div,
+  .xray__crop-img {
+    animation: none !important;
+  }
+  .xray__desc.is-typing::after {
     animation: none;
   }
-  .xray__desc:not(.is-done)::after {
-    animation: none;
+  .xray__bar-fill {
+    transition: none;
   }
 }

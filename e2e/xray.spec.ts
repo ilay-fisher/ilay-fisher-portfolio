@@ -81,7 +81,10 @@ test.describe('X-Ray demo', () => {
     await expect(page.getByTestId('xray-diagnosis')).toBeVisible();
     await expect(page.getByTestId('xray-crop-pair')).toBeVisible();
     await expect(page.getByTestId('xray-replay-note')).toContainText(/recorded/i);
-    await expect(page.getByRole('status')).toContainText(/Region 1 of/, { timeout: 15_000 });
+    await expect(page.getByTestId('xray-diagnosis').getByRole('status')).toContainText(
+      /Region 1 of/,
+      { timeout: 15_000 },
+    );
     const text = (await page.getByTestId('xray-description').textContent()) ?? '';
     expect(text.length).toBeGreaterThan(40);
   });

@@ -46,6 +46,43 @@ Ideas and constants ported in spirit, re-implemented in TypeScript (nothing copi
   `docs/images/haiku-u2.png`; the R5 wording comes from the repo demo rule engine.
 - Benchmark numbers from the proj2 README.
 
+## Motion and finish pass
+
+- **Divider.** 2 px hairline, a soft flat glow band, a one-pixel pink and mint chromatic fringe either
+  side of the edge, and a 44 px round knob with a gloss highlight that shrinks slightly while pressed.
+- **Inertia.** The drawn divider follows the input through a critically damped spring (`springStep`,
+  no overshoot), so pointer drags trail slightly and keyboard steps glide. The input itself is the
+  native range and reports instantly. Reduced motion follows it exactly.
+- **Sweep.** `sweepPath`: eases out of 50 to the left edge, crosses to the right and eases back to 50,
+  with time dwelling over each detected region (the heat pulses are seen as the edge passes them).
+  Runs once, when the stage is first at least half in view. Any input cancels it.
+- **Lock-on.** Once the stage is first seen, each region gets four rounded corner brackets that
+  converge, a short flash, a pill label that types in, then two gentle pulse rings (finite, then
+  still). One scan line passes down the heat side once when it arrives. Nothing loops except the
+  typing caret while text is streaming.
+- **Selection.** The selected region's target crop flies from its box into the diagnosis panel
+  (480 ms, ease-out, Web Animations API), lands on the panel crop, then fields appear one after
+  another, the category types in, and the description streams with a caret. On narrow screens the
+  panel scrolls into view.
+- **Readout.** The ROI bars start at the full-frame length when the readout is first seen and settle
+  to their real share, so the saving is seen. Bars have round caps.
+- **Soft shapes.** Stage, panel, crops and readout are rounded; controls are pills. All radii go
+  through three aliases at the top of `XRay.css` (`--xr-r-lg`, `--xr-r-md`, `--xr-r-sm`) that read
+  `--radius-lg`, `--radius-md`, `--radius-sm` if the revised design system defines them and fall back
+  to literal values otherwise (see limits).
+- **Reduced motion.** No sweep, scan, lock-on, pulse, flight or typing: everything is present
+  statically, slider at 50.
+
+## Evidence
+
+- `docs/reports/img/xray-frames-sweep.png`: 20 frames about 133 ms apart through the sweep.
+- `docs/reports/img/xray-frames-lockon.png`: top, 15 frames of the lock-on and first scan; below,
+  16 frames about 120 ms apart of selection, flight, field reveal and typing.
+- `docs/reports/video/xray.webm`: full flow (sweep, drag, select, readout bars, preset switch,
+  second selection), recorded in Chromium with software GL.
+- Frames were cut from that video with ffmpeg, so timing is as recorded, not synthetic. Recording
+  load slowed the diff to about 100 ms in that run.
+
 ## Results per preset
 
 | Preset | Regions detected | Measured diff (dev build, this machine) |
@@ -64,6 +101,7 @@ computed, not as recorded.
   components, merge, LUT, percentile, end to end regions), `clip`, `stream`, `readout`, `crop`,
   `data` (README numbers and fallback boxes), `XRayDemo` (slider clip, regions as buttons, streaming,
   reduced motion, fallback on rejected `analyze`, guess first, preset switch).
+- Pure maths for the motion (`sweepPath`, `springStep`) has its own unit tests, written first.
 - E2E (Playwright, 6 in `e2e/xray.spec.ts`): images load and heatmap canvas is non-blank with no
   console errors; keyboard and drag move the slider; PCB regions found and a selected region streams
   to completion; preset switch; keyboard-only run; no horizontal scroll at 390 px.
@@ -84,10 +122,22 @@ Shared files touched: none. No new dependencies.
 
 ## Screenshots
 
-`docs/reports/img/xray-desktop-slider.png`, `xray-desktop-region.png` (1440x900 viewport, rig only),
+`docs/reports/img/xray-desktop-slider.png`, `xray-desktop-region.png` (1440x900 viewport, rig only, rebased onto main),
 `xray-mobile-slider.png`, `xray-mobile-region.png` (390x844). Captured with reduced motion.
 
 ## Known limits
+
+- The soft design system had not landed on `origin/main` when this was rebased (`tokens.css` still has
+  only `--radius-0`, `--radius-1`, `--radius-pill`, and there is no "what changed" section in
+  `DESIGN.md`). I guessed the new token names (`--radius-lg/md/sm`) with literal fallbacks; after the
+  revision merges, the three aliases in `XRay.css` need pointing at the real names and screenshots
+  re-checked. The gloss and glow use flat translucent layers and `box-shadow`, which the current
+  DESIGN.md forbids; they follow the new direction, not the old document.
+- The surrounding `ProjectFrame` still draws its own corner ticks and hairline frame; that is shared.
+- Motion was judged from frame grabs and the recorded video, not on a real GPU or a phone. The lock-on
+  brackets are small on the smallest boxes (about 20 px) so the convergence is subtle there.
+- The scan line, rings and region pulses are finite (once, twice), not a continuous shimmer, to keep
+  the "nothing loops" rule. A continuous scan was not built.
 
 - Detection thresholds were tuned against the three bundled image pairs only. A webp quality of 88
   produced a false third PCB region, so images ship at q96; other inputs are untested.
