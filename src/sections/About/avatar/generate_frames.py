@@ -5,7 +5,10 @@ Builds the avatar head-turn frame set (WebP with alpha, so the character stands 
   python3 src/sections/About/avatar/generate_frames.py              # picks the best input in _assets/ by itself
   python3 src/sections/About/avatar/generate_frames.py VIDEO [--green] [--green-still IMG] [--range A:B] [--neutral N]
 
-Two input modes:
+Three input modes:
+  two green clips (default when avatar-turn-green-a.mp4 and avatar-turn-green-b.mp4 are in _assets): clip A reversed
+      (right profile to frontal) then clip B (frontal to left profile), registered, blink-free, one monotonic yaw
+      sequence, true alpha. See the constants above main_stitch (--seam A:B, --keep SHARE, --frames N).
   legacy (default for avatar-turn.mp4): the owner-approved Gemini head-turn video, dark backdrop, hair cropped at
       the top. A soft organic alpha (head-and-shoulders falloff, dark backdrop keyed out, wide feather) is applied,
       so no rectangle, circle or halo shows against the stage. This is the interim look.
@@ -14,7 +17,7 @@ Two input modes:
       light alpha clean-up), every frame is cropped to one common square around the subject, frames are thinned to
       even head-motion steps. --range A:B limits the source frame numbers (e.g. the sweep without a held pose);
       --neutral N pins which kept frame faces the visitor (default: the middle of the sweep).
-With no arguments, avatar-turn-green.mp4 in the assets folder wins over avatar-turn.mp4. The assets folder is
+With no arguments the two green clips win, then avatar-turn-green.mp4, then avatar-turn.mp4. The assets folder is
 $AVATAR_ASSETS, default ../../_assets next to the worktrees (the green-screen still avatar-green.jpg lives there too).
 
 Set AVATAR_OUT / AVATAR_MANIFEST to write somewhere else (used to test without touching the committed frames).
@@ -50,7 +53,7 @@ N = round(SIZE * SCALE)
 OFF_X, OFF_Y = (SIZE - N) // 2, 0
 FADE = 0                         # no fade: the round lens hides the video's cut top and bottom edges
 TARGET_FRAMES = 96                # more than the source has: keep every usable frame (dedup collapses held poses)
-WEBP_Q = 64
+WEBP_Q = 56
 FIRST, HOLE_A, HOLE_B, LAST = 48, 58, 68, 104
 BG = (22, 17, 12)                # BGR of the video background
 
@@ -344,6 +347,93 @@ def main_green(video, still_path, rng, neutral_pin):
     print(f'green mode, {len(keyed)} source frames')
 
 
+# ---- two-clip green-screen stitch (avatar-turn-green-a.mp4 + avatar-turn-green-b.mp4) -----------------------------
+# Clip A: three-quarter right, a clean blink-free turn from frontal to right profile at source frames 97..150.
+# Clip B: three-quarter right, one blink (frames 5..12), then a clean turn through frontal to full left profile
+#         (about frame 125), held, back to frontal. Both clips were reviewed frame by frame at the eye region
+#         (docs/reports/img/avatar-eyes-sheet.png); these ranges contain no blink and no half-closed eye.
+# One monotonic yaw sequence is built: A reversed (right profile down to the seam), then B from the seam to left profile.
+A_TURN = (97, 150)
+B_TURN = (13, 125)
+SEAM = (90, 49)                   # (A frame, B frame) where pose, gaze and scale agree best (lowest keyed-subject difference over a 24 x 24 frame search)
+YAW_KEEP = 0.74                   # keep this share of the way from frontal to each profile (about 65 degrees of 90)
+BOTTOM_FADE = 0.14                # the video cuts the shoulders off straight: dissolve the bottom of the crop
+STITCH_TARGET = 76
+
+
+def extract_all(video, tmp):
+    os.makedirs(tmp, exist_ok=True)
+    subprocess.run([FFMPEG, '-loglevel', 'error', '-y', '-i', video, os.path.join(tmp, '%04d.png')], check=True)
+    return lambda n: cv2.imread(os.path.join(tmp, f'{n:04d}.png'))
+
+
+def register(ref_bgr, mov_bgr):
+    """Affine (scale + shift) that maps mov onto ref, measured on the keyed subject so the backdrop does not matter."""
+    def g(img):
+        return cv2.GaussianBlur(cv2.cvtColor(flat(key_green(img)), cv2.COLOR_BGR2GRAY), (0, 0), 2).astype(np.float32)
+    w = np.array([[0.985, 0, 12], [0, 0.98, -10]], np.float32)
+    _, w = cv2.findTransformECC(g(ref_bgr), g(mov_bgr), w, cv2.MOTION_AFFINE,
+                                (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 200, 1e-6), None, 5)
+    return w
+
+
+def fade_bottom(bgra, share=BOTTOM_FADE):
+    h = bgra.shape[0]
+    ramp = np.ones(h, np.float32)
+    n = int(h * share)
+    ramp[h - n:] = 1 - smoothstep(0, 1, np.linspace(0, 1, n))
+    out = bgra.copy()
+    out[..., 3] = (out[..., 3] * ramp[:, None]).astype(np.uint8)
+    return out
+
+
+def symmetry(bgra):
+    """How mirror-symmetric the face is about its own vertical axis: the frontal frame scores lowest."""
+    ys, xs = np.where(bgra[..., 3] > 128)
+    f = flat(bgra)[int(0.25 * bgra.shape[0]): int(0.62 * bgra.shape[0])]
+    cx = int(np.median(xs))
+    half = int(0.2 * bgra.shape[1])
+    L, R = f[:, cx - half: cx], f[:, cx: cx + half][:, ::-1]
+    return float(np.abs(L.astype(np.float32) - R.astype(np.float32)).mean())
+
+
+def main_stitch(a_path, b_path, seam, keep, target):
+    with tempfile.TemporaryDirectory() as tmp:
+        ga, gb = extract_all(a_path, os.path.join(tmp, 'a')), extract_all(b_path, os.path.join(tmp, 'b'))
+        sa, sb = seam
+        w = register(ga(sa), gb(sb))
+        print(f'clip B registered onto clip A: scale {w[0, 0]:.3f}/{w[1, 1]:.3f}, shift {w[0, 2]:.1f},{w[1, 2]:.1f}px')
+        raw = [ga(n) for n in range(A_TURN[1], sa, -1)]
+        warp = lambda im: cv2.warpAffine(im, w, (im.shape[1], im.shape[0]), flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
+                                        borderMode=cv2.BORDER_REPLICATE)
+        raw += [warp(gb(n)) for n in range(sb, B_TURN[1] + 1)]
+        seam_idx = len(range(A_TURN[1], sa, -1))            # first frame that comes from clip B
+        keyed = [key_green(im) for im in raw]
+    boxes = [b for b in (subject_box(k) for k in keyed) if b]
+    box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    seq = [fade_bottom(fit_square(k, box)) for k in keyed]
+    sm = [small(flat(f)) for f in seq]
+    step = np.array([np.abs(sm[i + 1] - sm[i]).mean() for i in range(len(sm) - 1)])
+    print(f'neighbour difference: median {np.median(step):.2f}, max {step.max():.2f}; at the A/B seam {step[seam_idx - 1]:.2f}')
+    # neutral = the most symmetric frame around the seam (the frontal pose looking at the viewer)
+    cand = range(max(0, seam_idx - 14), min(len(seq), seam_idx + 14))
+    front = min(cand, key=lambda i: symmetry(seq[i]))
+    arc = np.concatenate([[0], np.cumsum(step)])
+    lo = int(np.argmin(np.abs(arc - (arc[front] - keep * arc[front]))))
+    hi = int(np.argmin(np.abs(arc - (arc[front] + keep * (arc[-1] - arc[front])))))
+    idx = list(range(lo, hi + 1))
+    sub = np.array([arc[i] for i in idx])
+    pick = sorted(set(idx[int(np.argmin(np.abs(sub - (sub[0] + (sub[-1] - sub[0]) * k / (target - 1)))))] for k in range(target)))
+    if front not in pick:
+        pick = sorted(set(pick) | {front})
+    frames = [seq[i] for i in pick]
+    neutral = pick.index(front)
+    print(f'source sequence {len(seq)} frames (A reversed {seam_idx}, B {len(seq) - seam_idx}); kept {len(frames)} of {lo}..{hi}; '
+          f'frontal = sequence frame {front}; max step among kept {max(np.abs(small(flat(frames[i + 1])) - small(flat(frames[i]))).mean() for i in range(len(frames) - 1)):.2f}')
+    write_set(frames, frames[neutral], neutral, neutral)
+    return pick, seam_idx, front
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('video', nargs='?')
@@ -351,8 +441,17 @@ def main(argv):
     ap.add_argument('--green-still', default=os.path.join(ASSETS, 'avatar-green.jpg'))
     ap.add_argument('--range', help='source frame range A:B (1-based, green mode)')
     ap.add_argument('--neutral', type=int, help='kept-frame index that faces the visitor (green mode)')
+    ap.add_argument('--seam', help='A:B source frames where clip A hands over to clip B (two-clip mode)')
+    ap.add_argument('--keep', type=float, default=YAW_KEEP, help='share of the way from frontal to each profile to keep')
+    ap.add_argument('--frames', type=int, default=STITCH_TARGET, help='frames to keep (two-clip mode)')
     a = ap.parse_args(argv)
     video, green = a.video, a.green
+    ca, cb = os.path.join(ASSETS, 'avatar-turn-green-a.mp4'), os.path.join(ASSETS, 'avatar-turn-green-b.mp4')
+    if not video and os.path.exists(ca) and os.path.exists(cb):
+        print(f'input: {ca} + {cb} (two green-screen clips, stitched)')
+        seam = tuple(int(v) for v in a.seam.split(':')) if a.seam else SEAM
+        main_stitch(ca, cb, seam, a.keep, a.frames)
+        return
     if not video:
         g, l = os.path.join(ASSETS, 'avatar-turn-green.mp4'), os.path.join(ASSETS, 'avatar-turn.mp4')
         video, green = (g, True) if os.path.exists(g) else (l, False)
