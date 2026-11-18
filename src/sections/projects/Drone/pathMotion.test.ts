@@ -125,7 +125,7 @@ describe('Trajectory', () => {
     const t = new Trajectory(L);
     for (let i = 0; i < 40; i++) t.advance(1 / 60);
     const ahead = t.pointsAhead();
-    expect(ahead[0]).toMatchObject(t.position());
+    expect(ahead[0]).toEqual({ x: t.position().x, y: t.position().y });
     expect(ahead[ahead.length - 1]).toEqual({ x: 3, y: 4 });
     expect(ahead.length).toBeGreaterThanOrEqual(2);
   });
