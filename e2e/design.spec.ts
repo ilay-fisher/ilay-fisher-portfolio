@@ -81,3 +81,41 @@ test.describe('design v2: cursor', () => {
     });
   });
 });
+
+test.describe('design v2: big figures never overflow their tile', () => {
+  for (const w of [360, 390, 768, 1024, 1440]) {
+    test(`at ${w}px`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.goto('/');
+      await page.waitForTimeout(400);
+      const bad = await page.evaluate(() => {
+        const out: string[] = [];
+        const pairs: Array<[string, string]> = [
+          ['.project__numbers dt', '.project__numbers > div'],
+          ['.reading__value', '.reading'],
+        ];
+        for (const [fig, tile] of pairs) {
+          document.querySelectorAll<HTMLElement>(fig).forEach((el) => {
+            const box = tile && el.closest(tile)?.getBoundingClientRect();
+            if (!box) return;
+            // measure the visible text runs themselves (not the hidden spoken copy), so a wide glyph run is caught
+            const runs = Array.from(el.childNodes).filter(
+              (n) => !(n instanceof HTMLElement && n.classList.contains('visually-hidden')),
+            );
+            for (const n of runs) {
+              const r = document.createRange();
+              r.selectNodeContents(n);
+              const t = r.getBoundingClientRect();
+              if (t.width > 0 && (t.right > box.right + 0.5 || t.left < box.left - 0.5))
+                out.push(
+                  `${fig} "${n.textContent}" ${t.left.toFixed(1)}-${t.right.toFixed(1)} vs ${box.left.toFixed(1)}-${box.right.toFixed(1)}`,
+                );
+            }
+          });
+        }
+        return out;
+      });
+      expect(bad).toEqual([]);
+    });
+  }
+});
