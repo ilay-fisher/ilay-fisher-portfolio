@@ -39,7 +39,10 @@ function run(s: ReturnType<typeof setup>, seconds: number) {
     const t = i * s.world.step * 1000;
     while (pending.length && pending[0]!.delayMs <= t) {
       const p = pending.shift()!;
-      s.world.spawn(s.specs.find((x) => x.id === p.id)!, p);
+      s.world.spawn(
+        s.specs.find((x) => x.id === p.id)!,
+        p,
+      );
     }
     s.world.stepOnce();
   }

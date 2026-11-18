@@ -65,7 +65,14 @@ export function makeLegendTextures(o: LegendOptions): LegendTextures {
   };
 
   const map = make((ctx) => {
-    const g = ctx.createRadialGradient(W * 0.3, H * 0.25, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.8);
+    const g = ctx.createRadialGradient(
+      W * 0.3,
+      H * 0.25,
+      0,
+      W * 0.5,
+      H * 0.5,
+      Math.max(W, H) * 0.8,
+    );
     g.addColorStop(0, o.top);
     g.addColorStop(1, o.top);
     ctx.fillStyle = g;

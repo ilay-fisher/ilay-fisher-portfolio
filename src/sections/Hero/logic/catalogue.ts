@@ -45,7 +45,13 @@ export interface ObjectSpec {
 }
 
 const ACCENT_BODY: ReadonlySet<string> = new Set(['Kotlin', 'WASM', 'Node']);
-const ACCENT_LEGEND: ReadonlySet<string> = new Set(['Python', 'React', 'TFLite', 'Firebase', 'C++']);
+const ACCENT_LEGEND: ReadonlySet<string> = new Set([
+  'Python',
+  'React',
+  'TFLite',
+  'Firebase',
+  'C++',
+]);
 const FINISHES: Finish[] = ['anodised', 'ceramic', 'alloy', 'anodised', 'ceramic'];
 const DENSITY = 2.2;
 const KEY_HEIGHT = 0.62;

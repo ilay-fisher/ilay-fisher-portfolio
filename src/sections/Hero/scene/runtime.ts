@@ -78,7 +78,15 @@ export interface HeroDebug {
   project(id: string): { x: number; y: number } | null;
   throwBody(id: string, vel: Vec3): void;
   reset(): void;
-  stats(): { count: number; median: number; p95: number; max: number };
+  /** Frame interval and CPU work per frame (JS + draw-call submission), in ms. */
+  stats(): {
+    count: number;
+    median: number;
+    p95: number;
+    max: number;
+    workMedian: number;
+    workP95: number;
+  };
 }
 
 interface Tuning {
@@ -234,7 +242,12 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
 
   const quality = new QualityController({ window: 30, budgetMs: 21 });
   const stepper = new FixedStepper(1 / 120);
-  const idle = new IdleScheduler({ idleMs: 4500, minGapMs: 3500, maxGapMs: 7000, seed: o.seed + 7 });
+  const idle = new IdleScheduler({
+    idleMs: 4500,
+    minGapMs: 3500,
+    maxGapMs: 7000,
+    seed: o.seed + 7,
+  });
   const tracker = new VelocityTracker(90);
   const raycaster = new Raycaster();
   const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
@@ -262,6 +275,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   const par = new Vector2(0, 0);
   const parTarget = new Vector2(0, 0);
   const frameLog: number[] = [];
+  const workLog: number[] = [];
   const attrCache = new Map<string, string>();
   const rng = createRng(o.seed ^ 0x9e3779b9);
 
@@ -511,11 +525,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
             z: Math.max(-0.4, Math.min(0.4, clickPoint.z - st.pos.z)),
           }
         : undefined;
-      world.impulse(
-        g.id,
-        { x: (rng() - 0.5) * m * 3, y: m * 5.5, z: (rng() - 0.5) * m * 3 },
-        off,
-      );
+      world.impulse(g.id, { x: (rng() - 0.5) * m * 3, y: m * 5.5, z: (rng() - 0.5) * m * 3 }, off);
     }
     try {
       canvas.releasePointerCapture(g.pointerId);
@@ -564,7 +574,10 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     pointer.mouse = e.pointerType === 'mouse';
     if (pointer.mouse) {
       const r = canvas.getBoundingClientRect();
-      parTarget.set(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
+      parTarget.set(
+        ((e.clientX - r.left) / r.width) * 2 - 1,
+        -(((e.clientY - r.top) / r.height) * 2 - 1),
+      );
     }
     if (grab && e.pointerId === grab.pointerId && content) {
       idle.interact();
@@ -650,7 +663,10 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   };
 
   const onFocus = () => {
-    if (content) announce(`${content.items.get(content.order[selected % content.order.length]!)!.spec.label} selected`);
+    if (content)
+      announce(
+        `${content.items.get(content.order[selected % content.order.length]!)!.spec.label} selected`,
+      );
   };
 
   const onLost = (e: Event) => {
@@ -715,7 +731,8 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
 
   const updateVisuals = (c: Content, alpha: number) => {
     const hovered = grab?.id ?? hoverId;
-    const selectedId = document.activeElement === canvas ? c.order[selected % c.order.length] : null;
+    const selectedId =
+      document.activeElement === canvas ? c.order[selected % c.order.length] : null;
     for (const it of c.items.values()) {
       if (!it.spawned) continue;
       const s = c.world.interpolated(it.spec.id, alpha);
@@ -733,7 +750,11 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       const r = Math.max(it.spec.size.w, it.spec.size.d);
       it.blob.position.set(s.pos.x, 0.012, s.pos.z);
       it.blob.rotation.y = tmpE.y;
-      it.blob.scale.set((it.spec.size.w * 1.35 + 0.35) * spread, 1, (it.spec.size.d * 1.35 + 0.35) * spread);
+      it.blob.scale.set(
+        (it.spec.size.w * 1.35 + 0.35) * spread,
+        1,
+        (it.spec.size.d * 1.35 + 0.35) * spread,
+      );
       it.blobMat.opacity = 0.62 * Math.max(0, 1 - gap / (3 + r));
     }
   };
@@ -756,6 +777,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     raf = 0;
     if (!active || contextLost || disposed || !content) return;
     const c = content;
+    const w0 = performance.now();
     const dtMs = lastT === null ? 0 : Math.min(t - lastT, 250);
     lastT = t;
     frameNo++;
@@ -789,6 +811,10 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     updateVisuals(c, alpha);
     placeCamera(t);
     renderer.render(scene, camera);
+    if (frameNo > WARMUP_FRAMES) {
+      workLog.push(performance.now() - w0);
+      if (workLog.length > 900) workLog.shift();
+    }
 
     const spawned = [...c.items.values()].filter((i) => i.spawned).length;
     setAttr('data-bodies', String(spawned));
@@ -847,9 +873,18 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       },
       reset: () => reset(),
       stats: () => {
-        const s = [...frameLog].sort((a, b) => a - b);
-        const at = (q: number) => s[Math.min(s.length - 1, Math.floor(s.length * q))] ?? 0;
-        return { count: s.length, median: at(0.5), p95: at(0.95), max: s[s.length - 1] ?? 0 };
+        const pick = (arr: number[], q: number) => {
+          const s = [...arr].sort((a, b) => a - b);
+          return s[Math.min(s.length - 1, Math.floor(s.length * q))] ?? 0;
+        };
+        return {
+          count: frameLog.length,
+          median: pick(frameLog, 0.5),
+          p95: pick(frameLog, 0.95),
+          max: pick(frameLog, 1),
+          workMedian: pick(workLog, 0.5),
+          workP95: pick(workLog, 0.95),
+        };
       },
     };
     (window as unknown as { __hero?: HeroDebug }).__hero = api;

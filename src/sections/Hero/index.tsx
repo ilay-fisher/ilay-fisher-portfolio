@@ -41,7 +41,11 @@ export default function Hero() {
   const webgl2 = useMemo(() => isWebGLAvailable(), []);
   const [lost, setLost] = useState(false);
   const [failed, setFailed] = useState(false);
-  const { mode, reason } = selectMode({ webgl2, reducedMotion: reduced, contextLost: lost || failed });
+  const { mode, reason } = selectMode({
+    webgl2,
+    reducedMotion: reduced,
+    contextLost: lost || failed,
+  });
   const params = useMemo(readParams, []);
 
   const [heroRef, inView] = useInView<HTMLElement>({ rootMargin: '10% 0px' });
@@ -156,7 +160,9 @@ export default function Hero() {
 
       {mode === 'scene' && (
         <div className="hero__tools">
-          <span className="hero__hint mono">Throw things at my name. Cheaper than therapy. It holds.</span>
+          <span className="hero__hint mono">
+            Throw things at my name. Cheaper than therapy. It holds.
+          </span>
           <Button className="hero__reset" onClick={reset} disabled={!runtime}>
             Drop again
           </Button>

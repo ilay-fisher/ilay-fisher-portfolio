@@ -89,7 +89,10 @@ export function materialSet(
 }
 
 /** The name's materials: brushed warm-white alloy letters on dark anodised plinths. */
-export function nameMaterials(palette: Palette): { letters: MeshPhysicalMaterial; slab: MeshPhysicalMaterial } {
+export function nameMaterials(palette: Palette): {
+  letters: MeshPhysicalMaterial;
+  slab: MeshPhysicalMaterial;
+} {
   return {
     letters: new MeshPhysicalMaterial({
       color: palette.paper.clone().multiplyScalar(0.95),

@@ -37,7 +37,10 @@ describe('Hero markup', () => {
   it('links its two actions to the SafeSurf and contact sections', () => {
     render(<Hero />);
     expect(screen.getByRole('link', { name: /safesurf/i })).toHaveAttribute('href', '#safesurf');
-    expect(screen.getByRole('link', { name: /touch|contact/i })).toHaveAttribute('href', '#contact');
+    expect(screen.getByRole('link', { name: /touch|contact/i })).toHaveAttribute(
+      'href',
+      '#contact',
+    );
   });
 
   it('is the #top section and keeps the hero-canvas test id on a canvas', () => {
