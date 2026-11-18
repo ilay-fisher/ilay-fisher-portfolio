@@ -1,14 +1,18 @@
-import { SPRING_SOFT, springStep, type SpringState } from '../../../lib/spring';
+import { springStep, type SpringState } from '../../../lib/spring';
 import {
+  FACE_Y,
   IDLE_AFTER,
+  LOOK_SPRING,
   avatarPose,
   indexToLook,
   initIdle,
   lookRange,
   lookToIndex,
   nearestIndex,
-  pitchFromPointer,
+  blendFrames,
   pointerToLook,
+  pointerToPitch,
+  pointerToYaw,
   scrollToLook,
   stepIdle,
 } from './avatarLogic';
@@ -47,18 +51,22 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
 
   const paint = (index: number) => {
     if (!ctx) return;
-    const i0 = Math.floor(index);
-    const frac = index - i0;
-    const a = o.frames[i0];
-    const b = o.frames[Math.min(i0 + 1, o.count - 1)];
+    const { a, b, t } = blendFrames(index, o.count);
+    const fa = o.frames[a];
+    const fb = o.frames[b];
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
     ctx.clearRect(0, 0, size, size); // frames carry alpha: never stack on the previous paint
-    if (a) ctx.drawImage(a, 0, 0, size, size);
-    if (frac > 0.04 && b && b !== a) {
-      ctx.globalAlpha = frac;
-      ctx.drawImage(b, 0, 0, size, size);
+    if (fa && fb && t > 0.01) {
+      // exact linear cross-fade of premultiplied pixels: (1 - t) * a + t * b, edges included
+      ctx.globalAlpha = 1 - t;
+      ctx.drawImage(fa, 0, 0, size, size);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = t;
+      ctx.drawImage(fb, 0, 0, size, size);
+      ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-    }
+    } else if (fa) ctx.drawImage(fa, 0, 0, size, size);
   };
 
   if (o.reduced) {
@@ -112,7 +120,7 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     last = t;
     const rect = o.stage.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
+    const cy = rect.top + rect.height * FACE_Y;
     const pointerLive = fine && havePointer && t - lastInput < IDLE_AFTER;
     const idleStep = stepIdle(idle, t, pointerLive ? t : Number.NEGATIVE_INFINITY, Math.random);
     idle = idleStep.state;
@@ -120,8 +128,8 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     let targetLook: number;
     let targetPitch = 0;
     if (pointerLive) {
-      targetLook = pointerToLook(px - cx, lookRange(window.innerWidth));
-      targetPitch = pitchFromPointer(py - cy, window.innerHeight * 0.5);
+      targetLook = pointerToYaw(px - cx, py - cy);
+      targetPitch = pointerToPitch(py - cy);
     } else if (!fine && tapLook !== null && t < tapUntil) {
       targetLook = tapLook;
     } else {
@@ -131,11 +139,11 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
       targetLook = Math.max(-1, Math.min(1, base + (idleStep.look ?? 0)));
     }
 
-    lookS = springStep(lookS, targetLook, dt, SPRING_SOFT);
-    pitchS = springStep(pitchS, targetPitch, dt, SPRING_SOFT);
+    lookS = springStep(lookS, targetLook, dt, LOOK_SPRING);
+    pitchS = springStep(pitchS, targetPitch, dt, LOOK_SPRING);
 
     const index = lookToIndex(lookS.x, o.count, o.neutral);
-    const key = `${Math.floor(index)}:${Math.round((index % 1) * 12)}`;
+    const key = `${Math.floor(index)}:${Math.round((index % 1) * 48)}`;
     if (key !== drawnKey) {
       drawnKey = key;
       paint(index);
