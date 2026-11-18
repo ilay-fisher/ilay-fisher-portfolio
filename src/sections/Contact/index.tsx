@@ -46,13 +46,7 @@ export default function Contact() {
   };
 
   return (
-    <Section
-      id="contact"
-      title="Get in touch."
-      summary={profile.availability}
-      className="contact"
-      bench={[{ label: 'reply to', value: profile.email }]}
-    >
+    <Section id="contact" title="Get in touch." summary={profile.availability} className="contact">
       <div className="contact__panel rig ticks">
         <p className="contact__email" data-testid="contact-email">
           {profile.email}

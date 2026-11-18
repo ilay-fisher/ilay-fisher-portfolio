@@ -21,10 +21,7 @@ export default function About() {
       title="Built alone, end to end."
       summary={profile.thesis}
       className="about"
-      bench={[
-        { label: 'status', value: <span className="about__open">Open to roles</span> },
-        { label: 'role', value: 'CS student, Ruppin, July 2027' },
-      ]}
+      bench={[{ label: 'status', value: <span className="about__open">Open to roles</span> }]}
     >
       <div className="about__lead">
         <Portrait />
