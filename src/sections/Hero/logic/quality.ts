@@ -17,6 +17,13 @@ export interface QualityOptions {
   window?: number;
   /** Median frame time above which quality steps down. */
   budgetMs?: number;
+  /** Level to begin at (0 is best); clamped to the available levels. */
+  startLevel?: number;
+}
+
+/** True for CPU rasterisers (SwiftShader, llvmpipe, generic "software"), where full quality never holds frame rate. */
+export function isSoftwareRenderer(name: string | null | undefined): boolean {
+  return !!name && /swiftshader|llvmpipe|softpipe|software/i.test(name);
 }
 
 /**
@@ -33,6 +40,7 @@ export class QualityController {
   constructor(o: QualityOptions = {}) {
     this.windowSize = o.window ?? 30;
     this.budget = o.budgetMs ?? 20;
+    this.lvl = Math.min(LEVELS.length - 1, Math.max(0, Math.floor(o.startLevel ?? 0)));
   }
 
   get level(): number {

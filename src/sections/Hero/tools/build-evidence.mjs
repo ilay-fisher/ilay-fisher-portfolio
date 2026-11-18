@@ -1,3 +1,4 @@
+/* global process, window, document, console */
 /**
  * Generates the hero's committed stills and report evidence from the real scene.
  *
@@ -101,9 +102,13 @@ for (const vp of VIEWPORTS) {
   });
   const png = join(TMP, `still-${vp.name}.png`);
   await page.locator('canvas.hero__canvas').screenshot({ path: png, omitBackground: true });
-  execFileSync('cwebp', ['-q', '84', '-alpha_q', '92', '-m', '6', png, '-o', `${OUT_STILL}/still-${vp.name}.webp`], {
-    stdio: 'ignore',
-  });
+  execFileSync(
+    'cwebp',
+    ['-q', '84', '-alpha_q', '92', '-m', '6', png, '-o', `${OUT_STILL}/still-${vp.name}.webp`],
+    {
+      stdio: 'ignore',
+    },
+  );
   await ctx.close();
 
   // Mid-throw.

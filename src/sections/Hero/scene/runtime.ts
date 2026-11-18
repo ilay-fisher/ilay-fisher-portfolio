@@ -33,7 +33,7 @@ import { FixedStepper } from '../logic/fixedStep';
 import { IdleScheduler } from '../logic/idle';
 import { mapKey } from '../logic/keys';
 import { layoutName, type NameLayout } from '../logic/nameLayout';
-import { QualityController } from '../logic/quality';
+import { QualityController, isSoftwareRenderer } from '../logic/quality';
 import { breakpointFor, computeRegion } from '../logic/region';
 import { createRng } from '../logic/rng';
 import { planSpawns, type SpawnPlan } from '../logic/spawn';
@@ -240,7 +240,16 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   const blobGeo = new PlaneGeometry(1, 1);
   blobGeo.rotateX(-Math.PI / 2);
 
-  const quality = new QualityController({ window: 30, budgetMs: 21 });
+  const gl = renderer.getContext();
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  const gpuName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+  const software = isSoftwareRenderer(gpuName);
+  if (software) log.info('software renderer, starting at lowest quality');
+  const quality = new QualityController({
+    window: 30,
+    budgetMs: 21,
+    startLevel: software ? 3 : 0,
+  });
   const stepper = new FixedStepper(1 / 120);
   const idle = new IdleScheduler({
     idleMs: 4500,
@@ -284,6 +293,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     attrCache.set(name, value);
     canvas.setAttribute(name, value);
   };
+  setAttr('data-quality', String(quality.level));
   setAttr('data-ready', 'false');
   setAttr('data-seed', String(o.seed));
 
