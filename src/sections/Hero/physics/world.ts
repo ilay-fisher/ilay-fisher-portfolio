@@ -168,10 +168,10 @@ export class PhysicsWorld {
       case 'drone': {
         // Hub, two crossed arms and four rotor guards: stays a sturdy compound when it lands on its side.
         add(0.36, h / 2, 0.36);
-        const arm = w / 2 - 0.12;
+        const arm = w / 2 - 0.2;
         add(arm, 0.06, 0.07, 0, Math.PI / 4);
         add(arm, 0.06, 0.07, 0, -Math.PI / 4);
-        const o = (w / 2 - 0.34) * 0.7071;
+        const o = (w / 2 - 0.3) * 0.7071;
         for (const sx of [-1, 1])
           for (const sz of [-1, 1]) addAt(0.3, 0.05, 0.3, sx * o, h / 2 - 0.05, sz * o);
         break;

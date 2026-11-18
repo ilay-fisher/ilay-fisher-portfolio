@@ -6,13 +6,17 @@ const PX_PER_UNIT = 240;
 /** The three canvases of one printed key top. */
 export interface LegendTextures {
   map: CanvasTexture;
-  bump: CanvasTexture;
+  /** Engraving map for text legends; null for flat-printed marks. */
+  bump: CanvasTexture | null;
   emissive: CanvasTexture | null;
 }
 
 /** Options for {@link makeLegendTextures}. */
 export interface LegendOptions {
+  /** Text legend (keys without a mark). Ignored when `markPath` is set. */
   label: string;
+  /** SVG path data of a brand mark in a 24x24 box; printed flat and unaltered instead of text. */
+  markPath?: string | null;
   /** Key top size in world units. */
   w: number;
   d: number;
@@ -57,7 +61,19 @@ export function makeLegendTextures(o: LegendOptions): LegendTextures {
     ctx.textBaseline = 'middle';
     return size;
   };
+  const mark = (ctx: CanvasRenderingContext2D, color: string) => {
+    // The mark is never stretched: one uniform scale, centred, with margin around it.
+    const size = Math.min(W, H) * 0.56;
+    const k = size / 24;
+    ctx.save();
+    ctx.translate(W / 2 - size / 2, H / 2 - size / 2);
+    ctx.scale(k, k);
+    ctx.fillStyle = color;
+    ctx.fill(new Path2D(o.markPath!));
+    ctx.restore();
+  };
   const text = (ctx: CanvasRenderingContext2D, color: string) => {
+    if (o.markPath) return mark(ctx, color);
     fit(ctx);
     ctx.fillStyle = color;
     // Optical centre sits a hair above the geometric one for caps and digits.
@@ -79,12 +95,15 @@ export function makeLegendTextures(o: LegendOptions): LegendTextures {
     ctx.fillRect(0, 0, W, H);
     text(ctx, o.ink);
   }, true);
-  const bump = make((ctx) => {
-    ctx.fillStyle = '#c8c8c8';
-    ctx.fillRect(0, 0, W, H);
-    ctx.filter = 'blur(1.2px)';
-    text(ctx, '#202020');
-  }, false);
+  // Brand marks are printed flat (no engraving); text legends are lightly engraved.
+  const bump = o.markPath
+    ? null
+    : make((ctx) => {
+        ctx.fillStyle = '#c8c8c8';
+        ctx.fillRect(0, 0, W, H);
+        ctx.filter = 'blur(1.2px)';
+        text(ctx, '#202020');
+      }, false);
   const emissive = o.glow
     ? make((ctx) => {
         ctx.fillStyle = '#000';

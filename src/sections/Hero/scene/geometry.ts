@@ -25,6 +25,8 @@ export interface MaterialSet {
   metal: MeshPhysicalMaterial;
   polished: MeshPhysicalMaterial;
   accent: MeshPhysicalMaterial;
+  /** Dark glossy glass for the phone screen and the lens. */
+  glass: MeshPhysicalMaterial;
 }
 
 /** A built object: the visual group (centred on the body origin) and the materials that react to hover. */
@@ -173,6 +175,86 @@ function buildLock(spec: ObjectSpec, m: MaterialSet): Group {
   return group;
 }
 
+/** Phone slab: anodised body, black glass screen set into the top, a small lens at one end. */
+function buildPhone(spec: ObjectSpec, m: MaterialSet): Group {
+  const { w, h, d } = spec.size;
+  const group = new Group();
+  group.add(mesh(new RoundedBoxGeometry(w, h, d, 5, 0.1), m.body));
+  const screen = mesh(new RoundedBoxGeometry(w - 0.14, 0.03, d - 0.22, 3, 0.012), m.glass);
+  screen.position.set(0, h / 2 - 0.004, 0.02);
+  group.add(screen);
+  const cam = mesh(new CylinderGeometry(0.045, 0.05, 0.03, 24), m.polished);
+  cam.position.set(0, h / 2 + 0.002, -d / 2 + 0.11);
+  group.add(cam);
+  const bar = mesh(new RoundedBoxGeometry(0.26, 0.012, 0.03, 2, 0.006), m.accent);
+  bar.position.set(0, h / 2 + 0.012, d / 2 - 0.15);
+  group.add(bar);
+  return group;
+}
+
+/** Quadcopter: hub, crossed arms, four motors with ringed rotors; the colliders in the physics world match. */
+function buildDrone(spec: ObjectSpec, m: MaterialSet): Group {
+  const { w, h } = spec.size;
+  const group = new Group();
+  const hub = mesh(new RoundedBoxGeometry(0.72, h * 0.8, 0.72, 4, 0.14), m.body);
+  group.add(hub);
+  const reach = w / 2 - 0.2;
+  for (const a of [Math.PI / 4, -Math.PI / 4]) {
+    const arm = mesh(new RoundedBoxGeometry(reach * 2, 0.12, 0.14, 3, 0.045), m.metal);
+    arm.rotation.y = a;
+    group.add(arm);
+  }
+  const o = (w / 2 - 0.3) * 0.7071;
+  const y = h / 2 - 0.05;
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      const motor = mesh(new CylinderGeometry(0.1, 0.12, 0.16, 28), m.polished);
+      motor.position.set(sx * o, y - 0.02, sz * o);
+      group.add(motor);
+      const ring = mesh(new TorusGeometry(0.27, 0.03, 12, 40), m.metal);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(sx * o, y, sz * o);
+      group.add(ring);
+      const blade = mesh(new RoundedBoxGeometry(0.5, 0.014, 0.07, 2, 0.006), m.body);
+      blade.position.set(sx * o, y + 0.07, sz * o);
+      blade.rotation.y = sx * sz * 0.6;
+      group.add(blade);
+    }
+  const led = mesh(new SphereGeometry(0.06, 20, 12), m.accent);
+  led.position.set(0, 0.02, -0.38);
+  group.add(led);
+  return group;
+}
+
+/** Lens: polished ring with a glass disc, and a handle; centred on its bounding box like the colliders. */
+function buildLens(spec: ObjectSpec, m: MaterialSet): Group {
+  const { w, d, h } = spec.size;
+  const group = new Group();
+  const r = Math.min(w, d) / 2;
+  const zr = -d / 2 + r;
+  const ring = mesh(new TorusGeometry(r - 0.1, 0.1, 18, 56), m.polished);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(0, 0, zr);
+  group.add(ring);
+  const glass = mesh(new CylinderGeometry(r - 0.1, r - 0.1, 0.05, 56), m.glass);
+  glass.position.set(0, 0, zr);
+  group.add(glass);
+  const hl = d - 2 * r + 0.12;
+  const handle = mesh(new CylinderGeometry(0.085, 0.1, hl, 28), m.body);
+  handle.rotation.x = Math.PI / 2;
+  handle.position.set(0, 0, d / 2 - hl / 2);
+  group.add(handle);
+  const collar = mesh(new CylinderGeometry(0.115, 0.115, 0.1, 28), m.accent);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.set(0, 0, zr + r + 0.02);
+  group.add(collar);
+  const cap = mesh(new SphereGeometry(0.1, 20, 14), m.metal);
+  cap.position.set(0, 0, d / 2 - 0.02);
+  group.add(cap);
+  void h;
+  return group;
+}
+
 /** Builds the visual for one catalogue object. */
 export function buildObject(spec: ObjectSpec, m: MaterialSet): BuiltObject {
   const group =
@@ -184,7 +266,13 @@ export function buildObject(spec: ObjectSpec, m: MaterialSet): BuiltObject {
           ? buildToggle(spec, m)
           : spec.kind === 'shield'
             ? buildShield(spec, m)
-            : buildLock(spec, m);
+            : spec.kind === 'lock'
+              ? buildLock(spec, m)
+              : spec.kind === 'phone'
+                ? buildPhone(spec, m)
+                : spec.kind === 'drone'
+                  ? buildDrone(spec, m)
+                  : buildLens(spec, m);
   const hoverMaterials = [m.body, m.top, m.metal, m.polished].filter(
     (x): x is MeshPhysicalMaterial => Boolean(x),
   );
@@ -218,15 +306,18 @@ export function glyphShapes(d: string): Shape[] {
 
 /** One letter of the name as a heavy, bevelled extrusion, positioned in world space. */
 export function buildLetter(g: PlacedGlyph, material: Material): Mesh {
-  const bevel = 0.03;
+  // Rounded bevels that stay inside the outline (negative offset), so the letterforms keep their
+  // true width and counters while the edges catch the light.
+  const bevel = 0.042;
   const depthEm = g.depth / g.scale;
   const geo = new ExtrudeGeometry(glyphShapes(g.d), {
     depth: depthEm - bevel * 2,
     bevelEnabled: true,
     bevelSize: bevel,
+    bevelOffset: -bevel,
     bevelThickness: bevel,
-    bevelSegments: 5,
-    curveSegments: 10,
+    bevelSegments: 8,
+    curveSegments: 14,
   });
   geo.translate(0, 0, -depthEm / 2 + bevel);
   const m = mesh(geo, material);

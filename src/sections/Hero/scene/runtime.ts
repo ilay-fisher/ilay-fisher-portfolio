@@ -27,7 +27,7 @@ import {
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { createLogger } from '../../../lib/logger';
 import { computeBounds, fitRig, type Bounds, type Rig, type Vec3 } from '../logic/camera';
-import { buildCatalogue, type Breakpoint, type ObjectSpec } from '../logic/catalogue';
+import { buildCatalogue, chipLabel, type Breakpoint, type ObjectSpec } from '../logic/catalogue';
 import { VelocityTracker } from '../logic/drag';
 import { FixedStepper } from '../logic/fixedStep';
 import { IdleScheduler } from '../logic/idle';
@@ -42,6 +42,7 @@ import { readPalette, type Palette } from './css';
 import { buildEnvironment } from './env';
 import { buildLetter, buildObject } from './geometry';
 import { makeLegendTextures, type LegendTextures } from './legend';
+import { MARKS } from './marks';
 import { bodyMaterial, materialSet, nameMaterials } from './materials';
 
 const log = createLogger('hero');
@@ -57,6 +58,14 @@ export interface RuntimeOptions {
   onContextLost: () => void;
   onContextRestored: () => void;
   onAnnounce: (message: string) => void;
+  /** Deterministic fast path: settle the physics before the first frame and keep the scene still afterwards. */
+  fast?: boolean;
+  /** Element that shows the object name on hover, grab and keyboard selection (positioned by the runtime). */
+  chipEl?: HTMLElement | null;
+  /** Called with the running count of real impacts on the name. */
+  onHits?: (n: number) => void;
+  /** Double-click or Enter on a project piece: scroll to its section (`#safesurf`). */
+  onNavigate?: (hash: string) => void;
 }
 
 /** What the host can do with a running scene. */
@@ -78,6 +87,14 @@ export interface HeroDebug {
   project(id: string): { x: number; y: number } | null;
   throwBody(id: string, vel: Vec3): void;
   reset(): void;
+  /** Advances `n` fixed physics steps synchronously (spawning what is due), then draws one frame. */
+  step(n?: number): void;
+  /** Settles everything (up to 8 simulated seconds) synchronously and draws; true when all are asleep. */
+  settle(): boolean;
+  /** Real impacts on the name so far. */
+  hits(): number;
+  /** Draws a frame and reads the pixels back in the same task: how much of the canvas is painted. */
+  pixels(): { width: number; height: number; covered: number; colours: number; spread: number };
   /** Frame interval and CPU work per frame (JS + draw-call submission), in ms. */
   stats(): {
     count: number;
@@ -102,7 +119,7 @@ const TUNING: Record<Breakpoint, Tuning> = {
 };
 
 /** Share of the world width the name occupies. */
-const NAME_SHARE = 0.86;
+const NAME_SHARE = 0.92;
 const MAX_DPR = 2;
 const WARMUP_FRAMES = 24;
 
@@ -280,6 +297,9 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   let hoverId: string | null = null;
   let grab: Grab | null = null;
   let hoverDirty = false;
+  let keyboardSel = false;
+  let chipId: string | null = null;
+  let lastHits = 0;
   const pointer = { x: 0, y: 0, inside: false, mouse: false };
   const par = new Vector2(0, 0);
   const parTarget = new Vector2(0, 0);
@@ -305,7 +325,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     const approxWidth = tune.worldWidth * 0.94;
     const cap = Math.min(2, Math.max(0.5, (NAME_SHARE * approxWidth) / unit));
     const layout = layoutName(cap);
-    const specs = buildCatalogue(bp);
+    const specs = buildCatalogue(bp, software);
     const disposables: Content['disposables'] = [];
     const nameGroup = new Group();
     const mats = nameMaterials(palette);
@@ -327,12 +347,13 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     const items = new Map<string, Item>();
     for (const spec of specs) {
       let legend: LegendTextures | null = null;
-      if (spec.kind === 'key' && spec.legend) {
+      if (spec.kind === 'key') {
         const probe = bodyMaterial(spec, palette);
         const topTone = probe.color.clone().offsetHSL(0, 0, 0.035);
         probe.dispose();
         legend = makeLegendTextures({
-          label: spec.legend,
+          label: spec.legend ?? spec.name,
+          markPath: spec.mark ? (MARKS[spec.mark]?.path ?? null) : null,
           w: spec.size.w,
           d: spec.size.d,
           top: hex(topTone),
@@ -359,9 +380,10 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       blob.position.y = 0.012;
       blob.visible = false;
       scene.add(blob);
-      disposables.push(set.body, set.metal, set.polished, set.accent, blobMat);
+      disposables.push(set.body, set.metal, set.polished, set.accent, set.glass, blobMat);
       if (set.top) disposables.push(set.top);
-      if (legend) disposables.push(legend.map, legend.bump);
+      if (legend) disposables.push(legend.map);
+      if (legend?.bump) disposables.push(legend.bump);
       if (legend?.emissive) disposables.push(legend.emissive);
       items.set(spec.id, {
         spec,
@@ -545,9 +567,58 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     }
   };
 
+  const announce = (msg: string) => o.onAnnounce(msg);
+  /** Name announced on selection; project pieces also say that Enter or a double-click opens their section. */
+  const selectedMessage = (spec: ObjectSpec) =>
+    spec.href ? `${spec.label} selected. ${spec.description}` : `${spec.label} selected`;
+
+  // Name chip: pointer-following on hover or grab, beside the selected object for the keyboard.
+  const chip = o.chipEl ?? null;
+  const updateChip = () => {
+    if (!chip || !content) return;
+    const kbd = keyboardSel && document.activeElement === canvas;
+    const id =
+      grab?.id ?? hoverId ?? (kbd ? content.order[selected % content.order.length]! : null);
+    if (id !== chipId) {
+      chipId = id;
+      chip.hidden = id === null;
+      if (id) chip.textContent = chipLabel(content.items.get(id)!.spec);
+    }
+    if (!id) return;
+    let x = pointer.x;
+    let y = pointer.y;
+    if (!(grab || hoverId) && kbd) {
+      const st = content.world.get(id);
+      if (!st) return;
+      const v = new Vector3(st.pos.x, st.pos.y, st.pos.z).project(camera);
+      const r = canvas.getBoundingClientRect();
+      x = r.left + ((v.x + 1) / 2) * r.width;
+      y = r.top + ((1 - v.y) / 2) * r.height - 18;
+    }
+    const base = chip.offsetParent?.getBoundingClientRect();
+    const tx = Math.round(x - (base?.left ?? 0) + 14);
+    const ty = Math.round(y - (base?.top ?? 0) - 40);
+    chip.style.transform = `translate(${tx}px, ${ty}px)`;
+  };
+
+  const openPiece = (it: Item) => {
+    if (!it.spec.href || !o.onNavigate) return false;
+    o.onNavigate(it.spec.href);
+    announce(`Jumping to the ${it.spec.name} section`);
+    return true;
+  };
+
+  const onDoubleClick = (e: MouseEvent) => {
+    if (!content || contextLost) return;
+    const hit = pickAt(e.clientX, e.clientY);
+    const it = hit ? content.items.get(hit.id) : undefined;
+    if (it) openPiece(it);
+  };
+
   const onPointerDown = (e: PointerEvent) => {
     if (!content || contextLost) return;
     idle.interact();
+    keyboardSel = false;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const hit = pickAt(e.clientX, e.clientY);
     if (!hit || !content.items.has(hit.id)) return;
@@ -583,6 +654,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     pointer.y = e.clientY;
     pointer.inside = true;
     pointer.mouse = e.pointerType === 'mouse';
+    keyboardSel = false;
     if (pointer.mouse) {
       const r = canvas.getBoundingClientRect();
       parTarget.set(
@@ -630,14 +702,13 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     if (grab && grab.pointerType === 'touch') e.preventDefault();
   };
 
-  const announce = (msg: string) => o.onAnnounce(msg);
-
   const onKeyDown = (e: KeyboardEvent) => {
     if (!content || contextLost) return;
     const cmd = mapKey(e);
     if (!cmd) return;
     e.preventDefault();
     idle.interact();
+    keyboardSel = true;
     const c = content;
     const id = c.order[selected % c.order.length]!;
     const it = c.items.get(id)!;
@@ -649,9 +720,15 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
         break;
       case 'select': {
         selected = (selected + cmd.dir + c.order.length) % c.order.length;
-        announce(`${c.items.get(c.order[selected]!)!.spec.label} selected`);
+        announce(selectedMessage(c.items.get(c.order[selected]!)!.spec));
         break;
       }
+      case 'activate':
+        if (!openPiece(it)) {
+          c.world.impulse(id, { x: 0, y: m * 8, z: 0 });
+          announce(`${it.spec.label} hopped`);
+        }
+        break;
       case 'hop':
         c.world.impulse(id, { x: 0, y: m * 8, z: 0 });
         announce(`${it.spec.label} hopped`);
@@ -674,10 +751,14 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   };
 
   const onFocus = () => {
-    if (content)
-      announce(
-        `${content.items.get(content.order[selected % content.order.length]!)!.spec.label} selected`,
-      );
+    if (!content) return;
+    keyboardSel = !pointer.inside;
+    announce(
+      selectedMessage(content.items.get(content.order[selected % content.order.length]!)!.spec),
+    );
+  };
+  const onBlur = () => {
+    keyboardSel = false;
   };
 
   const onLost = (e: Event) => {
@@ -706,6 +787,8 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   canvas.addEventListener('keydown', onKeyDown);
   canvas.addEventListener('focus', onFocus);
+  canvas.addEventListener('blur', onBlur);
+  canvas.addEventListener('dblclick', onDoubleClick);
   canvas.addEventListener('webglcontextlost', onLost);
   canvas.addEventListener('webglcontextrestored', onRestored);
 
@@ -784,6 +867,33 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     }
   };
 
+  /** Mirrors the scene state to data attributes and the hit counter. */
+  const publish = (c: Content) => {
+    const spawned = [...c.items.values()].filter((i) => i.spawned).length;
+    setAttr('data-bodies', String(spawned));
+    setAttr(
+      'data-sleeping',
+      String(spawned === c.items.size && pending.length === 0 && c.world.allAsleep()),
+    );
+    setAttr('data-breakpoint', c.bp);
+    if (c.world.nameHits !== lastHits) {
+      lastHits = c.world.nameHits;
+      o.onHits?.(lastHits);
+    }
+  };
+
+  /** Runs physics synchronously until everything is asleep (or `maxSimMs` of simulated time passes). */
+  const presettle = (c: Content, maxSimMs = 8000): boolean => {
+    const dt = c.world.step * 1000;
+    for (let guard = Math.ceil(maxSimMs / dt); guard > 0; guard--) {
+      simMs += dt;
+      spawnDue(c);
+      c.world.stepOnce();
+      if (pending.length === 0 && c.world.allAsleep()) return true;
+    }
+    return false;
+  };
+
   const frame = (t: number) => {
     raf = 0;
     if (!active || contextLost || disposed || !content) return;
@@ -810,7 +920,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       if (p) c.world.updateGrab(p);
     }
     for (let i = 0; i < steps; i++) c.world.stepOnce();
-    if (!grab) {
+    if (!grab && !o.fast) {
       const nudge = idle.tick(dtMs);
       if (nudge) {
         const id = c.order[Math.floor(nudge.pick * c.order.length)]!;
@@ -820,6 +930,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     }
     if (hoverDirty) hoverPick();
     updateVisuals(c, alpha);
+    updateChip();
     placeCamera(t);
     renderer.render(scene, camera);
     if (frameNo > WARMUP_FRAMES) {
@@ -827,13 +938,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       if (workLog.length > 900) workLog.shift();
     }
 
-    const spawned = [...c.items.values()].filter((i) => i.spawned).length;
-    setAttr('data-bodies', String(spawned));
-    setAttr(
-      'data-sleeping',
-      String(spawned === c.items.size && pending.length === 0 && c.world.allAsleep()),
-    );
-    setAttr('data-breakpoint', c.bp);
+    publish(c);
     if (!readyFlag) {
       readyFlag = true;
       setAttr('data-ready', 'true');
@@ -861,9 +966,11 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     // Everything in the plan waits for its slot; bodies already in the world stay put until then.
     content.world.wakeAll();
     idle.interact();
+    if (o.fast) presettle(content);
   }
 
   layoutScene();
+  if (o.fast && content) presettle(content);
 
   if (o.debug) {
     const api: HeroDebug = {
@@ -883,6 +990,65 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
         if (st) content?.world.throwBody(id, st.pos, vel);
       },
       reset: () => reset(),
+      step: (n = 1) => {
+        const c = content;
+        if (!c) return;
+        for (let i = 0; i < n; i++) {
+          simMs += c.world.step * 1000;
+          spawnDue(c);
+          c.world.stepOnce();
+        }
+        updateVisuals(c, 1);
+        publish(c);
+        placeCamera(0);
+        renderer.render(scene, camera);
+      },
+      settle: () => {
+        const c = content;
+        if (!c) return false;
+        const done = presettle(c);
+        updateVisuals(c, 1);
+        publish(c);
+        placeCamera(0);
+        renderer.render(scene, camera);
+        return done;
+      },
+      hits: () => content?.world.nameHits ?? 0,
+      pixels: () => {
+        const c = content;
+        const g = renderer.getContext();
+        const w = g.drawingBufferWidth;
+        const h = g.drawingBufferHeight;
+        if (c) {
+          updateVisuals(c, 1);
+          placeCamera(0);
+          renderer.render(scene, camera);
+        }
+        const buf = new Uint8Array(w * h * 4);
+        g.readPixels(0, 0, w, h, g.RGBA, g.UNSIGNED_BYTE, buf);
+        let covered = 0;
+        let n = 0;
+        let sum = 0;
+        let sum2 = 0;
+        const seen = new Set<number>();
+        for (let i = 0; i < buf.length; i += 16) {
+          n++;
+          const a = buf[i + 3]!;
+          if (a > 24) covered++;
+          const lum = (buf[i]! * 0.3 + buf[i + 1]! * 0.59 + buf[i + 2]! * 0.11) * (a / 255);
+          sum += lum;
+          sum2 += lum * lum;
+          seen.add(((buf[i]! >> 4) << 8) | ((buf[i + 1]! >> 4) << 4) | (buf[i + 2]! >> 4));
+        }
+        const mean = sum / n;
+        return {
+          width: w,
+          height: h,
+          covered: covered / n,
+          colours: seen.size,
+          spread: Math.sqrt(Math.max(0, sum2 / n - mean * mean)),
+        };
+      },
       stats: () => {
         const pick = (arr: number[], q: number) => {
           const s = [...arr].sort((a, b) => a - b);
@@ -922,6 +1088,8 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       canvas.removeEventListener('touchstart', onTouchStart);
       canvas.removeEventListener('keydown', onKeyDown);
       canvas.removeEventListener('focus', onFocus);
+      canvas.removeEventListener('blur', onBlur);
+      canvas.removeEventListener('dblclick', onDoubleClick);
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
       if (content) disposeContent(content);

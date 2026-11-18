@@ -277,6 +277,11 @@ export function buildCatalogue(bp: Breakpoint, lite = false): ObjectSpec[] {
   return [...keys, ...pieces];
 }
 
+/** Text of the hover/grab chip: the name, with a hint on project pieces that open a section. */
+export function chipLabel(s: ObjectSpec): string {
+  return s.href ? `${s.name} · double-click to open` : s.name;
+}
+
 /** Radius of a sphere that contains the object; used for spawn spacing and bounds. */
 export function boundingRadius(s: ObjectSpec): number {
   return Math.hypot(s.size.w, s.size.d) / 2;

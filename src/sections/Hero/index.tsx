@@ -11,7 +11,7 @@ import './Hero.css';
 const log = createLogger('hero');
 
 /** Seed and debug switches from the URL. Only tests and the still generator use them. */
-function readParams(): { seed: number; debug: boolean; live: boolean } {
+function readParams(): { seed: number; debug: boolean; live: boolean; fast: boolean } {
   const q = new URLSearchParams(window.location.search);
   const raw = q.get('heroSeed');
   const seed = raw !== null && Number.isFinite(Number(raw)) ? Number(raw) : null;
@@ -19,6 +19,8 @@ function readParams(): { seed: number; debug: boolean; live: boolean } {
     seed: seed ?? Math.floor(Math.random() * 2 ** 31),
     debug: seed !== null || q.has('heroDebug'),
     live: seed !== null || q.has('heroDebug') || q.get('hero') === 'live',
+    // Deterministic fast path: settle the physics before the first frame (tests, stills, CI).
+    fast: q.get('heroFast') === '1',
   };
 }
 
@@ -55,12 +57,25 @@ export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const [runtime, setRuntime] = useState<HeroRuntime | null>(null);
+  const chipRef = useRef<HTMLSpanElement>(null);
   const [message, setMessage] = useState('');
+  const [hits, setHits] = useState(0);
 
   useEffect(() => {
     if (mode !== 'scene') return;
     log.info('mode', { mode, reason });
   }, [mode, reason]);
+
+  // Double-click or Enter on a project piece: scroll to its section (instant under reduced motion).
+  const goTo = useCallback(
+    (hash: string) => {
+      const target = document.getElementById(hash.replace(/^#/, ''));
+      if (!target) return;
+      target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      history.replaceState(null, '', hash);
+    },
+    [reduced],
+  );
 
   // Load the 3D chunk after first paint so the text is never waiting on it.
   useEffect(() => {
@@ -76,6 +91,10 @@ export default function Hero() {
             textEl: textRef.current,
             seed: params.seed,
             debug: params.debug,
+            fast: params.fast,
+            chipEl: chipRef.current,
+            onHits: setHits,
+            onNavigate: goTo,
             onContextLost: () => setLost(true),
             onContextRestored: () => setLost(false),
             onAnnounce: setMessage,
@@ -97,7 +116,7 @@ export default function Hero() {
       created?.dispose();
       setRuntime(null);
     };
-  }, [mode, params]);
+  }, [mode, params, goTo]);
 
   // Run the loop only while the hero is on screen and the tab is visible.
   useEffect(() => {
@@ -125,7 +144,7 @@ export default function Hero() {
           tabIndex={mode === 'scene' ? 0 : -1}
           // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role -- focusable canvas is a keyboard-operated widget
           role="group"
-          aria-label="Interactive studio of keycaps and hardware. Press N to pick an object, arrow keys to push it, Space to hop it, S to shuffle, R to drop everything again."
+          aria-label="Interactive studio of keycaps and hardware. Press N to pick an object, arrow keys to push it, Space to hop it, Enter to open a project piece, S to shuffle, R to drop everything again."
         />
         {mode === 'still' && (
           <picture>
@@ -144,7 +163,8 @@ export default function Hero() {
 
       <div className="container hero__layout">
         <div ref={textRef} className="hero__copy">
-          <h1 id="top-title" className="hero__name">
+          {/* The visible name is the 3D lettering; this heading is the page's real h1. */}
+          <h1 id="top-title" className="visually-hidden">
             {profile.name}
           </h1>
           <p className="hero__thesis">{profile.thesis}</p>
@@ -164,14 +184,26 @@ export default function Hero() {
 
       {mode === 'scene' && (
         <div className="hero__tools">
-          <span className="hero__hint mono">
-            Throw things at my name. Cheaper than therapy. It holds.
-          </span>
+          <div className="hero__note">
+            <span className="hero__hint mono">
+              Throw things at my name. Cheaper than therapy. It holds.
+            </span>
+            <span className="hero__hits mono" data-testid="hero-hits">
+              Hits on the name: {hits}. Damage: 0.
+            </span>
+          </div>
           <Button className="hero__reset" onClick={reset} disabled={!runtime}>
             Drop again
           </Button>
         </div>
       )}
+      <span
+        ref={chipRef}
+        className="hero__chip mono"
+        data-testid="hero-chip"
+        aria-hidden="true"
+        hidden
+      />
       <a className="hero__cue" href="#about">
         Scroll
       </a>

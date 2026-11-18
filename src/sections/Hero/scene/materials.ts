@@ -62,8 +62,10 @@ export function materialSet(
     top = body.clone();
     top.color.set('#ffffff');
     top.map = legend.map as Texture;
-    top.bumpMap = legend.bump;
-    top.bumpScale = 1.2;
+    if (legend.bump) {
+      top.bumpMap = legend.bump;
+      top.bumpScale = 1.2;
+    }
     if (legend.emissive) {
       top.emissive = new Color('#ffffff');
       top.emissiveMap = legend.emissive;
@@ -85,7 +87,15 @@ export function materialSet(
     emissive: palette.accent,
     emissiveIntensity: 0.35,
   });
-  return { body, top, metal, polished, accent };
+  const glass = new MeshPhysicalMaterial({
+    color: '#070a0e',
+    metalness: 0.2,
+    roughness: 0.06,
+    clearcoat: 1,
+    clearcoatRoughness: 0.04,
+    envMapIntensity: 1.2,
+  });
+  return { body, top, metal, polished, accent, glass };
 }
 
 /** The name's materials: brushed warm-white alloy letters on dark anodised plinths. */

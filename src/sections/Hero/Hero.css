@@ -57,12 +57,6 @@
   pointer-events: auto;
 }
 
-.hero__name {
-  font-size: var(--step-1);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--text-dim);
-}
 .hero__thesis {
   font-family: var(--font-display);
   font-weight: 700;
@@ -112,11 +106,44 @@
   gap: var(--space-4);
   pointer-events: none;
 }
+.hero__note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  text-align: right;
+}
 .hero__hint {
   max-width: 34ch;
-  text-align: right;
   font-size: var(--step--1);
   color: var(--text-faint);
+}
+.hero__hits {
+  font-size: var(--step--1);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Name chip: follows the pointer on hover or grab, and sits by the selected object on keyboard focus. */
+.hero__chip {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  padding: 5px 9px;
+  border-radius: var(--radius-chip);
+  background: var(--surface-raised);
+  border: var(--hairline);
+  box-shadow: var(--shadow-contact-sm);
+  color: var(--text);
+  font-size: var(--step--1);
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform;
+}
+.hero__chip[hidden] {
+  display: none;
 }
 .hero__tools .btn {
   pointer-events: auto;
@@ -172,6 +199,9 @@
     flex-direction: column;
     align-items: flex-end;
     gap: var(--space-2);
+  }
+  .hero__hint {
+    max-width: none;
   }
   .hero__cue {
     left: auto;
