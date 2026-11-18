@@ -192,3 +192,28 @@ describe('SafeSurfDemo', () => {
     expect(out.dataset.p).toBe('0');
   });
 });
+
+describe('SafeSurfDemo composition', () => {
+  it('hides controls that do nothing: no cancel or sponsor while idle, no block while all is blocked', () => {
+    render(<SafeSurfDemo delayMs={8000} />);
+    expect(screen.queryByTestId('safesurf-cancel')).toBeNull();
+    expect(screen.queryByTestId('safesurf-sponsor')).toBeNull();
+    expect(screen.queryByTestId('safesurf-block')).toBeNull();
+    click(/allow for this site/i);
+    expect(screen.getByTestId('safesurf-cancel')).toBeInTheDocument();
+    advance(8000);
+    expect(screen.queryByTestId('safesurf-allow-site')).toBeNull();
+    expect(screen.getByTestId('safesurf-block')).toBeInTheDocument();
+  });
+
+  it('shows one witty line at a time: the invitation, then the waiting line', () => {
+    render(<SafeSurfDemo delayMs={8000} />);
+    const invite = 'Go ahead, turn it off. Everyone tries. It waits.';
+    const waiting = 'Want it now? So did I. Come back in an hour.';
+    expect(screen.getByText(invite)).toBeInTheDocument();
+    expect(screen.queryByText(waiting)).toBeNull();
+    click(/allow for this site/i);
+    expect(screen.getByText(waiting)).toBeInTheDocument();
+    expect(screen.queryByText(invite)).toBeNull();
+  });
+});
