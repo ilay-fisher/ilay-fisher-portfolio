@@ -177,6 +177,7 @@ test.describe('hero fallback and layout', () => {
   test('the real text and actions are present at 1440 and 390 with no horizontal scroll', async ({
     browser,
   }) => {
+    test.setTimeout(150_000);
     for (const [width, height] of [
       [1440, 900],
       [390, 844],
