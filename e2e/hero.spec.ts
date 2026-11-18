@@ -131,7 +131,7 @@ test.describe('hero scene', () => {
     await settle(page);
     await canvas(page).focus();
     await page.keyboard.press('n');
-    await expect(page.getByRole('status')).toContainText('selected');
+    await expect(page.locator('#top').getByRole('status')).toContainText('selected');
     const before = await snap(page);
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('Space');
@@ -145,7 +145,7 @@ test.describe('hero scene', () => {
         ) > 0.2,
     );
     expect(moved.length).toBeGreaterThan(0);
-    await expect(page.getByRole('status')).toContainText(/pushed|hopped/);
+    await expect(page.locator('#top').getByRole('status')).toContainText(/pushed|hopped/);
   });
 
   test('the canvas is not blank', async ({ page }) => {
