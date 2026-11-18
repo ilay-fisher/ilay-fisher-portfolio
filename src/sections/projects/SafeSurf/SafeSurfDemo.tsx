@@ -530,7 +530,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             )}
           </div>
 
-          <div className="ss-keys" role="group" aria-label="Try to get around it">
+          <div className="ss-keys ss-keys--bypass" role="group" aria-label="Try to get around it">
             <span className="ss-cap mono" aria-hidden="true">
               Bypass
             </span>

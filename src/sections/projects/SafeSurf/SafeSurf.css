@@ -931,40 +931,81 @@
   margin-left: auto;
 }
 
-/* ---- zero layout shift: every line the rig can show has its space reserved up front ---- */
+/* ---- zero layout shift ----
+   Every part of the rig that shows text or appears and disappears has an explicit,
+   content-independent height per breakpoint (never min-height, never sized by font metrics),
+   so fonts, wrapping, streaming status text and hidden-until-relevant controls cannot move the
+   page. Anything that could outgrow its box scrolls inside it. */
 .ss-invite {
-  min-height: calc(2 * 1.5em);
+  height: 56px;
+  overflow: hidden;
 }
-.ss-readout {
-  min-height: calc(3 * 1.45em + 2 * var(--space-3));
+.ss .ss-display {
+  height: 72px;
+  min-height: 0;
+  overflow: hidden;
 }
-.ss-slot {
-  min-height: 40px;
-}
-.ss-keys {
-  min-height: 40px;
+.ss .ss-display--small {
+  height: 124px;
+  overflow: auto;
 }
 .ss-display--small .ss-bypass__main {
-  min-height: calc(4 * 1.4em);
+  min-height: 0;
+}
+.ss-slot,
+.ss-keys {
+  height: 40px;
+}
+.ss-keys--bypass {
+  height: 88px;
+}
+.ss .ss-readout {
+  height: 88px;
+  min-height: 0;
+  overflow: auto;
+}
+.ss-caption {
+  height: 72px;
+  overflow: auto;
 }
 /* At 360 the keys and the request buttons wrap to two rows, the request label to two lines. */
 @media (max-width: 380px) {
-  .ss-display__main {
-    min-height: calc(2 * 1.4em);
+  .ss .ss-display {
+    height: 84px;
   }
   .ss-slot,
   .ss-keys {
-    min-height: calc(2 * 40px + var(--space-2));
+    height: 88px;
+  }
+  .ss-caption {
+    height: 96px;
   }
 }
 @media (min-width: 900px) {
+  .ss .ss-readout {
+    height: 68px;
+  }
+  .ss-caption {
+    height: 48px;
+  }
+  .ss-slot {
+    height: 40px;
+  }
+  .ss-keys:not(.ss-keys--bypass) {
+    height: 88px;
+  }
+}
+@media (min-width: 1200px) {
   .ss-invite {
-    min-height: 1.5em;
+    height: 28px;
   }
-  .ss-readout {
-    min-height: calc(2 * 1.45em + 2 * var(--space-3));
+  .ss .ss-display--small {
+    height: 84px;
   }
-  .ss-display--small .ss-bypass__main {
-    min-height: calc(2 * 1.4em);
+  .ss-keys:not(.ss-keys--bypass) {
+    height: 40px;
+  }
+  .ss-keys--bypass {
+    height: 40px;
   }
 }

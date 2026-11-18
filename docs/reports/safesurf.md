@@ -20,7 +20,7 @@ One shared WebGL2 canvas (`loadGlStage()`, dynamic import so OGL stays a lazy ch
 
 ## Zero layout shift
 
-The rig reserves its final height before anything lazy loads: a permanent slot for the Cancel and Ask sponsor row, minimum heights for the keys row, the invitation line, the status readout and the bypass display (sized for the longest refusal), with larger reservations at 380 px and below where keys wrap. `e2e/safesurf.spec.ts` records `scrollHeight`, `#drone` `offsetTop` and the rig height after load, after the stage is ready, and through a request, countdown, sponsor allow, all four bypass refusals and block again, and asserts they never change at 360, 390, 768 and 1440 px. The cost is some empty space at rest on mobile.
+Reservations do not depend on text metrics (macOS and Linux fonts differ). The invitation line, both displays, the Cancel/Ask slot, the key rows, the status readout and the caption each have a fixed CSS `height` per breakpoint (base, up to 380 px, 900 px and up, 1200 px and up). Appearing or streaming text never grows a box; anything that can overflow scrolls inside its box. The Cancel and Ask sponsor row lives in a permanent slot. `e2e/safesurf.spec.ts` records `scrollHeight`, `#drone` `offsetTop` and the rig height after load, after the stage is ready, and through a request, countdown, sponsor allow, all four bypass refusals and block again, and asserts they never change at 360, 390, 768, 1000 and 1440 px.
 
 ## Design v2 adoption
 
@@ -37,7 +37,7 @@ Physical toggle with a throw and spring snap, a 12-detent dial with per-second t
 ## Tests
 
 - Unit: `rules.test.ts`, `status.test.ts`, `dissolve.test.ts`, `SafeSurfDemo.test.tsx` (244 unit tests pass repo-wide).
-- E2E: `e2e/safesurf.spec.ts` (13 tests, 9 behaviour plus 4 layout-shift widths): default blocked state, countdown then allow, cancel, sponsor, bypass refusals, reduced motion, no horizontal scroll at 390, manual-clock choreography, busy-lock shake and sponsor confirm. Slow tests use a long delay because software GL is slow.
+- E2E: `e2e/safesurf.spec.ts` (14 tests, 9 behaviour plus 5 layout-shift widths): default blocked state, countdown then allow, cancel, sponsor, bypass refusals, reduced motion, no horizontal scroll at 390, manual-clock choreography, busy-lock shake and sponsor confirm. Slow tests use a long delay because software GL is slow.
 
 ## Evidence
 
