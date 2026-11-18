@@ -1,4 +1,9 @@
+import { useEffect, useRef, useState } from 'react';
+import { createLogger } from '../../lib/logger';
+import { pickActive, scrollProgress } from './navLogic';
 import './Nav.css';
+
+const log = createLogger('nav');
 
 /** Anchor targets in the nav, in page order (the hero `#top` is the brand link). */
 export const NAV_ITEMS = [
@@ -10,10 +15,105 @@ export const NAV_ITEMS = [
   { id: 'contact', label: 'Contact' },
 ] as const;
 
-/** Sticky top navigation with a skip link. Anchor links only; worker B refines it. */
+const ORDER = NAV_ITEMS.map((i) => i.id);
+
+/**
+ * Sticky top navigation: skip link, brand, section links with an IntersectionObserver-driven
+ * `aria-current`, a scroll-progress hairline, and below 900 px a Menu button (aria-expanded,
+ * focus moves in on open, Escape or focus leaving closes). Anchors are handled by SmoothScroll.
+ */
 export function Nav() {
+  const [active, setActive] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  // Active section: observe a thin band across the middle of the viewport.
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const inBand = new Set<string>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const id = (e.target as HTMLElement).id;
+          if (e.isIntersecting) inBand.add(id);
+          else inBand.delete(id);
+        }
+        setActive(pickActive(ORDER, inBand));
+      },
+      { rootMargin: '-40% 0px -59% 0px' },
+    );
+    for (const id of ORDER) {
+      const el = document.getElementById(id);
+      if (el) io.observe(el);
+    }
+    return () => io.disconnect();
+  }, []);
+
+  // Scroll progress hairline, written straight to the DOM so scrolling never re-renders.
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const el = progressRef.current;
+      if (!el) return;
+      const p = scrollProgress(
+        window.scrollY,
+        document.documentElement.scrollHeight,
+        window.innerHeight,
+      );
+      el.style.transform = `scaleX(${p})`;
+      el.setAttribute('data-progress', p.toFixed(3));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Menu: focus the first link when it opens; close on outside pointer.
+  useEffect(() => {
+    if (!open) return;
+    firstLinkRef.current?.focus();
+    const onPointer = (e: PointerEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointer);
+    return () => document.removeEventListener('pointerdown', onPointer);
+  }, [open]);
+
+  // Escape closes and returns focus to the button; focus leaving the header closes without moving it.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header || !open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      log.debug('menu closed with Escape');
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    const onFocusOut = (e: FocusEvent) => {
+      if (!header.contains(e.relatedTarget as Node | null)) setOpen(false);
+    };
+    header.addEventListener('keydown', onKey);
+    header.addEventListener('focusout', onFocusOut);
+    return () => {
+      header.removeEventListener('keydown', onKey);
+      header.removeEventListener('focusout', onFocusOut);
+    };
+  }, [open]);
+
   return (
-    <header className="nav">
+    <header className="nav" ref={headerRef}>
       <a className="nav__skip" href="#main">
         Skip to content
       </a>
@@ -21,14 +121,33 @@ export function Nav() {
         <a className="nav__brand" href="#top">
           Ilay Fisher
         </a>
-        <ul className="nav__links">
-          {NAV_ITEMS.map((i) => (
+        <button
+          ref={toggleRef}
+          type="button"
+          className="nav__toggle"
+          aria-expanded={open}
+          aria-controls="nav-links"
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span className="nav__toggle-bars" aria-hidden="true" />
+          Menu
+        </button>
+        <ul className="nav__links" id="nav-links" data-open={open}>
+          {NAV_ITEMS.map((i, idx) => (
             <li key={i.id}>
-              <a href={`#${i.id}`}>{i.label}</a>
+              <a
+                ref={idx === 0 ? firstLinkRef : undefined}
+                href={`#${i.id}`}
+                aria-current={active === i.id ? 'true' : undefined}
+                onClick={() => setOpen(false)}
+              >
+                {i.label}
+              </a>
             </li>
           ))}
         </ul>
       </nav>
+      <div className="nav__progress" ref={progressRef} aria-hidden="true" />
     </header>
   );
 }
