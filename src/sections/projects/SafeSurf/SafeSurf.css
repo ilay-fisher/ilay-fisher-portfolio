@@ -1,0 +1,773 @@
+/* SafeSurf rig. Tokens only; the mock page is the one place that is light, because it is "the web". */
+/* Soft radius scale. Uses the shared radius tokens when the design revision adds them. */
+.ss {
+  --ss-r-sm: var(--radius-sm, 12px);
+  --ss-r-md: var(--radius-md, 18px);
+  --ss-r-lg: var(--radius-lg, 28px);
+  --ss-r-xl: var(--radius-xl, 40px);
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.ss__device,
+.ss__bench {
+  min-width: 0;
+}
+@media (min-width: 600px) {
+  .ss {
+    padding: var(--space-5);
+  }
+}
+@media (min-width: 900px) {
+  .ss {
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+    column-gap: var(--space-8);
+    padding: var(--space-7);
+    align-items: start;
+  }
+  .ss-caption {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---- the phone ---- */
+.ss-phone {
+  position: relative;
+  max-width: 380px;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  background: linear-gradient(160deg, var(--surface-raised), var(--stage) 62%);
+  border-radius: var(--ss-r-xl);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 14%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 9%, transparent),
+    0 28px 48px -26px rgb(0 0 0 / 0.75),
+    0 6px 14px -6px rgb(0 0 0 / 0.5);
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 380ms var(--ease-out);
+}
+/* Glossy sheen that follows the pointer. */
+.ss-phone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    380px circle at var(--mx, 30%) var(--my, 0%),
+    color-mix(in srgb, var(--text) 11%, transparent),
+    transparent 62%
+  );
+  opacity: 0.55;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.ss__device:hover .ss-phone::after {
+  opacity: 1;
+}
+.ss-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text-dim);
+}
+.ss-bar svg {
+  flex: none;
+}
+.ss-bar__url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.ss-bar__mode {
+  flex: none;
+  color: var(--text-faint);
+}
+.ss-bar__mode[data-on='true'] {
+  color: var(--paint);
+}
+
+.ss-screen {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  background: var(--text);
+  color: var(--stage);
+  border-radius: var(--ss-r-lg);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
+}
+@media (min-width: 600px) {
+  .ss-screen {
+    height: 500px;
+  }
+}
+.ss-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  overscroll-behavior: contain;
+}
+.ss-gl {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ss-gl canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.ss-masthead {
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--stage);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.ss-headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: 1.9rem;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+.ss-byline {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--line-strong);
+  font-size: 0.7rem;
+}
+.ss-text {
+  margin: 0 0 var(--space-3);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #28313c;
+}
+.ss-more {
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-strong);
+  font-size: 0.9rem;
+}
+.ss-more a {
+  color: var(--paint-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ss-more a:focus-visible,
+.ss-scroll:focus-visible {
+  outline: 2px solid var(--paint-deep);
+  outline-offset: 2px;
+}
+
+/* ---- media: the real image sits over a "blocked" tile ---- */
+.ss-media {
+  margin: 0 0 var(--space-3);
+}
+.ss-media__frame {
+  position: relative;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  border-radius: var(--ss-r-md);
+  background: color-mix(in srgb, var(--stage) 9%, var(--text));
+}
+.ss-media__tile {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: 1fr auto 1fr / 1fr;
+  justify-items: center;
+  padding: var(--space-3) var(--space-4);
+  color: var(--line-strong);
+  font-size: 0.72rem;
+  font-weight: 500;
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgb(255 255 255 / 0.55), transparent 60%),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 9px,
+      color-mix(in srgb, var(--stage) 6%, transparent) 9px 10px
+    ),
+    color-mix(in srgb, var(--stage) 8%, var(--text));
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stage) 14%, transparent);
+}
+.ss-media__tag {
+  justify-self: start;
+  align-self: start;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--stage) 10%, transparent);
+  font-size: 0.66rem;
+}
+.ss-media__msg {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: center;
+}
+.ss-media__sub {
+  align-self: end;
+  font-size: 0.66rem;
+  opacity: 0.8;
+}
+/* The tile's labels settle in after the burn has opened the hole, staggered like the burn. */
+.ss-media__tile > * {
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.ss-media[data-state='blocked'] .ss-media__tile > * {
+  transition-delay: calc(var(--i, 0) * 100ms + 700ms);
+}
+.ss-media[data-state='allowed'] .ss-media__tile > * {
+  opacity: 0;
+  transition-duration: 1ms;
+}
+.ss-media__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ss-media figcaption {
+  margin-top: var(--space-1);
+  color: var(--line-strong);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.ss-media__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  background: color-mix(in srgb, var(--stage) 62%, transparent);
+  box-shadow:
+    inset 0 0 0 2px var(--text),
+    0 6px 16px -4px rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-pill);
+  opacity: 0;
+}
+.ss-media__play::after {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 14px;
+  border-style: solid;
+  border-width: 8px 0 8px 14px;
+  border-color: transparent transparent transparent var(--text);
+}
+.ss-media[data-state='allowed'] .ss-media__play {
+  opacity: 1;
+  transition: opacity var(--dur-base) var(--ease-out) 1100ms;
+}
+
+/* CSS fallback (no WebGL2): fade, blur and desaturate to the tile. Reduced motion zeroes the durations. */
+.ss:not(.is-gl) .ss-media__img {
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    filter var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+.ss:not(.is-gl) .ss-media[data-state='blocked'] .ss-media__img {
+  opacity: 0;
+  filter: blur(10px) saturate(0);
+  transform: scale(1.04);
+}
+.ss:not(.is-gl) .ss-media[data-state='blocked'] .ss-media__play {
+  opacity: 0;
+  transition: none;
+}
+/* WebGL: the canvas owns the image while it burns or re-forms; the DOM image shows only at rest. */
+.ss.is-gl .ss-media__img[data-gl-hidden] {
+  opacity: 0;
+}
+.ss.is-gl .ss-media[data-state='blocked'] .ss-media__play {
+  opacity: 0;
+  transition: none;
+}
+
+/* ---- readout under the phone ---- */
+.ss-readout {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  max-width: 380px;
+  min-height: 4.2em;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border-radius: var(--ss-r-md);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 9%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  line-height: 1.45;
+}
+.ss-readout__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--pass);
+  transform: translateY(-1px);
+}
+
+/* ---- the bench ---- */
+.ss-lede {
+  margin: 0 0 var(--space-5);
+  font-size: var(--step-1);
+  color: var(--text);
+  max-width: 28ch;
+}
+.ss-block {
+  padding-block: var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--text) 7%, transparent);
+}
+.ss-label {
+  margin: 0 0 var(--space-3);
+  color: var(--text-faint);
+}
+.ss-note {
+  margin: var(--space-3) 0 0;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+  max-width: 52ch;
+}
+.ss-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ss-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+.ss-switch__side {
+  color: var(--text-faint);
+  transition: color var(--dur-base) var(--ease-out);
+}
+.ss-switch__side[data-active='true'] {
+  color: var(--text);
+}
+.ss-switch__track {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow:
+    inset 0 2px 5px rgb(0 0 0 / 0.45),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
+  transition: background-color var(--dur-base) var(--ease-out);
+}
+.ss-switch[aria-checked='true'] .ss-switch__track {
+  background: var(--paint);
+  box-shadow:
+    inset 0 2px 5px rgb(0 0 0 / 0.25),
+    0 0 18px -4px var(--paint);
+}
+.ss-switch__knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(
+    160deg,
+    var(--text),
+    color-mix(in srgb, var(--text) 78%, var(--stage))
+  );
+  border-radius: var(--radius-pill);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.45);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    width var(--dur-fast) var(--ease-out);
+}
+.ss-switch[aria-checked='true'] .ss-switch__knob {
+  transform: translateX(30px);
+}
+.ss-switch:hover .ss-switch__knob {
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.55);
+}
+.ss-switch:active .ss-switch__knob {
+  width: 32px;
+}
+.ss-switch:active[aria-checked='true'] .ss-switch__knob {
+  transform: translateX(24px);
+}
+.ss-switch:focus-visible {
+  outline: 2px solid var(--paint-hi);
+  outline-offset: 4px;
+  border-radius: var(--radius-pill);
+}
+
+.ss-lock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.ss-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle at 35% 25%, var(--surface-raised), var(--surface));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 12%, transparent),
+    0 10px 20px -10px rgb(0 0 0 / 0.7);
+}
+.ss-ring svg {
+  display: block;
+  position: absolute;
+  inset: 4px;
+  width: 64px;
+  height: 64px;
+}
+.ss-ring__track,
+.ss-ring__arc {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.ss-ring__track {
+  stroke: color-mix(in srgb, var(--text) 10%, transparent);
+}
+.ss-ring__arc {
+  stroke: var(--paint);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--paint) 70%, transparent));
+  transition: stroke-dashoffset 560ms var(--ease-out);
+}
+.ss-ring__n {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--step-0);
+  color: var(--text);
+}
+/* A soft pulse on every second, a decisive snap when the lock opens, a check for the sponsor. */
+.ss-ring__pulse,
+.ss-ring__snap {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+.ss-ring__pulse {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--paint) 55%, transparent);
+  opacity: 0;
+}
+.ss-ring__pulse[data-p='0'] {
+  animation: ss-pulse-a 620ms var(--ease-out);
+}
+.ss-ring__pulse[data-p='1'] {
+  animation: ss-pulse-b 620ms var(--ease-out);
+}
+.ss-ring__snap {
+  box-shadow:
+    0 0 0 3px var(--paint-hi),
+    0 0 26px 2px var(--paint);
+  opacity: 0;
+}
+.ss-ring__snap[data-via='sponsor'] {
+  box-shadow:
+    0 0 0 3px var(--pass),
+    0 0 26px 2px color-mix(in srgb, var(--pass) 70%, transparent);
+}
+.ss-ring__snap[data-via='delay'][data-p='0'] {
+  animation: ss-snap-a 460ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.ss-ring__snap[data-via='delay'][data-p='1'] {
+  animation: ss-snap-b 460ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.ss-ring__snap[data-via='sponsor'][data-p='0'] {
+  animation: ss-confirm-a 900ms var(--ease-out);
+}
+.ss-ring__snap[data-via='sponsor'][data-p='1'] {
+  animation: ss-confirm-b 900ms var(--ease-out);
+}
+.ss-ring__check {
+  fill: none;
+  stroke: var(--pass);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+.ss-ring__check[data-p='0'] {
+  animation: ss-check-a 1100ms var(--ease-out) both;
+}
+.ss-ring__check[data-p='1'] {
+  animation: ss-check-b 1100ms var(--ease-out) both;
+}
+.ss-lock[data-shake='0'] {
+  animation: ss-shake-a 380ms var(--ease-out);
+}
+.ss-lock[data-shake='1'] {
+  animation: ss-shake-b 380ms var(--ease-out);
+}
+@keyframes ss-pulse-a {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+@keyframes ss-pulse-b {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+@keyframes ss-snap-a {
+  0% {
+    opacity: 1;
+    transform: scale(0.82);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+@keyframes ss-snap-b {
+  0% {
+    opacity: 1;
+    transform: scale(0.82);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+@keyframes ss-confirm-a {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes ss-confirm-b {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes ss-check-a {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  45% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  80% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes ss-check-b {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  45% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  80% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes ss-shake-a {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  45% {
+    transform: translateX(6px);
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+}
+@keyframes ss-shake-b {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  45% {
+    transform: translateX(6px);
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+}
+@keyframes ss-refuse-a {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ss-refuse-b {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ss-bypass[data-p='0'] {
+  animation: ss-refuse-a var(--dur-base) var(--ease-out);
+}
+.ss-bypass[data-p='1'] {
+  animation: ss-refuse-b var(--dur-base) var(--ease-out);
+}
+
+/* ---- controls: pills, with press, hover and focus on every one ---- */
+.ss .btn {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 5%, var(--surface)),
+    var(--surface)
+  );
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 12%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent),
+    0 6px 12px -8px rgb(0 0 0 / 0.7);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.ss .btn:hover:not([aria-disabled='true']) {
+  background: linear-gradient(180deg, var(--surface-raised), var(--surface));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 18%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--paint) 55%, transparent),
+    0 10px 18px -10px color-mix(in srgb, var(--paint) 70%, transparent);
+  transform: translateY(-1px);
+}
+.ss .btn:active:not([aria-disabled='true']) {
+  transform: translateY(1px) scale(0.975);
+  box-shadow:
+    inset 0 2px 5px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px color-mix(in srgb, var(--paint) 40%, transparent);
+}
+.ss .btn:focus-visible {
+  outline: 2px solid var(--paint-hi);
+  outline-offset: 3px;
+}
+
+.ss-lock__text {
+  min-width: 0;
+}
+.ss-lock__now {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--text);
+}
+.ss-lock[data-pending='false'] .ss-lock__now {
+  color: var(--text-dim);
+}
+.ss-lock .ss-row {
+  margin-top: var(--space-4);
+}
+.ss-bypass {
+  margin: var(--space-3) 0 0;
+  min-height: 3.2em;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+  max-width: 60ch;
+}
+.ss-caption {
+  margin: 0;
+  color: var(--text-faint);
+}
