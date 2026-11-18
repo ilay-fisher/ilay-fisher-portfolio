@@ -18,4 +18,11 @@ describe('fallback mode selection', () => {
       'reduced-motion',
     );
   });
+  it('uses the still for automated browsers unless the live scene is opted into', () => {
+    expect(selectMode({ ...ok, automated: true })).toEqual({ mode: 'still', reason: 'automated' });
+    expect(selectMode({ ...ok, automated: false }).mode).toBe('scene');
+    expect(selectMode({ ...ok, automated: true, reducedMotion: true }).reason).toBe(
+      'reduced-motion',
+    );
+  });
 });
