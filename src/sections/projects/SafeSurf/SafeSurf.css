@@ -930,3 +930,41 @@
 .ss .ss-key--block {
   margin-left: auto;
 }
+
+/* ---- zero layout shift: every line the rig can show has its space reserved up front ---- */
+.ss-invite {
+  min-height: calc(2 * 1.5em);
+}
+.ss-readout {
+  min-height: calc(3 * 1.45em + 2 * var(--space-3));
+}
+.ss-slot {
+  min-height: 40px;
+}
+.ss-keys {
+  min-height: 40px;
+}
+.ss-display--small .ss-bypass__main {
+  min-height: calc(4 * 1.4em);
+}
+/* At 360 the keys and the request buttons wrap to two rows, the request label to two lines. */
+@media (max-width: 420px) {
+  .ss-display__main {
+    min-height: calc(2 * 1.4em);
+  }
+  .ss-slot,
+  .ss-keys {
+    min-height: calc(2 * 40px + var(--space-2));
+  }
+}
+@media (min-width: 900px) {
+  .ss-invite {
+    min-height: 1.5em;
+  }
+  .ss-readout {
+    min-height: calc(2 * 1.45em + 2 * var(--space-3));
+  }
+  .ss-display--small .ss-bypass__main {
+    min-height: calc(2 * 1.4em);
+  }
+}

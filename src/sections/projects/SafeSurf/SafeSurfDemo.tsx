@@ -457,26 +457,29 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             <p className="ss-display__sub">1 hour, compressed to {delaySeconds} s</p>
           </div>
 
-          {busy && (
-            <div className="ss-row ss-row--pop">
-              <Button
-                className="ss-key"
-                data-cursor="press"
-                data-testid="safesurf-cancel"
-                onClick={() => dispatch({ type: 'cancel' })}
-              >
-                Cancel request
-              </Button>
-              <Button
-                className="ss-key"
-                data-cursor="press"
-                data-testid="safesurf-sponsor"
-                onClick={() => dispatch({ type: 'sponsorApprove' })}
-              >
-                Ask sponsor
-              </Button>
-            </div>
-          )}
+          {/* The slot is always there so the controls appearing never move the page. */}
+          <div className="ss-slot">
+            {busy && (
+              <div className="ss-row ss-row--pop">
+                <Button
+                  className="ss-key"
+                  data-cursor="press"
+                  data-testid="safesurf-cancel"
+                  onClick={() => dispatch({ type: 'cancel' })}
+                >
+                  Cancel request
+                </Button>
+                <Button
+                  className="ss-key"
+                  data-cursor="press"
+                  data-testid="safesurf-sponsor"
+                  onClick={() => dispatch({ type: 'sponsorApprove' })}
+                >
+                  Ask sponsor
+                </Button>
+              </div>
+            )}
+          </div>
 
           <div className="ss-keys" role="group" aria-label="Allow images and video">
             <span className="ss-cap mono" aria-hidden="true">
@@ -549,14 +552,13 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
           </div>
           <div className="ss-display ss-display--small well mono">
             <p
-              className="ss-bypass"
+              className="ss-bypass ss-bypass__main"
               data-testid="safesurf-bypass-result"
               data-p={state.refusals > 0 ? state.refusals % 2 : undefined}
             >
-              {bypass
-                ? `${bypass.refusal} Refused ${state.refusals}, got through 0.`
-                : 'Nothing tried yet.'}
+              {bypass ? bypass.refusal : 'Nothing tried yet.'}
             </p>
+            <p className="ss-display__sub">Refused {state.refusals}, got through 0.</p>
           </div>
         </div>
       </div>
