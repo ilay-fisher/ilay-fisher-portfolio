@@ -33,11 +33,22 @@ export interface AnchorTracker {
   cancel: () => void;
 }
 
+/** The most one animation frame may add to the tracker's own clock (ms). */
+export const STALL_CAP_MS = 250;
+
 export function createAnchorTracker(o: AnchorTrackerOptions): AnchorTracker {
   const maxRetries = o.maxRetries ?? 6;
   const settleMs = o.settleMs ?? 500;
   const maxMs = o.maxMs ?? 4000;
   const tol = o.tolerance ?? 2;
+  // A tracker clock that ignores long stalls: a frozen or starved tab (busy main thread, throttled frames) must not use
+  // up the hard stop or the settle time, or the tracker would give up before it ever saw the layout move.
+  let clock = 0;
+  let prev = 0;
+  const tick = (now: number) => {
+    clock += Math.min(Math.max(now - prev, 0), STALL_CAP_MS);
+    prev = now;
+  };
   let startedAt = 0;
   let stableSince = 0;
   let retries = 0;
@@ -45,38 +56,41 @@ export function createAnchorTracker(o: AnchorTrackerOptions): AnchorTracker {
   let issued = false;
   let state: TrackerStatus = 'active';
 
-  const issue = (y: number, now: number) => {
+  const issue = (y: number) => {
     last = y;
-    stableSince = now;
+    stableSince = clock;
     o.go(y, o.immediate ?? false);
     issued = true;
   };
 
   return {
     start(now) {
-      startedAt = now;
-      stableSince = now;
+      clock = 0;
+      prev = now;
+      startedAt = 0;
+      stableSince = 0;
       state = 'active';
       retries = 0;
       issued = false;
       last = null;
       const t = o.read();
-      if (t !== null) issue(t, now);
+      if (t !== null) issue(t);
     },
     cancel() {
       state = 'cancelled';
     },
     step(now) {
       if (state !== 'active') return state;
-      if (now - startedAt > maxMs) return (state = 'done');
+      tick(now);
+      if (clock - startedAt > maxMs) return (state = 'done');
       const t = o.read();
       if (t === null) {
-        stableSince = now;
+        stableSince = clock;
         return 'active';
       }
       if (!issued) {
         // The target was not in the DOM at start; it is now, so make the first scroll (not counted as a retry).
-        issue(t, now);
+        issue(t);
         return 'active';
       }
       const moved = Math.abs(t - (last ?? t)) > tol;
@@ -84,11 +98,11 @@ export function createAnchorTracker(o: AnchorTrackerOptions): AnchorTracker {
       if (moved || off) {
         if (retries >= maxRetries) return (state = 'done');
         retries++;
-        issue(t, now);
+        issue(t);
         return 'active';
       }
-      if (o.scrolling()) stableSince = now;
-      else if (now - stableSince >= settleMs) return (state = 'done');
+      if (o.scrolling()) stableSince = clock;
+      else if (clock - stableSince >= settleMs) return (state = 'done');
       return 'active';
     },
   };

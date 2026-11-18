@@ -140,4 +140,15 @@ describe('createAnchorTracker', () => {
     expect(run(page, tr, 5000)).toBe('done');
     expect(page.gos).toHaveLength(0);
   });
+
+  it('does not spend its hard stop on a frozen tab: a long stall counts as one slow frame', () => {
+    const page = fakePage(1000);
+    const tr = mk(page, { maxMs: 1000 });
+    tr.start(0);
+    page.advance();
+    expect(tr.step(16)).toBe('active');
+    page.target = 1600; // layout moved while the page was frozen for 6 s
+    expect(tr.step(6000)).toBe('active');
+    expect(page.gos.at(-1)?.y).toBe(1600);
+  });
 });
