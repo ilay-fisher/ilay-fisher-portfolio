@@ -107,6 +107,20 @@ the next. This is a real (small) layout shift in this section, not a Playwright 
 reserve the final line count; new e2e test "the rig does not change height when a diff result
 lands" at 390 and 1440. Full suite 5 times in a row: see the PR description for the counts.
 
+## Layout shift fix (manager review, CI about.spec:53)
+
+The mobile nav test failed because the section changed height after a nav jump (panel filling on
+selection, crops and text of different sizes). Now the section reserves its final height before
+anything loads or computes: crops sit in fixed-ratio frames, every recorded description and note has
+an invisible copy in the same grid cell, the fields are a fixed two-column grid, and the idle panel
+holds an invisible stand-in body with the display laid over it. At 900 px and up the readout moved
+under the rig so both columns end together. New e2e test records `scrollHeight` and the `#experience`
+offset after load, after the diff, after selecting a region and after the diagnosis completes, at
+360, 390, 768 and 1440, and asserts they are identical. The keyboard-only test now runs with reduced
+motion and the stage is scrolled into view first: the region buttons only render once the stage has
+been seen, so a short viewport waited for buttons that never appeared (the CI stall).
+Stills were re-shot. The video and the three contact sheets predate this change.
+
 ## Evidence
 
 - `docs/reports/img/xray-frames-sweep.png`: 20 frames about 133 ms apart through the sweep (heat on

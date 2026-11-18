@@ -101,9 +101,24 @@
   gap: var(--space-5);
 }
 @media (min-width: 900px) {
+  /* the readout sits under the rig, so both columns end together */
   .xray__grid {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    align-items: stretch;
+    grid-template-areas:
+      'main panel'
+      'readout panel';
+    grid-template-rows: auto 1fr;
+    align-items: start;
+  }
+  .xray__main {
+    grid-area: main;
+  }
+  .xray__panel {
+    grid-area: panel;
+    align-self: stretch;
+  }
+  .xray__readout {
+    grid-area: readout;
   }
 }
 .xray__main {
@@ -522,6 +537,7 @@
 
 /* diagnosis panel */
 .xray__panel {
+  position: relative;
   /* .tile supplies the lit face, bevel and contact shadow */
   align-content: start;
   min-height: 220px;
@@ -538,8 +554,13 @@
     transform: translateY(8px);
   }
 }
-.xray__panel:has(> .xray__idle) {
-  align-content: stretch;
+.xray__body--ghost {
+  visibility: hidden;
+  animation: none;
+}
+.xray__panel > .xray__idle {
+  position: absolute;
+  inset: var(--space-5);
 }
 /* standby: an unlit display with a faint reticle until a region is selected */
 .xray__idle {
@@ -565,6 +586,7 @@
   align-content: end;
 }
 .xray__panel-title {
+  min-height: 2.2em;
   font-size: var(--step-1);
   line-height: 1.1;
 }
@@ -577,8 +599,16 @@
 .xray__crop {
   margin: 0;
 }
+/* every crop sits in the same fixed-ratio frame, so the pair is one height for any region */
+.xray__crop-frame {
+  container-type: size;
+  aspect-ratio: 5 / 2;
+  display: grid;
+  place-items: center;
+}
 .xray__crop-img {
-  width: 100%;
+  width: min(100cqw, calc(100cqh * var(--ar, 1)));
+  aspect-ratio: var(--ar, 1);
   border-radius: var(--radius-control);
   box-shadow: var(--well-inset);
   background-repeat: no-repeat;
@@ -598,13 +628,14 @@
   font-size: var(--step--1);
 }
 .xray__sent {
+  min-height: 3lh;
   margin: calc(-1 * var(--space-2)) 0 0;
   color: var(--text-faint);
   font-size: var(--step--1);
 }
 .xray__fields {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3) var(--space-5);
   margin: 0;
 }
@@ -616,7 +647,7 @@
   animation: xray-rise var(--dur-base) var(--ease-out) 1 backwards;
 }
 .xray__fields > div:nth-child(1) {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
   animation-delay: 520ms;
 }
 .xray__fields > div:nth-child(2) {
@@ -653,6 +684,7 @@
 }
 .xray__fields dd {
   margin: 0;
+  min-height: 2lh;
   font-size: var(--step-0);
   overflow-wrap: anywhere;
 }
@@ -672,6 +704,16 @@
   background: rgb(0 0 0 / 0.26);
   box-shadow: var(--well-inset);
   color: var(--text);
+}
+.xray__descbox {
+  display: grid;
+}
+.xray__descbox > * {
+  grid-area: 1 / 1;
+}
+.xray__desc--ghost {
+  visibility: hidden;
+  pointer-events: none;
 }
 .xray__desc.is-typing::after {
   content: '';
@@ -712,10 +754,11 @@
 }
 @media (min-width: 900px) {
   .xray__readout {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      'head head'
-      'bench side';
+      'head'
+      'bench'
+      'side';
   }
   .xray__head {
     grid-area: head;

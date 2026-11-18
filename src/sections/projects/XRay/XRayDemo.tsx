@@ -63,6 +63,19 @@ function paintHeat(canvas: HTMLCanvasElement | null, heat: Analysis['heat']) {
 }
 
 /** A baseline or target crop drawn with CSS background positioning, no canvas needed. */
+const GHOST_DIAG: Diagnosis = {
+  label: 'Region',
+  at: { x: 0, y: 0 },
+  category: 'missing_component',
+  severity: null,
+  confidence: null,
+  description: '',
+  provenance: '',
+};
+const GHOST_BOX = { x: 0, y: 0, w: 312, h: 84 };
+const PROVENANCE = PRESETS.flatMap((p) => p.diagnoses.map((d) => d.provenance));
+const DESCRIPTIONS = PRESETS.flatMap((p) => p.diagnoses.map((d) => d.description));
+
 function Crop({
   src,
   preset,
@@ -80,18 +93,20 @@ function Crop({
   const py = preset.height - box.h > 0 ? (box.y / (preset.height - box.h)) * 100 : 0;
   return (
     <figure className="xray__crop">
-      <div
-        className="xray__crop-img"
-        role="img"
-        data-crop={which}
-        aria-label={label}
-        style={{
-          aspectRatio: `${box.w} / ${box.h}`,
-          backgroundImage: `url(${src})`,
-          backgroundSize: `${(preset.width / box.w) * 100}% ${(preset.height / box.h) * 100}%`,
-          backgroundPosition: `${px}% ${py}%`,
-        }}
-      />
+      <div className="xray__crop-frame">
+        <div
+          className="xray__crop-img"
+          role="img"
+          data-crop={which}
+          aria-label={label}
+          style={{
+            ['--ar' as string]: `${box.w / box.h}`,
+            backgroundImage: `url(${src})`,
+            backgroundSize: `${(preset.width / box.w) * 100}% ${(preset.height / box.h) * 100}%`,
+            backgroundPosition: `${px}% ${py}%`,
+          }}
+        />
+      </div>
       <figcaption className="mono">{label}</figcaption>
     </figure>
   );
@@ -331,6 +346,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   const visible = live ? stream.visible : 0;
   const done = live && stream.done;
   const text = diag ? diag.description.slice(0, visible) : '';
+  // Until a region is selected, a hidden stand-in body gives the panel its final height, so
+  // selecting a region never moves anything below it.
+  const ghost = !diag || !sel || !layout;
+  const d = diag ?? GHOST_DIAG;
+  const bx = sel ?? GHOST_BOX;
+  const lay = layout ?? pairLayout(GHOST_BOX);
 
   return (
     <div className="xray" data-testid="xray-demo" ref={rigRef}>
@@ -528,146 +549,166 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           aria-label="Diagnosis"
           ref={panelRef}
         >
-          {!diag || !sel || !layout ? (
+          {ghost && (
             <p className="xray__idle">
               {guess
                 ? 'Reveal the heatmap, then select a region.'
                 : 'Select a region to see what the model is asked.'}
             </p>
-          ) : (
-            <div className="xray__body" key={`${presetId}-${selected}`}>
-              <h3 className="xray__panel-title">
-                Region {(selected ?? 0) + 1} of {total}: {diag.label}
-              </h3>
-              <div className="xray__pair" data-testid="xray-crop-pair" ref={pairRef}>
-                <Crop
-                  src={preset.baseline}
-                  preset={preset}
-                  box={sel}
-                  label="baseline"
-                  which="baseline"
-                />
-                <Crop src={preset.target} preset={preset} box={sel} label="target" which="target" />
+          )}
+          <div
+            className={`xray__body${ghost ? ' xray__body--ghost' : ''}`}
+            key={ghost ? 'ghost' : `${presetId}-${selected}`}
+            aria-hidden={ghost || undefined}
+            inert={ghost || undefined}
+          >
+            <h3 className="xray__panel-title">
+              Region {(selected ?? 0) + 1} of {total}: {d.label}
+            </h3>
+            <div
+              className="xray__pair"
+              data-testid={ghost ? undefined : 'xray-crop-pair'}
+              ref={ghost ? undefined : pairRef}
+            >
+              <Crop
+                src={preset.baseline}
+                preset={preset}
+                box={bx}
+                label="baseline"
+                which="baseline"
+              />
+              <Crop src={preset.target} preset={preset} box={bx} label="target" which="target" />
+            </div>
+            <p className="xray__sent mono">
+              Composite sent to the model: {lay.width} x {lay.height} px
+              {lay.scale > 1 ? `, crop upscaled ${lay.scale}x` : ''}
+            </p>
+            <dl className="xray__fields">
+              <div>
+                <dt>Category</dt>
+                <dd className="mono xray__type" style={{ ['--n' as string]: d.category.length }}>
+                  {d.category}
+                </dd>
               </div>
-              <p className="xray__sent mono">
-                Composite sent to the model: {layout.width} x {layout.height} px
-                {layout.scale > 1 ? `, crop upscaled ${layout.scale}x` : ''}
-              </p>
-              <dl className="xray__fields">
-                <div>
-                  <dt>Category</dt>
-                  <dd
-                    className="mono xray__type"
-                    style={{ ['--n' as string]: diag.category.length }}
-                  >
-                    {diag.category}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Severity</dt>
-                  <dd className={diag.severity ? 'xray__sev' : 'xray__na'}>
-                    {diag.severity ? SEVERITY_LABEL[diag.severity] : 'not recorded'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Confidence</dt>
-                  <dd className={diag.confidence !== null ? 'mono' : 'xray__na'}>
-                    {diag.confidence !== null
-                      ? `${Math.round(diag.confidence * 100)}%`
-                      : 'not recorded'}
-                  </dd>
-                </div>
-              </dl>
+              <div>
+                <dt>Severity</dt>
+                <dd className={d.severity ? 'xray__sev' : 'xray__na'}>
+                  {d.severity ? SEVERITY_LABEL[d.severity] : 'not recorded'}
+                </dd>
+              </div>
+              <div>
+                <dt>Confidence</dt>
+                <dd className={d.confidence !== null ? 'mono' : 'xray__na'}>
+                  {d.confidence !== null ? `${Math.round(d.confidence * 100)}%` : 'not recorded'}
+                </dd>
+              </div>
+            </dl>
+            <div className="xray__descbox">
               <p
-                id={descId}
+                id={ghost ? undefined : descId}
                 className={`xray__desc${done ? ' is-done' : text ? ' is-typing' : ''}`}
-                data-testid="xray-description"
+                data-testid={ghost ? undefined : 'xray-description'}
+                data-complete={done ? 'true' : 'false'}
                 aria-hidden={!done}
               >
                 {text}
               </p>
-              <p className="visually-hidden" role="status" aria-live="polite">
-                {done ? announcement((selected ?? 0) + 1, total, diag) : ''}
-              </p>
-              <p className="xray__note mono" data-testid="xray-replay-note">
-                <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
-                {diag.provenance}
-              </p>
+              {/* invisible copies of every recorded description: the box is always as tall as the longest */}
+              {DESCRIPTIONS.map((d, i) => (
+                <p key={i} className="xray__desc xray__desc--ghost" aria-hidden="true">
+                  {d}
+                </p>
+              ))}
             </div>
-          )}
+            <p className="visually-hidden" role="status" aria-live="polite">
+              {done ? announcement((selected ?? 0) + 1, total, d) : ''}
+            </p>
+            <div className="xray__descbox">
+              <p className="xray__note mono" data-testid={ghost ? undefined : 'xray-replay-note'}>
+                <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
+                {d.provenance}
+              </p>
+              {PROVENANCE.map((t, i) => (
+                <p key={i} className="xray__note mono xray__desc--ghost" aria-hidden="true">
+                  <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
+                  {t}
+                </p>
+              ))}
+            </div>
+          </div>
         </aside>
-      </div>
-      <div className="xray__readout well" data-testid="xray-readout" ref={readoutRef}>
-        <div className="xray__head">
-          <h3 className="xray__readout-title">Why it matters</h3>
-          <p className="xray__readout-lead">
-            The model never sees the whole frame, only the regions that changed.
-          </p>
-        </div>
-        <dl className="xray__bench">
-          <div>
-            <dt>Image tokens, full frame</dt>
-            <dd>
-              <span className="xray__bar-fill xray__bar-fill--full" style={{ width: '100%' }} />
-              <span className="mono">{formatTokens(BENCHMARK.fullTokens)}</span>
-            </dd>
+        <div className="xray__readout well" data-testid="xray-readout" ref={readoutRef}>
+          <div className="xray__head">
+            <h3 className="xray__readout-title">Why it matters</h3>
+            <p className="xray__readout-lead">
+              The model never sees the whole frame, only the regions that changed.
+            </p>
           </div>
-          <div>
-            <dt>Image tokens, ROI crops</dt>
-            <dd>
-              <span
-                className="xray__bar-fill"
-                style={{
-                  width:
-                    barsOn || reduced || !canObserve
-                      ? `${(BENCHMARK.roiTokens[1] / BENCHMARK.fullTokens) * 100}%`
-                      : '100%',
-                }}
-              />
-              <span className="mono">
-                {BENCHMARK.roiTokens[0]} to {BENCHMARK.roiTokens[1]}
-              </span>
-            </dd>
+          <dl className="xray__bench">
+            <div>
+              <dt>Image tokens, full frame</dt>
+              <dd>
+                <span className="xray__bar-fill xray__bar-fill--full" style={{ width: '100%' }} />
+                <span className="mono">{formatTokens(BENCHMARK.fullTokens)}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Image tokens, ROI crops</dt>
+              <dd>
+                <span
+                  className="xray__bar-fill"
+                  style={{
+                    width:
+                      barsOn || reduced || !canObserve
+                        ? `${(BENCHMARK.roiTokens[1] / BENCHMARK.fullTokens) * 100}%`
+                        : '100%',
+                  }}
+                />
+                <span className="mono">
+                  {BENCHMARK.roiTokens[0]} to {BENCHMARK.roiTokens[1]}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Cloud time, full frame</dt>
+              <dd>
+                <span className="xray__bar-fill xray__bar-fill--full" style={{ width: '100%' }} />
+                <span className="mono">{formatMs(BENCHMARK.cloudMs.full)}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Cloud time, ROI crops</dt>
+              <dd>
+                <span
+                  className="xray__bar-fill"
+                  style={{
+                    width:
+                      barsOn || reduced || !canObserve
+                        ? `${(BENCHMARK.cloudMs.roi / BENCHMARK.cloudMs.full) * 100}%`
+                        : '100%',
+                  }}
+                />
+                <span className="mono">{formatMs(BENCHMARK.cloudMs.roi)}</span>
+              </dd>
+            </div>
+          </dl>
+          <div className="xray__side">
+            <p className="xray__summary">
+              About 95% fewer image tokens. Cloud latency{' '}
+              {formatPct(BENCHMARK.cloudLatencySavedPct)} lower.
+            </p>
+            <p className="xray__note mono">
+              Benchmark figures from the project README, Claude Haiku 5.5. Cloud times are totals:
+              one full-frame call per preset (three) versus the four ROI calls.
+            </p>
+            <p className="xray__measured mono" data-testid="xray-measured">
+              {analysis?.source === 'computed' && analysis.ms !== null
+                ? `Diff on this device: ${formatMs(analysis.ms)}, measured here, no server involved.`
+                : analysis
+                  ? 'Diff on this device: not measured, the precomputed result was used.'
+                  : 'Diff on this device: measuring.'}
+            </p>
           </div>
-          <div>
-            <dt>Cloud time, full frame</dt>
-            <dd>
-              <span className="xray__bar-fill xray__bar-fill--full" style={{ width: '100%' }} />
-              <span className="mono">{formatMs(BENCHMARK.cloudMs.full)}</span>
-            </dd>
-          </div>
-          <div>
-            <dt>Cloud time, ROI crops</dt>
-            <dd>
-              <span
-                className="xray__bar-fill"
-                style={{
-                  width:
-                    barsOn || reduced || !canObserve
-                      ? `${(BENCHMARK.cloudMs.roi / BENCHMARK.cloudMs.full) * 100}%`
-                      : '100%',
-                }}
-              />
-              <span className="mono">{formatMs(BENCHMARK.cloudMs.roi)}</span>
-            </dd>
-          </div>
-        </dl>
-        <div className="xray__side">
-          <p className="xray__summary">
-            About 95% fewer image tokens. Cloud latency {formatPct(BENCHMARK.cloudLatencySavedPct)}{' '}
-            lower.
-          </p>
-          <p className="xray__note mono">
-            Benchmark figures from the project README, Claude Haiku 5.5. Cloud times are totals: one
-            full-frame call per preset (three) versus the four ROI calls.
-          </p>
-          <p className="xray__measured mono" data-testid="xray-measured">
-            {analysis?.source === 'computed' && analysis.ms !== null
-              ? `Diff on this device: ${formatMs(analysis.ms)}, measured here, no server involved.`
-              : analysis
-                ? 'Diff on this device: not measured, the precomputed result was used.'
-                : 'Diff on this device: measuring.'}
-          </p>
         </div>
       </div>
     </div>
