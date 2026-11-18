@@ -11,6 +11,10 @@ import { DX, DY, Grid, WALL, noPath, octile, pathCost, type PlanResult } from '.
 export class AStar {
   /** Per-cell expansion count of the last plan (0 = never expanded), capped at 255. */
   readonly visits: Uint8Array;
+  /** Cells in the order the last plan first expanded them; only the first `orderLength` count. */
+  readonly order: Int32Array;
+  /** How many distinct cells the last plan expanded. */
+  orderLength = 0;
   private readonly heap: IndexedHeap;
   private readonly g: Float64Array;
   private readonly parent: Int32Array;
@@ -19,6 +23,7 @@ export class AStar {
   constructor(private readonly grid: Grid) {
     const n = grid.width * grid.height;
     this.visits = new Uint8Array(n);
+    this.order = new Int32Array(n);
     this.heap = new IndexedHeap(n);
     this.g = new Float64Array(n);
     this.parent = new Int32Array(n);
@@ -31,6 +36,7 @@ export class AStar {
     const grid = this.grid;
     const w = grid.width;
     this.visits.fill(0);
+    this.orderLength = 0;
     if (
       !grid.inBounds(sx, sy) ||
       !grid.inBounds(gx, gy) ||
@@ -55,6 +61,7 @@ export class AStar {
       this.closed[u] = 1;
       expanded++;
       const seen = this.visits[u] as number;
+      if (seen === 0) this.order[this.orderLength++] = u;
       if (seen < 255) this.visits[u] = seen + 1;
       if (u === goal) break;
       const ux = u % w;

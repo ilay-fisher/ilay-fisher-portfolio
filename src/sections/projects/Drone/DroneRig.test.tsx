@@ -130,7 +130,10 @@ describe('DroneRig', () => {
     const user = userEvent.setup();
     render(<DroneRig seed={1} autoRun={false} />);
     const tools = screen.getByRole('group', { name: /tool/i });
-    expect(within(tools).getByTestId('drone-tool-obstacle')).toHaveAttribute('aria-pressed', 'true');
+    expect(within(tools).getByTestId('drone-tool-obstacle')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await user.click(screen.getByTestId('drone-tool-wind'));
     expect(screen.getByTestId('drone-tool-wind')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('drone-tool-obstacle')).toHaveAttribute('aria-pressed', 'false');

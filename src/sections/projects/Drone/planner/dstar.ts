@@ -16,6 +16,10 @@ const KEY_EPS = 1e-9;
 export class DStarLite {
   /** Per-cell expansion count of the last plan (0 = never expanded), capped at 255. */
   readonly visits: Uint8Array;
+  /** Cells in the order the last plan first expanded them; only the first `orderLength` count. */
+  readonly order: Int32Array;
+  /** How many distinct cells the last plan expanded. */
+  orderLength = 0;
   private readonly heap: IndexedHeap;
   private readonly g: Float64Array;
   private readonly rhs: Float64Array;
@@ -32,6 +36,7 @@ export class DStarLite {
   constructor(private readonly grid: Grid) {
     const n = grid.width * grid.height;
     this.visits = new Uint8Array(n);
+    this.order = new Int32Array(n);
     this.heap = new IndexedHeap(n);
     this.g = new Float64Array(n);
     this.rhs = new Float64Array(n);
@@ -92,6 +97,7 @@ export class DStarLite {
 
   private bump(i: number): void {
     const seen = this.visits[i] as number;
+    if (seen === 0) this.order[this.orderLength++] = i;
     if (seen < 255) this.visits[i] = seen + 1;
     this.expanded++;
   }
@@ -105,6 +111,7 @@ export class DStarLite {
     const grid = this.grid;
     const w = grid.width;
     this.visits.fill(0);
+    this.orderLength = 0;
     this.expanded = 0;
     if (
       !grid.inBounds(sx, sy) ||

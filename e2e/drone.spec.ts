@@ -84,7 +84,9 @@ test('dropping an obstacle on the route re-plans and changes the path', async ({
   expect(errors).toEqual([]);
 });
 
-test('dragging on the canvas paints obstacles, and the Erase toggle removes them', async ({ page }) => {
+test('dragging on the canvas paints obstacles, and the Erase toggle removes them', async ({
+  page,
+}) => {
   await open(page);
   const canvas = page.getByTestId('drone-canvas');
   const st = await state(page);
@@ -149,7 +151,9 @@ test('walling in the goal says so and the drone holds position', async ({ page }
     }
   }
   await expect(page.getByTestId('drone-status')).toContainText(/No route/);
-  await expect(page.getByTestId('drone-live')).toContainText(/No route to the goal\. The drone holds position\./);
+  await expect(page.getByTestId('drone-live')).toContainText(
+    /No route to the goal\. The drone holds position\./,
+  );
   const held = await state(page);
   expect(held.status).toBe('blocked');
   await page.waitForTimeout(600);
@@ -202,7 +206,9 @@ test('runs itself when idle and stops as soon as the visitor interacts', async (
   const errors = trackConsoleErrors(page);
   await open(page, 'drone=test-auto');
   await expect(page.getByTestId('drone-demo')).toHaveAttribute('data-mode', 'demo');
-  await expect.poll(async () => (await state(page)).replans, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+  await expect
+    .poll(async () => (await state(page)).replans, { timeout: 15_000 })
+    .toBeGreaterThanOrEqual(1);
   await page.getByTestId('drone-tool-wind').click();
   await expect(page.getByTestId('drone-demo')).toHaveAttribute('data-mode', 'manual');
   const n = (await state(page)).replans;

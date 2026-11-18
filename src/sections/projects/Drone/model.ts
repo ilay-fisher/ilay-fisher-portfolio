@@ -67,6 +67,21 @@ const MAX_STEP_MS = 100;
 /** The drone moves at this fraction of cruise speed inside a wind zone. */
 const WIND_SPEED_FACTOR = 0.45;
 
+/** A short-lived cell change the renderer animates (a building dropping in, lifting out). */
+export interface CellFx {
+  /** Simulation time the change happened. */
+  t0: number;
+  /** What the cell was before and is now (`FREE`, `WALL` or `WIND` values). */
+  from: number;
+  to: number;
+}
+
+/** The cells one planner expanded, in order, and how many there are. */
+export interface Expansion {
+  order: Int32Array;
+  length: number;
+}
+
 type Pending = { index: number; kind: 'wall' | 'wind' | 'remove' };
 
 /**
@@ -102,6 +117,16 @@ export class DroneModel {
   simTime = 0;
   /** Simulation time of the last plan, for the re-plan flash. */
   lastPlanAt = -1e9;
+  /** Increments on every real plan (not on an algorithm switch); the renderer restarts its flood on it. */
+  planSerial = 0;
+  /** The route the drone was on just before the last re-plan, for the dissolve. */
+  prevPath: Point[] = [];
+  /** Where the drone was when it detected the last blockage, and when. */
+  scan = { at: -1e9, x: 0, y: 0 };
+  /** When the route was last cut right in front of the drone, and the direction of the kick. */
+  recoil = { at: -1e9, dx: 0, dy: 0 };
+  /** Cells that changed recently, keyed by index. The renderer prunes by age. */
+  readonly cellFx = new Map<number, CellFx>();
 
   private readonly seed: number;
   private readonly regoalMs: number;
@@ -116,6 +141,9 @@ export class DroneModel {
   private autoTimer = AUTO_INTERVAL_MS - AUTO_FIRST_MS;
   private autoTicks = 0;
   private arrivedFor = 0;
+  private shadow: Uint8Array;
+  private sceneLoading = false;
+  private nearCut = false;
 
   constructor(opts: ModelOptions) {
     this.cols = opts.cols;
@@ -126,8 +154,13 @@ export class DroneModel {
     this.grid = new Grid(this.cols, this.rows);
     this.astar = new AStar(this.grid);
     this.dstar = new DStarLite(this.grid);
-    this.grid.onChange(() => {
+    this.shadow = new Uint8Array(this.cols * this.rows);
+    this.grid.onChange((i) => {
       this.gridVersion++;
+      const to = this.grid.cells[i] as number;
+      if (!this.sceneLoading)
+        this.cellFx.set(i, { t0: this.simTime, from: this.shadow[i] as number, to });
+      this.shadow[i] = to;
     });
     this.rng = mulberry32(this.seed ^ 0x9e3779b9);
     this.city = buildCity(this.cols, this.rows, this.seed);
@@ -159,6 +192,12 @@ export class DroneModel {
   /** Whether the cell index is passable (not a wall). */
   isFreeCell(i: number): boolean {
     return this.grid.cells[i] !== WALL;
+  }
+
+  /** The cells the named planner expanded in its last plan, in order. Live buffers: copy to keep. */
+  expansion(algo: Algo): Expansion {
+    const p = algo === 'astar' ? this.astar : this.dstar;
+    return { order: p.order, length: p.orderLength };
   }
 
   /** The visited-cell counts of the last plan by the selected algorithm. */
@@ -256,7 +295,10 @@ export class DroneModel {
       return this.flush();
     }
     if (this.status !== 'flying') return null;
-    if (this.autoWalls.length >= MAX_AUTO_WALLS || (this.autoTicks % 4 === 0 && this.autoWalls.length > 0)) {
+    if (
+      this.autoWalls.length >= MAX_AUTO_WALLS ||
+      (this.autoTicks % 4 === 0 && this.autoWalls.length > 0)
+    ) {
       const i = this.autoWalls.shift() as number;
       this.grid.set(i % this.cols, Math.floor(i / this.cols), FREE);
       this.pending.push({ index: i, kind: 'remove' });
@@ -268,7 +310,8 @@ export class DroneModel {
     this.pending.push({ index: cell, kind: 'wall' });
     this.autoWalls.push(cell);
     const out = this.flush();
-    if (this.status === 'blocked') {
+    // flush() re-plans and can change the status, which TypeScript's narrowing cannot see
+    if ((this.status as Status) === 'blocked') {
       // The idle run never traps the drone: take the block back.
       this.grid.set(cell % this.cols, Math.floor(cell / this.cols), FREE);
       this.autoWalls.pop();
@@ -276,6 +319,11 @@ export class DroneModel {
       return this.flush();
     }
     return out;
+  }
+
+  /** Turns the idle run (obstacles dropped on the route by itself) on or off. */
+  setAutoplay(on: boolean): void {
+    this.autoplay = on;
   }
 
   // ---- visitor actions ----
@@ -322,6 +370,12 @@ export class DroneModel {
     const wasBlocked = this.status === 'blocked';
     const removal = changes.some((c) => c.kind === 'remove');
     const wallOnRoute = changes.some((c) => c.kind === 'wall' && ahead.has(c.index));
+    const aheadList = this.routeAhead();
+    this.nearCut = changes.some((c) => {
+      if (c.kind !== 'wall') return false;
+      const j = aheadList.indexOf(c.index);
+      return j >= 0 && j <= 3;
+    });
     const windOnRoute = changes.some((c) => c.kind === 'wind' && ahead.has(c.index));
     if (this.status === 'arrived') return null;
     if (!wasBlocked && !removal && !wallOnRoute && !windOnRoute) return null;
@@ -452,9 +506,13 @@ export class DroneModel {
   // ---- internals ----
 
   private loadScene(): void {
+    this.sceneLoading = true;
     this.grid.clear();
+    this.shadow.fill(0);
+    this.cellFx.clear();
     for (const [x, y] of this.city.walls) this.grid.set(x, y, WALL);
     for (const [x, y] of this.city.wind) this.grid.set(x, y, WIND);
+    this.sceneLoading = false;
     this.gridVersion++;
   }
 
@@ -469,7 +527,9 @@ export class DroneModel {
     if (this.status === 'flying' && this.route.length > 0) {
       const next = this.route[this.routeIdx];
       if (next !== undefined) candidates.push(next);
-      candidates.push(this.routeIdx > 0 ? (this.route[this.routeIdx - 1] as number) : this.originCell);
+      candidates.push(
+        this.routeIdx > 0 ? (this.route[this.routeIdx - 1] as number) : this.originCell,
+      );
     }
     candidates.push(cur);
     const cx = cur % this.cols;
@@ -495,6 +555,15 @@ export class DroneModel {
    */
   private plan(kind: OutcomeKind, count: boolean): Outcome {
     const wasFlying = this.status === 'flying' && this.trajectory !== null;
+    this.prevPath = this.pathAhead();
+    if (count && kind === 'obstacle') {
+      this.scan = { at: this.simTime, x: this.pos.x, y: this.pos.y };
+      if (this.nearCut) {
+        const a = this.heading();
+        this.recoil = { at: this.simTime, dx: -Math.cos(a), dy: -Math.sin(a) };
+      }
+    }
+    this.nearCut = false;
     const start = this.chooseStart();
     let ra: PlanResult;
     let rd: PlanResult;
@@ -517,6 +586,7 @@ export class DroneModel {
     const main = this.algo === 'astar' ? ra : rd;
     this.lastPlan = this.algo === 'astar' ? sa : sd;
     this.planVersion++;
+    this.planSerial++;
     this.lastPlanAt = this.simTime;
     if (count) this.replans++;
     this.originCell = this.droneCell();

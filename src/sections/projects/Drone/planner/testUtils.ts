@@ -60,13 +60,7 @@ export function refMoveCost(g: RefGrid, x: number, y: number, nx: number, ny: nu
 }
 
 /** Plain O(n^2) Dijkstra from start to goal. Infinity when unreachable. */
-export function dijkstraCost(
-  g: RefGrid,
-  sx: number,
-  sy: number,
-  gx: number,
-  gy: number,
-): number {
+export function dijkstraCost(g: RefGrid, sx: number, sy: number, gx: number, gy: number): number {
   const n = g.width * g.height;
   const s = sy * g.width + sx;
   const t = gy * g.width + gx;

@@ -41,7 +41,11 @@ export function cumulativeLengths(points: readonly Point[]): number[] {
 }
 
 /** Position `s` units along the polyline, clamped to its ends. */
-export function samplePolyline(points: readonly Point[], cum: readonly number[], s: number): Sample {
+export function samplePolyline(
+  points: readonly Point[],
+  cum: readonly number[],
+  s: number,
+): Sample {
   const n = points.length;
   if (n === 0) return { x: 0, y: 0, angle: 0, index: 0 };
   if (n === 1) return { ...(points[0] as Point), angle: 0, index: 0 };
@@ -82,7 +86,8 @@ export function easeInOutCubic(t: number): number {
  */
 export function speedAt(elapsedSec: number, remaining: number, vmax: number): number {
   const ramp = easeOutCubic(elapsedSec / RAMP_SECONDS);
-  const brake = remaining < BRAKE_DISTANCE ? Math.max(0.18, easeOutCubic(remaining / BRAKE_DISTANCE)) : 1;
+  const brake =
+    remaining < BRAKE_DISTANCE ? Math.max(0.18, easeOutCubic(remaining / BRAKE_DISTANCE)) : 1;
   return vmax * ramp * brake;
 }
 

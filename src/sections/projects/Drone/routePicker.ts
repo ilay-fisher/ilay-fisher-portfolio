@@ -31,5 +31,7 @@ export function pickObstacleOnRoute(
   let candidates = collect(fromIdx + minAhead);
   if (candidates.length === 0) candidates = collect(fromIdx + 1);
   if (candidates.length === 0) return -1;
-  return candidates[Math.min(candidates.length - 1, Math.floor(rng() * candidates.length))] as number;
+  return candidates[
+    Math.min(candidates.length - 1, Math.floor(rng() * candidates.length))
+  ] as number;
 }

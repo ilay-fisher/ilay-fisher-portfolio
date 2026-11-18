@@ -99,7 +99,8 @@ export function pathCost(grid: Grid, path: ArrayLike<number>): number {
     const a = path[i - 1] as number;
     const b = path[i] as number;
     const diagonal =
-      a % grid.width !== b % grid.width && Math.floor(a / grid.width) !== Math.floor(b / grid.width);
+      a % grid.width !== b % grid.width &&
+      Math.floor(a / grid.width) !== Math.floor(b / grid.width);
     c += (diagonal ? SQ2 : 1) * (grid.cells[b] === WIND ? WIND_COST : 1);
   }
   return c;

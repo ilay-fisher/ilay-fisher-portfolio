@@ -1,0 +1,280 @@
+/*
+ * Drone rig layout. Soft, rounded and tactile: the map and panels are rounded surfaces, controls
+ * are pills. Radius tokens fall back to sensible values until the shared set lands.
+ */
+.project__rig:has(> .drone-host) {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-stage, 36px);
+}
+.project__rig:has(> .drone-host)::before,
+.project__rig:has(> .drone-host)::after {
+  display: none;
+}
+
+.drone-host {
+  width: 100%;
+}
+.drone {
+  --drone-r-lg: var(--radius-stage, 36px);
+  --drone-r-md: var(--radius-card, 24px);
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-3);
+  background: var(--surface);
+  border-radius: var(--drone-r-lg);
+  box-shadow:
+    inset 2px 2px 0 rgb(255 255 255 / 0.05),
+    inset -2px -3px 0 rgb(0 0 0 / 0.3);
+}
+@media (min-width: 600px) {
+  .drone {
+    padding: var(--space-4);
+  }
+}
+@media (min-width: 900px) {
+  .drone {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: var(--space-6);
+  }
+}
+
+.drone__map {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.drone__stage {
+  position: relative;
+  border-radius: var(--drone-r-md);
+  overflow: hidden;
+  background: var(--surface);
+  line-height: 0;
+  box-shadow:
+    inset 3px 4px 12px rgb(0 0 0 / 0.5),
+    0 1px 0 rgb(255 255 255 / 0.07);
+}
+.drone__canvas {
+  display: block;
+  max-width: 100%;
+  cursor: crosshair;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+.drone__canvas[data-draw='true'] {
+  touch-action: none;
+}
+.drone__canvas[data-tool='goal'] {
+  cursor: pointer;
+}
+.drone__status {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  line-height: 1.2;
+  pointer-events: none;
+}
+.drone__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pass);
+}
+.drone[data-status='blocked'] .drone__dot {
+  background: var(--paint);
+}
+.drone[data-status='arrived'] .drone__dot {
+  background: var(--text-faint);
+}
+
+.drone__toolbar,
+.drone__panel {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.drone__panel {
+  gap: var(--space-4);
+}
+.drone__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.drone__hint {
+  margin: 0;
+  max-width: 64ch;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+
+/*
+ * Keycaps. Light comes from the top left: a bright upper-left bevel, a dark lower-right edge, a
+ * contact shadow below. Pressing squashes the cap a few percent and it springs back. Pressed
+ * state (a held tool) sits lower and wears a lit legend.
+ */
+.drone .drone__chip {
+  --cap: var(--surface-raised);
+  position: relative;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-control, 16px);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--cap) 88%, white) 0%,
+    var(--cap) 55%,
+    color-mix(in srgb, var(--cap) 80%, black) 100%
+  );
+  color: var(--text);
+  box-shadow:
+    inset 1.5px 1.5px 0 rgb(255 255 255 / 0.16),
+    inset -1.5px -2px 0 rgb(0 0 0 / 0.35),
+    2px 4px 0 rgb(0 0 0 / 0.38),
+    3px 8px 14px rgb(0 0 0 / 0.3);
+  transition:
+    transform 340ms cubic-bezier(0.34, 1.7, 0.5, 1),
+    box-shadow 340ms cubic-bezier(0.34, 1.7, 0.5, 1),
+    color var(--dur-fast) var(--ease-out);
+}
+.drone .drone__chip:hover {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--cap) 80%, white) 0%,
+    var(--cap) 55%,
+    color-mix(in srgb, var(--cap) 80%, black) 100%
+  );
+  color: var(--text);
+  border-color: transparent;
+}
+.drone .drone__chip:active,
+.drone .drone__chip[aria-pressed='true'] {
+  transform: translate(1px, 2px) scale(0.98, 0.95);
+  box-shadow:
+    inset 1.5px 1.5px 0 rgb(255 255 255 / 0.1),
+    inset -1px -1.5px 0 rgb(0 0 0 / 0.4),
+    1px 1.5px 0 rgb(0 0 0 / 0.4),
+    1px 3px 6px rgb(0 0 0 / 0.3);
+}
+.drone .drone__chip[aria-pressed='true'] {
+  --cap: var(--surface);
+  color: var(--paint-hi);
+  text-shadow: 0 0 0 currentColor;
+}
+.drone .drone__chip[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--paint);
+}
+.drone .drone__chip:focus-visible {
+  outline: 2px solid var(--paint-hi);
+  outline-offset: 3px;
+}
+
+.drone__bench {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-card, 24px);
+  background: var(--stage);
+  box-shadow:
+    inset 2px 3px 8px rgb(0 0 0 / 0.55),
+    inset -1px -1px 0 rgb(255 255 255 / 0.06),
+    0 1px 0 rgb(255 255 255 / 0.06);
+}
+.drone__readout {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+.drone__readout > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--step--1);
+}
+.drone__readout dt {
+  color: var(--text-faint);
+}
+.drone__readout dd {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.drone__compare {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+.drone__compare-title {
+  margin: 0;
+  color: var(--text-faint);
+}
+.drone__bar {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr) 3.5em;
+  grid-template-areas:
+    'name track n'
+    '. total total';
+  align-items: center;
+  column-gap: var(--space-3);
+}
+.drone__bar-name {
+  grid-area: name;
+  color: var(--text-dim);
+}
+.drone__bar-track {
+  grid-area: track;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  overflow: hidden;
+}
+.drone__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--text-dim);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.drone__bar--dstar .drone__bar-fill {
+  background: var(--paint);
+}
+.drone__bar-n {
+  grid-area: n;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.drone__bar-total {
+  grid-area: total;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.drone__live {
+  min-height: 3em;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}
+.drone__caption {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+  line-height: 1.5;
+}
