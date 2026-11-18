@@ -28,6 +28,9 @@ import './SafeSurf.css';
 const log = createLogger('safesurf');
 
 /** Props for {@link SafeSurfDemo}. */
+/** How long the page must be still before the WebGL stage is created. */
+const SCROLL_QUIET_MS = 500;
+
 export interface SafeSurfDemoProps {
   /** How long a loosening waits, in ms. The product uses an hour; the rig compresses it. Default 8000. */
   delayMs?: number;
@@ -188,8 +191,22 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
     if (reduced) log.warn('reduced motion: images swap instantly');
   }, [delayMs, reduced]);
 
-  // Load the WebGL stage once the rig is near the viewport. Never when motion is reduced.
-  if (inView && !wantGl) setWantGl(true);
+  // Load the WebGL stage once the rig is near the viewport AND the page has stopped scrolling.
+  // Creating a GL context and compiling shaders mid-scroll starves the smooth-scroll ticker, so an
+  // anchor jump that passes this section would crawl on slow machines. Never when motion is reduced.
+  useEffect(() => {
+    if (!inView || wantGl) return;
+    let timer = window.setTimeout(() => setWantGl(true), SCROLL_QUIET_MS);
+    const rearm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setWantGl(true), SCROLL_QUIET_MS);
+    };
+    window.addEventListener('scroll', rearm, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('scroll', rearm);
+    };
+  }, [inView, wantGl]);
 
   useEffect(() => {
     if (!wantGl || reduced || !isWebGLAvailable()) return;
