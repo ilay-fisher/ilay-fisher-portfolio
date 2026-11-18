@@ -14,7 +14,7 @@ import {
 import type { Bounds, Vec3 } from '../logic/camera';
 import type { ObjectSpec } from '../logic/catalogue';
 import { clampVec, springAccel } from '../logic/drag';
-import { LOCK_OUTLINE, regularPolygon, SHIELD_OUTLINE, tokenFootprint } from '../logic/token';
+import { regularPolygon, SHIELD_OUTLINE, tokenFootprint } from '../logic/token';
 import type { Box as BoxDef } from '../logic/nameLayout';
 import type { SpawnPlan } from '../logic/spawn';
 
@@ -174,8 +174,9 @@ export class PhysicsWorld {
       case 'shield':
         prism(SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2), z * (d / 2)]));
         break;
-      case 'lock':
-        prism(LOCK_OUTLINE.map(([x, z]) => [x * (w / 2), z * (d / 2)]));
+      case 'logo':
+        // A round token: a regular polygon prism that rolls a little and settles flat.
+        prism(regularPolygon(18, w / 2));
         break;
       case 'drone': {
         // Hub, two crossed arms and four rotor guards: stays a sturdy compound when it lands on its side.
@@ -356,7 +357,7 @@ export class PhysicsWorld {
       const ux = 2 * (q.x * q.y - q.z * q.w);
       const uy = 1 - 2 * (q.x * q.x + q.z * q.z);
       const uz = 2 * (q.y * q.z + q.x * q.w);
-      const sided = kind !== 'token';
+      const sided = kind !== 'token' && kind !== 'logo';
       if (body.position.y > 1.2 || (uy > 0.96 && uy <= 1) || (uy < -0.96 && !sided)) continue;
       // A piece jammed against its neighbours gets a few seconds of help, then is left to sleep.
       const used = this.toppleSteps.get(id) ?? 0;
@@ -478,7 +479,10 @@ export class PhysicsWorld {
 }
 
 /** A convex prism (outline in x, z; thickness along y) centred on the origin, with CCW faces for cannon. */
-export function convexPrism(poly: ReadonlyArray<[number, number]>, thick: number): ConvexPolyhedron {
+export function convexPrism(
+  poly: ReadonlyArray<[number, number]>,
+  thick: number,
+): ConvexPolyhedron {
   const n = poly.length;
   const verts: CVec3[] = [];
   for (const [x, z] of poly) verts.push(new CVec3(x, thick / 2, z));

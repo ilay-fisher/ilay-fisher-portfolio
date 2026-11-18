@@ -38,10 +38,22 @@ export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMa
     });
   }
   if (spec.kind === 'shield') {
-    return new MeshPhysicalMaterial({ color: '#1d4fd8', roughness: 0.26, metalness: 0.04, clearcoat: 1, clearcoatRoughness: 0.08 });
+    return new MeshPhysicalMaterial({
+      color: '#1d4fd8',
+      roughness: 0.26,
+      metalness: 0.04,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+    });
   }
-  if (spec.kind === 'phone') {
-    return new MeshPhysicalMaterial({ color: '#1b2230', roughness: 0.3, metalness: 0.6, clearcoat: 0.8, clearcoatRoughness: 0.15 });
+  if (spec.kind === 'logo') {
+    return new MeshPhysicalMaterial({
+      color: TOKEN_ENAMEL,
+      roughness: 0.26,
+      metalness: 0.04,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+    });
   }
   if (spec.accentBody) {
     return new MeshPhysicalMaterial({
@@ -84,7 +96,7 @@ export function materialSet(
   spec: ObjectSpec,
   palette: Palette,
   legend: LegendTextures | null,
-  extras: { screen?: Texture; circuit?: Texture } = {},
+  extras: { logo?: Texture; circuit?: Texture } = {},
 ): MaterialSet {
   const body = bodyMaterial(spec, palette);
   let top: MeshPhysicalMaterial | undefined;
@@ -133,18 +145,28 @@ export function materialSet(
     clearcoat: 0.8,
     clearcoatRoughness: 0.12,
   });
-  const rim = new MeshPhysicalMaterial({ color: '#d6d9de', metalness: 1, roughness: 0.2, clearcoat: 0.4 });
-  const brass = new MeshPhysicalMaterial({ color: '#c9a24a', metalness: 1, roughness: 0.25, clearcoat: 0.3 });
-  const screen = new MeshPhysicalMaterial({
-    color: '#05070b',
-    roughness: 0.15,
+  const rim = new MeshPhysicalMaterial({
+    color: '#d6d9de',
+    metalness: 1,
+    roughness: 0.2,
+    clearcoat: 0.4,
+  });
+  const brass = new MeshPhysicalMaterial({
+    color: '#c9a24a',
+    metalness: 1,
+    roughness: 0.25,
+    clearcoat: 0.3,
+  });
+  const logo = new MeshPhysicalMaterial({
+    color: '#ffffff',
+    roughness: 0.2,
     metalness: 0,
     clearcoat: 1,
     clearcoatRoughness: 0.05,
-    map: extras.screen ?? null,
+    map: extras.logo ?? null,
     emissive: '#ffffff',
-    emissiveMap: extras.screen ?? null,
-    emissiveIntensity: 0.9,
+    emissiveMap: extras.logo ?? null,
+    emissiveIntensity: 0.28,
     alphaTest: 0.5,
   });
   const circuit = new MeshPhysicalMaterial({
@@ -157,7 +179,7 @@ export function materialSet(
     emissiveMap: extras.circuit ?? null,
     emissiveIntensity: 0.35,
   });
-  return { body, top, metal, polished, accent, glass, rim, ink, brass, screen, circuit };
+  return { body, top, metal, polished, accent, glass, rim, ink, brass, logo, circuit };
 }
 
 /** The name's materials: brushed warm-white alloy letters on dark anodised plinths. */

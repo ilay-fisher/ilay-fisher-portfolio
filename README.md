@@ -51,7 +51,9 @@ MIT
 ## Trademarks and attributions
 
 Logos are trademarks of their respective owners, used to indicate the technologies I work with.
-They are self-hosted (path data from [simple-icons](https://simpleicons.org), CC0-1.0). In the hero
+They are self-hosted (path data from [simple-icons](https://simpleicons.org), CC0-1.0; the Java mark from the
+[devicon](https://github.com/devicons/devicon) repository, MIT, where the Java name and coffee cup mark remain
+trademarks of Oracle; the C hexagon from the simple-icons ISO C++ geometry without the plus signs). In the hero
 each mark is extruded unaltered into a die-cut token in the brand's own colour (or printed flat on a
 keycap); the full source and licence list is in `docs/reports/hero.md`.
 

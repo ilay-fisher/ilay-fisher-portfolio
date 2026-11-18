@@ -78,11 +78,10 @@ Jetpack Compose, TypeScript, Node.js, PyTorch, ONNX, C++, WebAssembly, Docker, P
 OpenCV, GitHub, VS Code, Google Cloud, Claude. Nothing else is printed on a key (unit-tested allow list).
 
 - Importance drives size, weight and accent: tier A (top seven) is the biggest and heaviest with the
-  mark in the accent ink; tier B (C, Git, Python) is mid-size; tier C is the smallest. Android, Java
-  and Kotlin also carry an accent body.
-- Pieces for the projects, same material family: phone slab (SafeSurf), shield and lock blocks
-  (SafeGuard), quadcopter (drone), lens (X-Ray). Double-click or Enter scrolls to the section and the
-  accessible description says so; a single click still nudges.
+  mark in the accent ink; tier B (C, Git, Python) is mid-size; tier C is the smallest.
+- One piece per project, same material family: the SafeSurf logo token (SafeSurf), the shield with a check
+  (SafeGuard), the quadcopter (Drone Sandbox), the magnifier (X-Ray). Double-click or Enter scrolls to the
+  section and the accessible description says so; a single click still nudges.
 - Every object has an accessible name, announced on keyboard selection; hover or grab shows the name
   in a chip (aria-hidden, so it is not read twice).
 - Counter: "Hits on the name: N. Damage: 0." next to the approved line. N counts real impacts on the
@@ -99,32 +98,39 @@ OpenCV, GitHub, VS Code, Google Cloud, Claude. Nothing else is printed on a key 
   slide and tumble, then settle into a loose scatter again (unit-tested: nothing stacked, almost
   nothing touching, after the drop and after a hard throw into the crowd).
 - Toggle switch and dial removed: every object is a technology he uses or one of his projects.
-- Settling assist (`PhysicsWorld.topple`): a thin piece balanced on its edge, or a keycap, phone,
+- Settling assist (`PhysicsWorld.topple`): a thin piece balanced on its edge, or a keycap,
   drone or lens left upside down, gets a few seconds of torque so it ends lying flat, printed side up.
   Tokens are double sided (the mark is on both faces).
 - Skill logos became die-cut tokens: the mark's silhouette plus a thin margin (traced by
   `tools/build-tokens.mjs`, holes filled, smoothed) extruded into a chunky rounded plate (cream
   enamel, bevel 0.3 of the thickness, thin steel rim) with the official mark raised on top in the
   brand's own colour. Collider: a convex prism of an enclosing hull of at most 10 vertices.
-- Keycaps (6): Java, ML, C, TypeScript, GitHub, VS Code. Java, ML, C and VS Code have no usable
-  official mark (see below), so they stay text keycaps. TypeScript and GitHub are square or dark marks
-  that print well on a cap (brand-dark GitHub does not read as an enamel token on the dark stage), so
-  they stay keycaps with the mark printed flat.
-- Project pieces: phone (rounded body, lit screen: SafeSurf logo on navy, address bar with lock, three
-  result cards), shield with a raised check and padlock (SafeGuard), quadcopter with four ringed rotors,
-  skids and a camera pod (drone), magnifier with a brass ring over a tiny circuit board (X-Ray).
-  Hover shows the project name; double-click or Enter jumps to the section.
+- Keycaps (4): ML, TypeScript, GitHub, VS Code. ML and VS Code have no usable official mark (see below), so
+  they stay text keycaps. TypeScript and GitHub are square or dark marks that print well on a cap
+  (brand-dark GitHub does not read as an enamel token on the dark stage), so they stay keycaps with the
+  mark printed flat. Java and C became die-cut tokens in the owner's round 2 (marks below).
+- Project pieces, one per project: the SafeSurf logo (a round double-sided enamel disc with the owner's own
+  logo printed on both faces, from `public/hero/safesurf-logo.webp`, 8 kB; it is a raster file, so it is a
+  decal on a disc rather than a cut-out silhouette, and it is larger than any skill token: 1.14 across),
+  the shield with a raised check (SafeGuard), the quadcopter with four ringed rotors, skids and a camera
+  pod (Drone Sandbox), and the magnifier with a brass ring over a tiny circuit board (X-Ray). The earlier
+  phone and padlock are removed: the logo token replaces the phone, and SafeGuard has exactly one piece.
+- Opening a project piece: two quick presses at the same spot (within 400 ms and 12 px, no drag between)
+  open its section. This is detected from the pointer (`logic/doublePress.ts`), not from the browser's
+  `dblclick`, because the first tap nudges the piece and the second press then used to miss it; the second
+  press starts no grab and gives no impulse. Enter on a selected piece does the same. The hover chip reads
+  "SafeSurf · double-click to open" and so on. An e2e test double-clicks each project piece with a real
+  mouse and asserts the hash and that the section scrolls to the top.
 
 ### Body counts per breakpoint
 
-| Set                                               | Desktop (>= 900 px)                                                       | Mobile                                      |
-| ------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
-| Full (GPU)                                        | 30 (25 skills: 19 tokens and 6 keycaps; shield, lock, phone, drone, lens) | 17 (13 skills + shield, phone, drone, lens) |
-| Lite (software renderer, lowest quality at start) | 20 (15 skills + 5 project pieces)                                         | 14 (10 skills + shield, phone, drone, lens) |
+| Set                                               | Desktop (>= 900 px)                                                | Mobile                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------ |
+| Full (GPU)                                        | 29 (25 skills: 21 tokens and 4 keycaps; shield, logo, drone, lens) | 17 (13 skills + shield, logo, drone, lens) |
+| Lite (software renderer, lowest quality at start) | 19 (15 skills + 4 project pieces)                                  | 14 (10 skills + shield, logo, drone, lens) |
 
 Sizes (world units, longest side before the 0.6 scale in brackets): tier A 0.90 (1.5), B 0.72 (1.2),
-C 0.60 (1.0); thickness of tokens 0.62 of a keycap's. Project pieces: shield 0.9, lock 0.84, phone
-0.63 wide by 1.14 long, drone 1.14, magnifier 1.09. Same sizes at every breakpoint; only the camera
+C 0.60 (1.0); thickness of tokens 0.62 of a keycap's. Project pieces: shield 0.9, SafeSurf logo 1.14 across, drone 1.14, magnifier 1.09. Same sizes at every breakpoint; only the camera
 and floor change. Checked at 1440, 900, 768, 600 and 390 px.
 
 The lite set is chosen at start only; a running scene steps its quality down (pixel ratio, shadows)
@@ -163,24 +169,31 @@ enamel (none triggers today); the token plate is the mark's silhouette grown by 
 | Google Cloud    | `googlecloud`     | #4285F4      | https://cloud.google.com                                                                                                             | CC0-1.0 data; trademark |
 | Claude          | `claude`          | #D97757      | https://claude.ai                                                                                                                    | CC0-1.0 data; trademark |
 
-Text legends (no usable mark): Java (simple-icons carries only the Duke mark, which is a separate
-OpenJDK trademark, so the word is printed), VS Code (removed from simple-icons at the owner's request),
-ML and C (no brand mark exists). TensorFlow Lite uses the TensorFlow mark (no separate Lite mark).
+Two marks are not in simple-icons and are vendored in `src/sections/Hero/tools/vendor.mjs`
+(`tools/vendor/` holds the source SVG):
+
+| Mark | Slug   | Brand colour | Source                                                                                                                                                                        | Licence                                                                                                                                                                                                                                                                                   |
+| ---- | ------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Java | `java` | #EA2D2E      | https://github.com/devicons/devicon/blob/master/icons/java/java-plain.svg (128 box, scaled to 24)                                                                             | MIT (devicon repository, https://github.com/devicons/devicon/blob/master/LICENSE); the Java name and coffee cup mark are trademarks of Oracle (https://www.oracle.com/legal/logos.html)                                                                                                   |
+| C    | `c`    | #283593      | The C hexagon logo as on https://commons.wikimedia.org/wiki/File:C_Programming_Language.svg; geometry taken from the simple-icons ISO C++ hexagon with the plus signs removed | Commons states Public domain for that file; simple-icons data is CC0-1.0. The C language has no brand owner and this logo is unofficial. The Commons file's name suggests it derives from an Icons8 icon, which I could not verify; using the CC0 simple-icons geometry avoids copying it |
+
+Text legends (no usable mark): VS Code (removed from simple-icons at the owner's request) and ML (no brand
+mark exists). The simple-icons `c` slug is only a bare letter, so the hexagon form is used for C. TensorFlow Lite uses the TensorFlow mark (no separate Lite mark).
 The Android robot is used under the Creative Commons 3.0 Attribution License and the Git logo by
 Jason Long under CC BY 3.0; both attributions are in the README with the trademark line.
 
-## Performance (1440x900, Apple M5, ANGLE Metal, Chromium headless, 30 bodies)
+## Performance (1440x900, Apple M5, ANGLE Metal, Chromium headless, 29 bodies)
 
-- Frame interval is vsync bound: median 16.7 ms, p95 16.7 ms, max 16.8 ms over 245 frames after
-  settle and over 425 frames across a fresh drop (60 fps, no dropped frame).
-- CPU work per frame (JS plus draw-call submission): median 1.3 ms, p95 2.8 ms settled; 1.6 / 2.9 ms
+- Frame interval is vsync bound: median 16.7 ms, p95 16.7 ms, max 16.8 ms over 223 frames after
+  settle and over 403 frames across a fresh drop (60 fps, no dropped frame).
+- CPU work per frame (JS plus draw-call submission): median 1.6 ms, p95 3.4 ms settled; 1.7 / 3.6 ms
   during a drop.
 - Sleeping bodies cost no solver time.
 - The hero height is fixed by CSS from first paint (`max(100svh - nav, 40rem)`, 49rem on phones), so the lazy
   scene, still, fonts and counter never shift anything below it; an e2e test asserts `#about` does not move.
 - The pre-settle ends with `restSlow()`: bodies still creeping after 10 s of simulated time (platform
   float differences, seen on CI) are put to sleep, so the fast path always ends fully asleep.
-- Lazy chunk 207.6 kB gzip against the 300 kB target (was 189.2 kB; token outlines and SVG loader add about 18 kB). Main bundle 162.4 kB gzip.
+- Lazy chunk 209.0 kB gzip against the 300 kB target (was 189.2 kB; token outlines and SVG loader add about 20 kB). Main bundle 162.4 kB gzip.
 - CI (software GL, about 10 fps) uses `?heroSeed=N&heroFast=1`: physics is pre-stepped to rest before
   the first frame, `__hero.step(n)` advances time by hand, and `__hero.pixels()` reads the buffer right
   after the first frame for the non-blank check. Every scene test runs in 7-15 s locally (budget 20 s).
@@ -208,6 +221,9 @@ Jason Long under CC BY 3.0; both attributions are in the README with the tradema
    keycaps, drone skids. Gates: mass, frame, no-rectangle passed; serious passed. Pass 2: re-checked
    five widths (1440, 900, 768, 600, 390): name never covered after the intro (e2e at 768 and 1440),
    pieces proportionate, 60 fps held.
+5. Owner round 2 (icons and one piece per project). Java and C became die-cut tokens, the SafeSurf logo became
+   a large token and replaced the phone, the padlock was removed so SafeGuard is one piece, and double-clicking
+   a project piece was made reliable (pointer-based pair detection, first-tap nudge no longer breaks it).
 
 ## Evidence
 
@@ -240,5 +256,5 @@ Jason Long under CC BY 3.0; both attributions are in the README with the tradema
 - Android and Git logos are CC BY 3.0 (attribution kept in the README).
 - The settling assist is a nudge, not physics: a piece wedged against neighbours gets about 4 s of help
   and is then left to sleep, so an occasional piece rests slightly tilted on another.
-- A phone can briefly show its back during a live drop before the assist turns it screen up.
+- The shield can briefly show its back during a live drop before the assist turns it face up. The SafeSurf logo is on both faces.
 - Deep links with a hash do not scroll to the section; that belongs to the shell, not the hero.

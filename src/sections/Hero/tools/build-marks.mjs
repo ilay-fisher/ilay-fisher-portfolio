@@ -31,7 +31,6 @@ const SLUGS = [
   'github',
   'googlecloud',
   'claude',
-  'c',
 ];
 
 const cap = (s) => 'si' + s[0].toUpperCase() + s.slice(1);

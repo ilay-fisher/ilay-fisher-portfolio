@@ -9,91 +9,37 @@ const texture = (c: HTMLCanvasElement, anisotropy: number): CanvasTexture => {
   return t;
 };
 
-const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-};
-
-/** The lit phone screen: SafeSurf's own logo over a hint of the browser (address bar, tabs, a page). */
-export interface PhoneScreen {
+/** The SafeSurf logo as a texture for the faces of its token. */
+export interface LogoFace {
   map: CanvasTexture;
-  /** Draws the logo once it has loaded. */
-  setLogo(img: CanvasImageSource): void;
+  /** Draws the logo once the image has loaded. */
+  setLogo(img: CanvasImageSource, width: number, height: number): void;
 }
 
-export function makePhoneScreen(aspect: number, anisotropy: number): PhoneScreen {
-  const W = 384;
-  const H = Math.round(W / aspect);
+export function makeLogoFace(anisotropy: number): LogoFace {
+  const S = 256;
   const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
+  c.width = c.height = S;
   const ctx = c.getContext('2d')!;
-  let logo: CanvasImageSource | null = null;
-  const draw = () => {
-    ctx.clearRect(0, 0, W, H);
-    // Screen glass with rounded corners (the corners stay transparent for the alpha test).
-    ctx.save();
-    roundRect(ctx, 0, 0, W, H, W * 0.1);
-    ctx.clip();
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#16224d');
-    g.addColorStop(0.55, '#0e1634');
-    g.addColorStop(1, '#0a0f24');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    // Browser: address bar with a lock, then the page.
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
-    roundRect(ctx, W * 0.08, H * 0.045, W * 0.84, H * 0.062, H * 0.031);
-    ctx.fill();
-    ctx.fillStyle = '#8fd3a8';
-    roundRect(ctx, W * 0.13, H * 0.066, W * 0.035, H * 0.026, 3);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    roundRect(ctx, W * 0.2, H * 0.069, W * 0.34, H * 0.02, H * 0.01);
-    ctx.fill();
-    // The logo, large and centred.
-    const size = W * 0.62;
-    const cy = H * 0.37;
-    if (logo) {
-      ctx.drawImage(logo, W / 2 - size / 2, cy - size / 2, size, size);
+  const draw = (img: CanvasImageSource | null, iw = 1, ih = 1) => {
+    ctx.clearRect(0, 0, S, S);
+    if (img) {
+      const k = Math.min(S / iw, S / ih);
+      ctx.drawImage(img, (S - iw * k) / 2, (S - ih * k) / 2, iw * k, ih * k);
     } else {
+      // Until the logo loads: a plain disc in SafeSurf indigo.
       ctx.fillStyle = '#5a6ae0';
       ctx.beginPath();
-      ctx.arc(W / 2, cy, size / 2.2, 0, Math.PI * 2);
+      ctx.arc(S / 2, S / 2, S * 0.46, 0, Math.PI * 2);
       ctx.fill();
     }
-    // A hint of the page below: filtered results as soft cards.
-    for (let i = 0; i < 3; i++) {
-      const y = H * (0.62 + i * 0.1);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      roundRect(ctx, W * 0.08, y, W * 0.84, H * 0.072, W * 0.03);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(143,211,168,0.75)';
-      ctx.beginPath();
-      ctx.arc(W * 0.15, y + H * 0.036, H * 0.015, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.32)';
-      roundRect(ctx, W * 0.22, y + H * 0.024, W * (0.4 - i * 0.05), H * 0.014, H * 0.007);
-      ctx.fill();
-    }
-    // Home bar.
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    roundRect(ctx, W * 0.36, H * 0.965, W * 0.28, H * 0.01, H * 0.005);
-    ctx.fill();
-    ctx.restore();
   };
-  draw();
+  draw(null);
   const map = texture(c, anisotropy);
   return {
     map,
-    setLogo(img) {
-      logo = img;
-      draw();
+    setLogo(img, iw, ih) {
+      draw(img, iw, ih);
       map.needsUpdate = true;
     },
   };

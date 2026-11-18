@@ -31,13 +31,13 @@ const skill = (
  */
 export const SKILLS: readonly Skill[] = [
   skill('android', 'Android Development', 'A', 'android'),
-  skill('java', 'Java', 'A', null, 'Java'),
+  skill('java', 'Java', 'A', 'java'),
   skill('kotlin', 'Kotlin', 'A', 'kotlin'),
   skill('ml', 'Machine Learning', 'A', null, 'ML'),
   skill('react', 'React', 'A', 'react'),
   skill('tflite', 'TensorFlow Lite', 'A', 'tensorflow'),
   skill('firebase', 'Firebase', 'A', 'firebase'),
-  skill('c', 'C', 'B', null, 'C'),
+  skill('c', 'C', 'B', 'c'),
   skill('git', 'Git', 'B', 'git'),
   skill('python', 'Python', 'B', 'python'),
   skill('compose', 'Jetpack Compose', 'C', 'jetpackcompose'),
@@ -67,7 +67,7 @@ export type Breakpoint = 'desktop' | 'mobile';
  * silhouette extruded like an enamel pin) or a `key` (a keycap, for marks that do not make a good outline).
  * The rest are the owner's projects.
  */
-export type Kind = 'key' | 'token' | 'shield' | 'lock' | 'phone' | 'drone' | 'lens';
+export type Kind = 'key' | 'token' | 'shield' | 'logo' | 'drone' | 'lens';
 export type ProjectKind = Exclude<Kind, 'key' | 'token'>;
 /** Surface treatment of the body. */
 export type Finish = 'anodised' | 'ceramic' | 'alloy';
@@ -99,7 +99,7 @@ export interface ObjectSpec {
   /** Radius of the floor circle the footprint fits in (spawn spacing, stage fit). */
   radius: number;
   mass: number;
-  /** Body (not just legend) carries the accent colour: the Java keycap. */
+  /** Body (not just legend) carries the accent colour. No piece uses it now; kept for the keycap path. */
   accentBody: boolean;
   /** Mark or legend printed in the accent colour: the top tier. */
   accentLegend: boolean;
@@ -116,8 +116,7 @@ export interface ObjectSpec {
 export const PIECE_SCALE: Record<Breakpoint, number> = { desktop: 0.6, mobile: 0.6 };
 
 /** Skills printed on a keycap: the marks that make a poor die-cut, plus a few for variety. */
-const KEYCAPS: ReadonlySet<string> = new Set(['java', 'ml', 'c', 'typescript', 'github', 'vscode']);
-const ACCENT_BODY: ReadonlySet<string> = new Set(['java']);
+const KEYCAPS: ReadonlySet<string> = new Set(['ml', 'typescript', 'github', 'vscode']);
 const FINISHES: Finish[] = ['anodised', 'ceramic', 'alloy', 'anodised', 'ceramic'];
 const DENSITY = 2.2;
 /** Longest plate side (token) or cap side (keycap) and height per tier, before PIECE_SCALE; top tier is heavier. */
@@ -160,7 +159,7 @@ const skillPiece = (s: Skill, rank: number, scale: number): ObjectSpec => {
       size: { w, h, d },
       radius: Math.hypot(w, d) / 2,
       mass: w * d * h * DENSITY * t.weight,
-      accentBody: ACCENT_BODY.has(s.id),
+      accentBody: false,
     };
   }
   const f = tokenFootprint(s.mark!, t.side * scale);
@@ -210,27 +209,15 @@ const PROJECTS: Record<ProjectKind, ProjectDef> = {
     finish: 'ceramic',
     shade: 0.45,
   },
-  lock: {
-    kind: 'lock',
-    label: 'SafeGuard lock',
-    name: 'SafeGuard',
-    about: 'A padlock for SafeGuard, which locks the settings that allow bypass.',
-    href: '#safesurf',
-    size: { w: 1.4, h: 0.5, d: 1.75 },
-    radius: 1.1,
-    fill: 0.7,
-    finish: 'anodised',
-    shade: 0.8,
-  },
-  phone: {
-    kind: 'phone',
-    label: 'SafeSurf phone',
+  logo: {
+    kind: 'logo',
+    label: 'SafeSurf logo',
     name: 'SafeSurf',
-    about: 'A phone running SafeSurf, the filtered browser for Android.',
+    about: 'The SafeSurf logo, the filtered browser for Android.',
     href: '#safesurf',
-    size: { w: 1.05, h: 0.26, d: 1.9 },
-    radius: 1.1,
-    fill: 0.9,
+    size: { w: 1.9, h: 0.4, d: 1.9 },
+    radius: 0.97,
+    fill: 0.8,
     finish: 'ceramic',
     shade: 0.55,
   },
@@ -297,12 +284,12 @@ const EXTRA_KEYS: Record<Breakpoint, Record<'full' | 'lite', readonly string[]>>
 };
 const PROJECT_SETS: Record<Breakpoint, Record<'full' | 'lite', ProjectKind[]>> = {
   desktop: {
-    full: ['shield', 'lock', 'phone', 'drone', 'lens'],
-    lite: ['shield', 'lock', 'phone', 'drone', 'lens'],
+    full: ['shield', 'logo', 'drone', 'lens'],
+    lite: ['shield', 'logo', 'drone', 'lens'],
   },
   mobile: {
-    full: ['shield', 'phone', 'drone', 'lens'],
-    lite: ['shield', 'phone', 'drone', 'lens'],
+    full: ['shield', 'logo', 'drone', 'lens'],
+    lite: ['shield', 'logo', 'drone', 'lens'],
   },
 };
 

@@ -71,8 +71,8 @@ export function insideConvex(
 }
 
 /**
- * Convex outlines (x, z in -1..1, z toward the camera) of the two SafeGuard pieces. They are the die-cut
- * silhouette of the shield and the padlock, and the physics collider for both.
+ * Convex outline (x, z in -1..1, z toward the camera) of the SafeGuard piece. It is the die-cut
+ * silhouette of the shield and its physics collider.
  */
 export const SHIELD_OUTLINE: ReadonlyArray<[number, number]> = [
   [-0.92, -1],
@@ -86,19 +86,6 @@ export const SHIELD_OUTLINE: ReadonlyArray<[number, number]> = [
   [-0.8, 0.45],
   [-1, -0.05],
   [-1, -0.82],
-];
-
-export const LOCK_OUTLINE: ReadonlyArray<[number, number]> = [
-  [-0.5, -1],
-  [0.5, -1],
-  [0.66, -0.74],
-  [1, -0.12],
-  [1, 0.86],
-  [0.88, 1],
-  [-0.88, 1],
-  [-1, 0.86],
-  [-1, -0.12],
-  [-0.66, -0.74],
 ];
 
 /** A regular polygon of `n` sides and radius `r` (the magnifier's ring collider). */

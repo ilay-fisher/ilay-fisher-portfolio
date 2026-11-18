@@ -29,6 +29,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { createLogger } from '../../../lib/logger';
 import type { Bounds, Rig, Vec3 } from '../logic/camera';
 import { computeStage, nameCap, type Stage } from '../logic/stage';
+import { DoublePress } from '../logic/doublePress';
 import { buildCatalogue, chipLabel, type Breakpoint, type ObjectSpec } from '../logic/catalogue';
 import { VelocityTracker } from '../logic/drag';
 import { FixedStepper } from '../logic/fixedStep';
@@ -44,7 +45,7 @@ import { buildEnvironment } from './env';
 import { buildLetter, buildObject } from './geometry';
 import { makeLegendTextures, type LegendTextures } from './legend';
 import { MARKS } from './marks';
-import { makeCircuit, makePhoneScreen, type PhoneScreen } from './screens';
+import { makeCircuit, makeLogoFace, type LogoFace } from './screens';
 import { bodyMaterial, materialSet, nameMaterials } from './materials';
 
 const log = createLogger('hero');
@@ -292,6 +293,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   let hoverDirty = false;
   let keyboardSel = false;
   let chipId: string | null = null;
+  const doublePress = new DoublePress();
   let lastHits = 0;
   const pointer = { x: 0, y: 0, inside: false, mouse: false };
   const par = new Vector2(0, 0);
@@ -334,16 +336,15 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
 
     const world = new PhysicsWorld(bounds, layout.colliders, 0);
     const items = new Map<string, Item>();
-    let phoneScreen: PhoneScreen | null = null;
+    let logoFace: LogoFace | null = null;
     let circuit: CanvasTexture | null = null;
-    const phoneSpec = specs.find((x) => x.kind === 'phone');
-    if (phoneSpec) {
-      phoneScreen = makePhoneScreen(phoneSpec.size.w / phoneSpec.size.d, anisotropy);
-      const screen = phoneScreen;
-      disposables.push(screen.map);
+    if (specs.some((x) => x.kind === 'logo')) {
+      const face = makeLogoFace(anisotropy);
+      logoFace = face;
+      disposables.push(face.map);
       const img = new Image();
       img.onload = () => {
-        if (!disposed) screen.setLogo(img);
+        if (!disposed) face.setLogo(img, img.naturalWidth, img.naturalHeight);
       };
       img.src = '/hero/safesurf-logo.webp';
     }
@@ -370,7 +371,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
         });
       }
       const set = materialSet(spec, palette, legend, {
-        screen: phoneScreen?.map,
+        logo: logoFace?.map,
         circuit: circuit ?? undefined,
       });
       const built = buildObject(spec, set);
@@ -390,7 +391,8 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       blob.visible = false;
       scene.add(blob);
       disposables.push(set.body, set.metal, set.polished, set.accent, set.glass, blobMat);
-      for (const x of [set.rim, set.ink, set.brass, set.screen, set.circuit]) if (x) disposables.push(x);
+      for (const x of [set.rim, set.ink, set.brass, set.logo, set.circuit])
+        if (x) disposables.push(x);
       if (set.top) disposables.push(set.top);
       if (legend) disposables.push(legend.map);
       if (legend?.bump) disposables.push(legend.bump);
@@ -612,18 +614,21 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     return true;
   };
 
-  const onDoubleClick = (e: MouseEvent) => {
-    if (!content || contextLost) return;
-    const hit = pickAt(e.clientX, e.clientY);
-    const it = hit ? content.items.get(hit.id) : undefined;
-    if (it) openPiece(it);
-  };
-
   const onPointerDown = (e: PointerEvent) => {
     if (!content || contextLost) return;
     idle.interact();
     keyboardSel = false;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // Second quick press at the same spot on a project piece: open it. No grab and no nudge, and it goes by
+    // where the pointer was, because the first tap may have knocked the piece away from under it.
+    const pairId = doublePress.second(e.clientX, e.clientY, performance.now());
+    if (pairId) {
+      const pair = content.items.get(pairId);
+      if (pair && openPiece(pair)) {
+        if (e.pointerType === 'mouse') e.preventDefault();
+        return;
+      }
+    }
     const hit = pickAt(e.clientX, e.clientY);
     if (!hit || !content.items.has(hit.id)) return;
     const planeY = Math.max(hit.point.y, 0) + 0.75;
@@ -684,8 +689,13 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     const quick = performance.now() - grab.startT < 320;
     if (moved < 6 && quick) {
       const p = planePoint(e.clientX, e.clientY, 0.5) ?? undefined;
+      const tapped = content?.items.get(grab.id);
+      if (tapped?.spec.href)
+        doublePress.tap(tapped.spec.id, e.clientX, e.clientY, performance.now());
+      else doublePress.clear();
       endGrab(false, p);
     } else {
+      doublePress.clear();
       endGrab(true);
     }
   };
@@ -792,7 +802,6 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   canvas.addEventListener('keydown', onKeyDown);
   canvas.addEventListener('focus', onFocus);
   canvas.addEventListener('blur', onBlur);
-  canvas.addEventListener('dblclick', onDoubleClick);
   canvas.addEventListener('webglcontextlost', onLost);
   canvas.addEventListener('webglcontextrestored', onRestored);
 
@@ -1139,7 +1148,6 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       canvas.removeEventListener('keydown', onKeyDown);
       canvas.removeEventListener('focus', onFocus);
       canvas.removeEventListener('blur', onBlur);
-      canvas.removeEventListener('dblclick', onDoubleClick);
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
       if (content) disposeContent(content);

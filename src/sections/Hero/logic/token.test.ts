@@ -7,7 +7,7 @@ const tokenSpecs = buildCatalogue('desktop').filter((s) => s.kind === 'token');
 
 describe('token cut lines and colliders', () => {
   it('has shape data for every token in the catalogue', () => {
-    expect(tokenSpecs).toHaveLength(19);
+    expect(tokenSpecs).toHaveLength(21);
     for (const s of tokenSpecs) expect(TOKEN_SHAPES[s.mark!], s.id).toBeDefined();
   });
 

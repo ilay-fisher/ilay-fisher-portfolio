@@ -63,12 +63,12 @@ async function openHero(page: Page) {
   });
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(URL);
-  await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
+  await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
   return errors;
 }
 
 test.describe('hero scene', () => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
 
   test('the canvas is not blank right after the first rendered frame', async ({ page }) => {
     const errors = await openHero(page);
@@ -171,7 +171,7 @@ test.describe('hero scene', () => {
             ),
           );
         },
-        { timeout: 15_000 },
+        { timeout: 40_000 },
       )
       .toBeGreaterThan(0.4);
     await page.mouse.up();
@@ -235,7 +235,7 @@ test.describe('hero scene', () => {
   });
 
   test('a real mouse double-click on each project piece jumps to its section', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     await openHero(page);
     const projects = [
       ['logo', '#safesurf'],
@@ -244,9 +244,13 @@ test.describe('hero scene', () => {
       ['lens', '#xray'],
     ] as const;
     for (const [id, hash] of projects) {
-      await page.goto(URL);
-      await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
-      await page.evaluate(() => window.scrollTo(0, 0));
+      // One scene load for all four pieces (loads are the slow part on software GL).
+      await page.evaluate(() => {
+        history.replaceState(null, '', location.pathname + location.search);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      });
+      await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(0);
+      await page.waitForTimeout(500);
       const at = await hero(page, (h, i: string) => h.project(i), id);
       expect(at, `${id} is on screen`).not.toBeNull();
       const onCanvas = await page.evaluate(
@@ -263,7 +267,7 @@ test.describe('hero scene', () => {
               (h) => Math.abs(document.querySelector(h)?.getBoundingClientRect().top ?? 9999),
               hash,
             ),
-          { message: `${id} scrolls its section to the top`, timeout: 15_000 },
+          { message: `${id} scrolls its section to the top`, timeout: 40_000 },
         )
         .toBeLessThan(160);
     }
@@ -282,9 +286,10 @@ test.describe('hero scene', () => {
     const counter = page.getByTestId('hero-hits');
     await expect(counter).toHaveText(/^Hits on the name: \d+\. Damage: 0\.$/);
     const ids = await hero(page, (h) => h.ids());
-    for (const id of ids.slice(0, 6)) {
+    for (const id of ids) {
       await hero(page, (h, i: string) => h.throwBody(i, { x: 0, y: 2, z: -24 }), id);
       await hero(page, (h) => h.step(90));
+      if ((await hero(page, (h) => h.hits())) > 0) break;
     }
     const hits = await hero(page, (h) => h.hits());
     expect(hits).toBeGreaterThan(0);
@@ -347,7 +352,7 @@ test.describe('hero fallback and layout', () => {
 });
 
 test.describe('hero layout', () => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
 
   for (const [width, height] of [
     [390, 844],

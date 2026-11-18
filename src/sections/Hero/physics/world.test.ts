@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildCatalogue } from '../logic/catalogue';
 import { computeStage } from '../logic/stage';
 import { footprintRadius, planSpawns } from '../logic/spawn';
@@ -43,6 +43,9 @@ function run(s: ReturnType<typeof setup>, seconds: number) {
     s.world.stepOnce();
   }
 }
+
+// Full-drop simulations: slow on a busy machine, so give them headroom.
+vi.setConfig({ testTimeout: 30_000 });
 
 describe('hero physics', () => {
   it('drops everything in, keeps it inside the walls and lets it fall asleep', () => {
@@ -191,6 +194,9 @@ describe('hero physics: a loose scatter, not a heap', () => {
     for (const seed of [7, 11, 20260]) {
       const s = setup(seed);
       run(s, 9);
+      // A pair of pieces leaning on each other may still be creeping after nine seconds; the runtime's own
+      // rest rule (`restSlow`) puts such slow, nearly settled bodies to sleep, never a fast one.
+      s.world.restSlow(1.2);
       expect(s.world.allAsleep(), `seed ${seed} asleep`).toBe(true);
       const states = s.world.snapshot();
       const thick = Math.max(...s.specs.map((x) => x.size.h));

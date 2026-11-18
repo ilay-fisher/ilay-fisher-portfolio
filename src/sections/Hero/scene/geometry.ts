@@ -1,5 +1,6 @@
 import {
   BufferGeometry,
+  CircleGeometry,
   CylinderGeometry,
   ExtrudeGeometry,
   Group,
@@ -7,7 +8,6 @@ import {
   Mesh,
   MeshPhysicalMaterial,
   Path,
-  PlaneGeometry,
   SphereGeometry,
   Shape,
   ShapePath,
@@ -38,8 +38,8 @@ export interface MaterialSet {
   ink?: MeshPhysicalMaterial;
   /** Brass of the padlock body. */
   brass?: MeshPhysicalMaterial;
-  /** Lit phone screen. */
-  screen?: MeshPhysicalMaterial;
+  /** The SafeSurf logo printed on both faces of its token. */
+  logo?: MeshPhysicalMaterial;
   /** Magnifier glass showing a tiny circuit. */
   circuit?: MeshPhysicalMaterial;
 }
@@ -112,7 +112,9 @@ function markShapes(slug: string, unit: number): Shape[] {
   const mark = MARKS[slug];
   const t = TOKEN_SHAPES[slug];
   if (!mark || !t) return [];
-  const data = new SVGLoader().parse(`<svg xmlns="http://www.w3.org/2000/svg"><path d="${mark.path}"/></svg>`);
+  const data = new SVGLoader().parse(
+    `<svg xmlns="http://www.w3.org/2000/svg"><path d="${mark.path}"/></svg>`,
+  );
   const out: Shape[] = [];
   const tx = (v: Vector2) => new Vector2((v.x - t.cx) * unit, -(v.y - t.cy) * unit);
   for (const p of data.paths)
@@ -182,13 +184,17 @@ function buildShield(spec: ObjectSpec, m: MaterialSet): Group {
   group.add(mesh(plateGeometry([loop], h, h * 0.3), [m.body, m.rim ?? m.metal]));
   // Raised inner shield rim and a check mark.
   const inner = chaikin(
-    SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2) * 0.66, z * (d / 2) * 0.66 + d * 0.01] as [number, number]),
+    SHIELD_OUTLINE.map(
+      ([x, z]) => [x * (w / 2) * 0.66, z * (d / 2) * 0.66 + d * 0.01] as [number, number],
+    ),
     3,
   );
   const innerShape = new Shape(inner.map(([x, z]) => new Vector2(x, -z)));
   const hole = new Path(
     chaikin(
-      SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2) * 0.56, z * (d / 2) * 0.56 + d * 0.01] as [number, number]),
+      SHIELD_OUTLINE.map(
+        ([x, z]) => [x * (w / 2) * 0.56, z * (d / 2) * 0.56 + d * 0.01] as [number, number],
+      ),
       3,
     )
       .reverse()
@@ -215,58 +221,25 @@ function buildShield(spec: ObjectSpec, m: MaterialSet): Group {
   return group;
 }
 
-/** Padlock: brass body with a keyhole and a steel shackle, lying flat with the shackle toward the back. */
-function buildLock(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h, d } = spec.size;
+/**
+ * SafeSurf logo token: a round, double-sided enamel disc with the owner's own logo printed on both faces
+ * (the logo is a raster file, so it is a decal on a disc rather than a cut-out silhouette).
+ */
+function buildLogo(spec: ObjectSpec, m: MaterialSet): Group {
+  const { w, h } = spec.size;
+  const R = w / 2;
   const group = new Group();
-  const bodyTop = -0.12 * (d / 2);
-  const bodyD = d / 2 - bodyTop;
-  const body = mesh(
-    new RoundedBoxGeometry(w * 0.98, h, bodyD, 5, Math.min(w, bodyD) * 0.16),
-    m.brass ?? m.body,
-  );
-  body.position.set(0, 0, bodyTop + bodyD / 2);
-  group.add(body);
-  const R = w * 0.25;
-  const tube = Math.min(h * 0.3, R * 0.5);
-  const reach = -d / 2 + tube - bodyTop;
-  const legLen = Math.max(0.02, -reach - R);
-  const arc = mesh(new TorusGeometry(R, tube, 14, 32, Math.PI), m.polished);
-  arc.rotation.x = -Math.PI / 2;
-  arc.position.set(0, 0, bodyTop - legLen);
-  group.add(arc);
-  for (const sx of [-1, 1]) {
-    const leg = mesh(new CylinderGeometry(tube, tube, legLen + 0.02, 14), m.polished);
-    leg.rotation.x = Math.PI / 2;
-    leg.position.set(sx * R, 0, bodyTop - legLen / 2 + 0.01);
-    group.add(leg);
+  const disc = new CylinderGeometry(R, R, h, 48, 1);
+  group.add(mesh(disc, [m.rim ?? m.metal, m.body, m.body]));
+  const decal = new CircleGeometry(R * 0.9, 48);
+  decal.rotateX(-Math.PI / 2);
+  for (const side of [1, -1]) {
+    const face = new Mesh(decal, m.logo ?? m.glass);
+    face.position.y = side * (h / 2 + 0.0015);
+    if (side < 0) face.rotation.x = Math.PI;
+    face.receiveShadow = true;
+    group.add(face);
   }
-  const hole = mesh(new CylinderGeometry(w * 0.07, w * 0.07, 0.01, 24), m.glass);
-  hole.position.set(0, h / 2 + 0.002, bodyTop + bodyD * 0.4);
-  group.add(hole);
-  const slot = mesh(new RoundedBoxGeometry(w * 0.05, 0.01, bodyD * 0.28, 2, 0.004), m.glass);
-  slot.position.set(0, h / 2 + 0.002, bodyTop + bodyD * 0.4 + bodyD * 0.14);
-  group.add(slot);
-  return group;
-}
-
-/** Phone: a rounded body with a lit screen showing SafeSurf's logo over a hint of the browser. */
-function buildPhone(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h, d } = spec.size;
-  const group = new Group();
-  group.add(mesh(new RoundedBoxGeometry(w, h, d, 6, w * 0.2), m.body));
-  const sw = w * 0.86;
-  const sd = d * 0.92;
-  const plane = new PlaneGeometry(sw, sd);
-  plane.rotateX(-Math.PI / 2);
-  const screen = new Mesh(plane, m.screen ?? m.glass);
-  screen.position.y = h / 2 + 0.0015;
-  screen.receiveShadow = true;
-  group.add(screen);
-  // Side button.
-  const btn = mesh(new RoundedBoxGeometry(0.02, h * 0.5, d * 0.14, 2, 0.006), m.metal);
-  btn.position.set(w / 2 + 0.004, 0, -d * 0.12);
-  group.add(btn);
   return group;
 }
 
@@ -298,7 +271,10 @@ function buildDrone(spec: ObjectSpec, m: MaterialSet): Group {
       ring.position.set(sx * o, y, sz * o);
       group.add(ring);
       for (const a of [0.55, 0.55 + Math.PI / 2]) {
-        const blade = mesh(new RoundedBoxGeometry(0.54 * s, 0.014 * s, 0.075 * s, 2, 0.006), m.accent);
+        const blade = mesh(
+          new RoundedBoxGeometry(0.54 * s, 0.014 * s, 0.075 * s, 2, 0.006),
+          m.accent,
+        );
         blade.position.set(sx * o, y + 0.08 * s, sz * o);
         blade.rotation.y = a;
         group.add(blade);
@@ -326,7 +302,10 @@ function buildLens(spec: ObjectSpec, m: MaterialSet): Group {
   rim.rotation.x = Math.PI / 2;
   rim.position.set(c, 0, c);
   group.add(rim);
-  const glass = mesh(new CylinderGeometry(ring - tube, ring - tube, h * 0.35, 56), m.circuit ?? m.glass);
+  const glass = mesh(
+    new CylinderGeometry(ring - tube, ring - tube, h * 0.35, 56),
+    m.circuit ?? m.glass,
+  );
   glass.position.set(c, 0, c);
   group.add(glass);
   const from = ring - 0.04 * u;
@@ -358,14 +337,12 @@ export function buildObject(spec: ObjectSpec, m: MaterialSet): BuiltObject {
         ? buildToken(spec, m)
         : spec.kind === 'shield'
           ? buildShield(spec, m)
-          : spec.kind === 'lock'
-            ? buildLock(spec, m)
-            : spec.kind === 'phone'
-              ? buildPhone(spec, m)
-              : spec.kind === 'drone'
-                ? buildDrone(spec, m)
-                : buildLens(spec, m);
-  const hoverMaterials = [m.body, m.top, m.metal, m.polished, m.brass, m.ink, m.rim].filter(
+          : spec.kind === 'logo'
+            ? buildLogo(spec, m)
+            : spec.kind === 'drone'
+              ? buildDrone(spec, m)
+              : buildLens(spec, m);
+  const hoverMaterials = [m.body, m.top, m.metal, m.polished, m.brass, m.ink, m.rim, m.logo].filter(
     (x): x is MeshPhysicalMaterial => Boolean(x),
   );
   return { group, hoverMaterials };
