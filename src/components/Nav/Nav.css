@@ -28,8 +28,10 @@
   scrollbar-width: none;
   display: flex;
   gap: var(--space-5);
-  justify-content: flex-end;
   white-space: nowrap;
+}
+.nav__links li:first-child {
+  margin-left: auto;
 }
 .nav__links a {
   display: inline-block;

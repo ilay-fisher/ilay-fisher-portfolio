@@ -30,6 +30,12 @@ display headlines (big, confident, tight). Everything else is quiet, hairline-pr
   bold and have strong counters.
 - **Instrument Sans** (body) is calm, slightly condensed and very legible at 17 px, so the
   display face can be loud.
+- **Fredoka** (the paint face, hero only) is a heavy, round-terminalled grotesque chosen from
+  the animation research shortlist (Fredoka, Rubik, Archivo Black). The hero inflates letters
+  into glossy balloons; thin or squared strokes cannot inflate, Fredoka at weight 700 has
+  round terminals and thick even strokes. It is used for the hero headline (DOM text and
+  canvas raster) and nowhere else. Rubik was rejected as too neutral, Archivo Black has
+  no round terminals and a single weight.
 - **Martian Mono** (labels) is a wide, technical mono used only for bench labels, stack
   tags and numbers. Mono here encodes information (case numbers, statuses), it is not
   decoration. Never use it for body copy.
@@ -86,8 +92,10 @@ Families (also used by the hero canvas; they must be loaded before rasterising, 
 | `--font-body`    | `'Instrument Sans Variable', system-ui, sans-serif`                     |
 | `--font-mono`    | `'Martian Mono Variable', ui-monospace, Menlo, monospace`               |
 
-Exact canvas family name: `Bricolage Grotesque Variable` (weights 200 to 800, `font-stretch`
-75% to 100%).
+Exact canvas family names: the hero canvas uses `Fredoka Variable` (weights 300 to 700; call
+`document.fonts.load('700 200px "Fredoka Variable"')` first). `Bricolage Grotesque Variable`
+(weights 200 to 800, `font-stretch` 75% to 100%) is the section display face and may also be
+rasterised.
 
 Fluid scale (360 to 1920 px viewport, `clamp(min, preferred, max)`):
 
@@ -139,6 +147,12 @@ Principles:
 - Things that move: the hero paint, the interactive rigs, the focus ring, buttons.
   Things that never move: the grid, hairlines, nav, section headings, body copy.
 - Animate `transform` and `opacity` only. Never layout properties. No per-frame logging.
+- Page motion is one system: Lenis smooth scroll driven by the GSAP ticker
+  (`src/lib/smoothScroll.tsx`, mounted once in `main.tsx`), ScrollTrigger and SplitText registered
+  once in `src/lib/gsap.ts`. Import `gsap`, `ScrollTrigger`, `SplitText` from there only.
+- Scroll-in reveals use the shared `Reveal` component (`variant` `up`, `fade` or `lines`; plays
+  once at 85% of the viewport, 0.7 to 0.8 s, `expo.out`). The `Section` heading already uses
+  `lines`. Add `Reveal` to at most one more block per section. Never hand-roll another reveal.
 - Reduced motion: `@media (prefers-reduced-motion: reduce)` zeroes all durations in
   `global.css`. Rigs must expose a static state (see AGENT_RULES section 5) and use
   `usePrefersReducedMotion()` for JS-driven motion.

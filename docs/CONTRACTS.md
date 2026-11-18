@@ -86,9 +86,60 @@ export function useInView<T extends Element>(
 export function useRafLoop(callback: (dtMs: number, tMs: number) => void, active: boolean): void; // pauses when !active or tab hidden
 
 // src/lib/webgl.ts
-export function isWebGLAvailable(): boolean;
+export function isWebGLAvailable(): boolean; // WebGL2 only: no WebGL1 path anywhere
 export function cappedDpr(max?: number): number; // default max 2
 ```
+
+```ts
+// src/lib/gsap.ts: the only place GSAP is imported from (plugins registered once)
+export { gsap, ScrollTrigger, SplitText };
+
+// src/lib/smoothScroll.tsx: mounted once in main.tsx; nothing else to do
+export function SmoothScroll(props: { children: React.ReactNode }): JSX.Element;
+// Lenis driven by gsap.ticker, anchor links through Lenis, off under prefers-reduced-motion
+// (then <html> gets class "reduce-motion").
+
+// src/components/Reveal/Reveal.tsx: the shared scroll-in reveal
+export function Reveal(props: {
+  variant?: 'up' | 'fade' | 'lines'; // default 'up'
+  as?: React.ElementType; // default 'div'
+  className?: string;
+  children?: React.ReactNode;
+}): JSX.Element;
+
+// src/lib/glStage.ts: thin OGL wrapper, WebGL2 only. Import lazily via src/lib/lazyGl.ts
+export class GlStage {
+  static create(opts: GlStageOptions): GlStage | null; // null => show your fallback
+  readonly canvas: HTMLCanvasElement;
+  renderer: Renderer; // replaced after a context restore
+  get gl(): WebGL2RenderingContext;
+  get status(): 'ok' | 'lost' | 'disposed';
+  get currentSize(): { width: number; height: number; dpr: number };
+  start(): void;
+  stop(): void;
+  resize(): void;
+  dispose(): void;
+}
+export interface GlStageOptions {
+  container: HTMLElement;
+  name: string;
+  maxDpr?: number;
+  alpha?: boolean;
+  premultipliedAlpha?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  onFrame?(dtMs: number, tMs: number): void;
+  onResize?(s: StageSize): void;
+  onContextLost?(): void;
+  onContextRestored?(): void;
+}
+
+// src/lib/lazyGl.ts
+export function loadGlStage(): Promise<typeof import('./glStage')>; // memoised dynamic import
+```
+
+Notes: `useInView` returns `RefObject<T | null>` (React 19 typing). `Section` takes
+`id, title, headingAs?, hideTitle?, bench?, summary?`; `ProjectFrame` takes
+`project, children, demoLabel?`. Details in `docs/reports/foundation.md`.
 
 Exact content types live in `src/content/*.ts`; copy comes from `docs/CONTENT.md`.
 
