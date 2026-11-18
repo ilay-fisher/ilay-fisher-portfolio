@@ -46,7 +46,7 @@ export default function Hero() {
     reducedMotion: reduced,
     contextLost: lost || failed,
   });
-  const params = useMemo(readParams, []);
+  const params = useMemo(() => readParams(), []);
 
   const [heroRef, inView] = useInView<HTMLElement>({ rootMargin: '10% 0px' });
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -120,6 +120,7 @@ export default function Hero() {
           data-ready="false"
           data-mode={mode}
           tabIndex={mode === 'scene' ? 0 : -1}
+          // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role -- focusable canvas is a keyboard-operated widget
           role="group"
           aria-label="Interactive studio of keycaps and hardware. Press N to pick an object, arrow keys to push it, Space to hop it, S to shuffle, R to drop everything again."
         />
