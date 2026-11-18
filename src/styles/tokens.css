@@ -1,0 +1,80 @@
+/* Design tokens. Values and rationale: docs/DESIGN.md. Never hard-code what has a token. */
+:root {
+  color-scheme: dark;
+
+  /* colour */
+  --stage: #0c1014;
+  --surface: #12171d;
+  --surface-raised: #1a2129;
+  --line: #2b3542;
+  --line-strong: #4a5668;
+  --text: #ece8df;
+  --text-dim: #a8b0bc;
+  --text-faint: #8a93a1;
+  --paint: #ff3d6e;
+  --paint-hi: #ff93ae;
+  --paint-deep: #b3174a;
+  --on-paint: #0c1014;
+  --pass: #7be0b0;
+
+  /* type families (the hero canvas reads these names too) */
+  --font-display: 'Bricolage Grotesque Variable', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Instrument Sans Variable', system-ui, sans-serif;
+  /* the hero paint face: heavy and round-terminalled so thick letters can inflate */
+  --font-paint: 'Fredoka Variable', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  --font-mono: 'Martian Mono Variable', ui-monospace, Menlo, monospace;
+
+  /* fluid type scale, 360 to 1920 px */
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.875rem);
+  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step-1: clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem);
+  --step-2: clamp(1.5rem, 1.3rem + 1vw, 2.25rem);
+  --step-3: clamp(2.25rem, 1.7rem + 2.8vw, 4rem);
+  --step-4: clamp(3rem, 1.8rem + 6vw, 7.5rem);
+
+  /* spacing, 4 px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --space-9: 112px;
+  --space-10: 168px;
+  --section-pad: clamp(4.5rem, 3rem + 7vw, 10rem);
+
+  /* layout */
+  --container: 1280px;
+  --gutter: 16px;
+  --nav-h: 56px;
+  --measure: 68ch;
+
+  /* radii */
+  --radius-0: 0;
+  --radius-1: 4px;
+  --radius-pill: 999px;
+
+  /* lines and grid */
+  --hairline: 1px solid var(--line);
+  --grid-size: 64px;
+
+  /* motion */
+  --dur-fast: 120ms;
+  --dur-base: 240ms;
+  --dur-slow: 520ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (min-width: 600px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+@media (min-width: 1280px) {
+  :root {
+    --gutter: 32px;
+  }
+}

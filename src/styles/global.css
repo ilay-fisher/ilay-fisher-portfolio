@@ -1,0 +1,178 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: clip; /* safety net only; do not rely on it */
+  scroll-padding-top: var(--nav-h);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--stage);
+  /* blueprint grid: fine line every cell, stronger line every 4th cell */
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--line) 40%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--line) 40%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: var(--grid-size) var(--grid-size);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  font-weight: 420;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+h1 {
+  font-size: var(--step-4);
+}
+h2 {
+  font-size: var(--step-3);
+}
+h3 {
+  font-size: var(--step-2);
+}
+
+p {
+  margin: 0;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+img,
+canvas,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--paint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+a:hover {
+  color: var(--paint-hi);
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--paint);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--paint);
+  color: var(--on-paint);
+}
+
+/* layout helpers */
+.container {
+  width: 100%;
+  max-width: calc(var(--container) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* mono bench label text */
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* a rig: the thing under test */
+.rig {
+  position: relative;
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--radius-0);
+}
+
+/* corner ticks: crosshair marks at the four corners of a rig */
+.ticks::before,
+.ticks::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  --t: 12px;
+  --c: var(--paint);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--t) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / 2px var(--t) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--t) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 2px var(--t) no-repeat;
+}
+.ticks::after {
+  transform: scaleY(-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

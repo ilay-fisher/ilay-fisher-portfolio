@@ -5,16 +5,16 @@ creates every shared file and a stub for every section, so `App.tsx` never chang
 
 ## Workstreams
 
-| ID | Branch | Owns | Port |
-|---|---|---|---|
-| R | `docs/animation-research` | `docs/research/**` | — |
-| F | `feat/foundation` | everything at first: tooling, `src/lib/**`, `src/styles/**`, `src/content/**`, `src/components/**`, `src/App.tsx`, stubs for all sections, CI, Firebase config, `docs/DESIGN.md` | 5180 |
-| A | `feat/hero` | `src/sections/Hero/**`, `e2e/hero.spec.ts` | 5181 |
-| B | `feat/about-experience-contact` | `src/sections/About/**`, `src/sections/Experience/**`, `src/sections/Contact/**`, `src/components/Nav/**`, `src/components/Footer/**`, `e2e/about.spec.ts` | 5182 |
-| C | `feat/safesurf-demo` | `src/sections/projects/SafeSurf/**`, `e2e/safesurf.spec.ts` | 5183 |
-| D | `feat/drone-demo` | `src/sections/projects/Drone/**`, `e2e/drone.spec.ts` | 5184 |
-| E | `feat/xray-demo` | `src/sections/projects/XRay/**`, `e2e/xray.spec.ts` | 5185 |
-| Q | `fix/integration-qa` | cross-cutting polish after A to E are merged | 5186 |
+| ID  | Branch                          | Owns                                                                                                                                                                             | Port |
+| --- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| R   | `docs/animation-research`       | `docs/research/**`                                                                                                                                                               | —    |
+| F   | `feat/foundation`               | everything at first: tooling, `src/lib/**`, `src/styles/**`, `src/content/**`, `src/components/**`, `src/App.tsx`, stubs for all sections, CI, Firebase config, `docs/DESIGN.md` | 5180 |
+| A   | `feat/hero`                     | `src/sections/Hero/**`, `e2e/hero.spec.ts`                                                                                                                                       | 5181 |
+| B   | `feat/about-experience-contact` | `src/sections/About/**`, `src/sections/Experience/**`, `src/sections/Contact/**`, `src/components/Nav/**`, `src/components/Footer/**`, `e2e/about.spec.ts`                       | 5182 |
+| C   | `feat/safesurf-demo`            | `src/sections/projects/SafeSurf/**`, `e2e/safesurf.spec.ts`                                                                                                                      | 5183 |
+| D   | `feat/drone-demo`               | `src/sections/projects/Drone/**`, `e2e/drone.spec.ts`                                                                                                                            | 5184 |
+| E   | `feat/xray-demo`                | `src/sections/projects/XRay/**`, `e2e/xray.spec.ts`                                                                                                                              | 5185 |
+| Q   | `fix/integration-qa`            | cross-cutting polish after A to E are merged                                                                                                                                     | 5186 |
 
 Every workstream also owns `docs/reports/<workstream>.md` and `docs/reports/img/<workstream>-*`.
 
@@ -49,15 +49,15 @@ public/images/                 static images
 Each `src/sections/**/index.tsx` default-exports a React component with no required props.
 It renders one `<section>` through the shared `Section` component with these ids:
 
-| Section | `id` |
-|---|---|
-| Hero | `top` |
-| About | `about` |
-| SafeSurf | `safesurf` |
-| Drone | `drone` |
-| XRay | `xray` |
+| Section    | `id`         |
+| ---------- | ------------ |
+| Hero       | `top`        |
+| About      | `about`      |
+| SafeSurf   | `safesurf`   |
+| Drone      | `drone`      |
+| XRay       | `xray`       |
 | Experience | `experience` |
-| Contact | `contact` |
+| Contact    | `contact`    |
 
 Page order in `App.tsx`: Hero, About, SafeSurf, Drone, XRay, Experience, Contact.
 
@@ -75,18 +75,71 @@ export interface Logger {
   warn(msg: string, data?: unknown): void;
   error(msg: string, data?: unknown): void;
 }
-export function createLogger(scope: string): Logger;   // prefix: [portfolio:<scope>]
-export function setLogLevel(level: LogLevel): void;     // default: 'debug' in dev, 'warn' in prod; ?log=debug overrides
+export function createLogger(scope: string): Logger; // prefix: [portfolio:<scope>]
+export function setLogLevel(level: LogLevel): void; // default: 'debug' in dev, 'warn' in prod; ?log=debug overrides
 
 // src/lib/motion.ts
 export function usePrefersReducedMotion(): boolean;
-export function useInView<T extends Element>(options?: IntersectionObserverInit): [React.RefObject<T>, boolean];
+export function useInView<T extends Element>(
+  options?: IntersectionObserverInit,
+): [React.RefObject<T>, boolean];
 export function useRafLoop(callback: (dtMs: number, tMs: number) => void, active: boolean): void; // pauses when !active or tab hidden
 
 // src/lib/webgl.ts
-export function isWebGLAvailable(): boolean;
-export function cappedDpr(max?: number): number;        // default max 2
+export function isWebGLAvailable(): boolean; // WebGL2 only: no WebGL1 path anywhere
+export function cappedDpr(max?: number): number; // default max 2
 ```
+
+```ts
+// src/lib/gsap.ts: the only place GSAP is imported from (plugins registered once)
+export { gsap, ScrollTrigger, SplitText };
+
+// src/lib/smoothScroll.tsx: mounted once in main.tsx; nothing else to do
+export function SmoothScroll(props: { children: React.ReactNode }): JSX.Element;
+// Lenis driven by gsap.ticker, anchor links through Lenis, off under prefers-reduced-motion
+// (then <html> gets class "reduce-motion").
+
+// src/components/Reveal/Reveal.tsx: the shared scroll-in reveal
+export function Reveal(props: {
+  variant?: 'up' | 'fade' | 'lines'; // default 'up'
+  as?: React.ElementType; // default 'div'
+  className?: string;
+  children?: React.ReactNode;
+}): JSX.Element;
+
+// src/lib/glStage.ts: thin OGL wrapper, WebGL2 only. Import lazily via src/lib/lazyGl.ts
+export class GlStage {
+  static create(opts: GlStageOptions): GlStage | null; // null => show your fallback
+  readonly canvas: HTMLCanvasElement;
+  renderer: Renderer; // replaced after a context restore
+  get gl(): WebGL2RenderingContext;
+  get status(): 'ok' | 'lost' | 'disposed';
+  get currentSize(): { width: number; height: number; dpr: number };
+  start(): void;
+  stop(): void;
+  resize(): void;
+  dispose(): void;
+}
+export interface GlStageOptions {
+  container: HTMLElement;
+  name: string;
+  maxDpr?: number;
+  alpha?: boolean;
+  premultipliedAlpha?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  onFrame?(dtMs: number, tMs: number): void;
+  onResize?(s: StageSize): void;
+  onContextLost?(): void;
+  onContextRestored?(): void;
+}
+
+// src/lib/lazyGl.ts
+export function loadGlStage(): Promise<typeof import('./glStage')>; // memoised dynamic import
+```
+
+Notes: `useInView` returns `RefObject<T | null>` (React 19 typing). `Section` takes
+`id, title, headingAs?, hideTitle?, bench?, summary?`; `ProjectFrame` takes
+`project, children, demoLabel?`. Details in `docs/reports/foundation.md`.
 
 Exact content types live in `src/content/*.ts`; copy comes from `docs/CONTENT.md`.
 
