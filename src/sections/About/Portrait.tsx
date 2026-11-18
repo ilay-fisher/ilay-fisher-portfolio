@@ -3,7 +3,14 @@ import { profile } from '../../content/profile';
 import { createLogger } from '../../lib/logger';
 import { usePrefersReducedMotion } from '../../lib/motion';
 import { startAvatar } from './avatar/avatarEngine';
-import { STILL_URL, loadAvatarFrames, type AvatarLoader } from './avatar/avatarLoader';
+import {
+  STILL_URL,
+  loadAvatarFrames,
+  loadBlinkAssets,
+  type AvatarLoader,
+  type BlinkAssets,
+  type BlinkLoader,
+} from './avatar/avatarLoader';
 import manifest from './avatar/frames.json';
 
 const log = createLogger('about');
@@ -16,10 +23,17 @@ type Mode = 'still' | 'frames' | 'static' | 'monogram';
  * Fallbacks: reduced motion draws one static frame facing the visitor; if the frames fail the still stays; if the
  * still fails the IF monogram shows. `data-avatar` on the stage says which, `data-frame` says which frame is drawn.
  */
-export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader }) {
+export function Portrait({
+  loader = loadAvatarFrames,
+  blinkLoader = loadBlinkAssets,
+}: {
+  loader?: AvatarLoader;
+  blinkLoader?: BlinkLoader;
+}) {
   const [stillFailed, setStillFailed] = useState(false);
   const [near, setNear] = useState(false);
   const [frames, setFrames] = useState<Awaited<ReturnType<AvatarLoader>> | null>(null);
+  const [blinks, setBlinks] = useState<BlinkAssets | null>(null);
   const [ready, setReady] = useState(false);
   const reduced = usePrefersReducedMotion();
   const figureRef = useRef<HTMLElement>(null);
@@ -66,6 +80,19 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
     };
   }, [near, reduced, stillFailed, loader]);
 
+  // The lid patches ride along with the frames; without them (or under reduced motion) he simply does not blink.
+  useEffect(() => {
+    if (!near || stillFailed || reduced) return;
+    let cancelled = false;
+    blinkLoader().then(
+      (b) => !cancelled && setBlinks(b),
+      (err) => log.warn('avatar blinks failed to load, no blinking', err),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [near, reduced, stillFailed, blinkLoader]);
+
   useEffect(() => {
     const stage = stageRef.current;
     const canvas = canvasRef.current;
@@ -78,10 +105,11 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
       neutral: manifest.neutral,
       stillIndex: manifest.stillIndex,
       reduced,
+      blinks,
       onReady: () => setReady(true),
     });
     return () => engine.stop();
-  }, [frames, reduced]);
+  }, [frames, reduced, blinks]);
 
   const mode: Mode = stillFailed ? 'monogram' : ready ? (reduced ? 'static' : 'frames') : 'still';
   const label = `Illustrated avatar of ${profile.name}`;
