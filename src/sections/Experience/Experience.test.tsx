@@ -20,7 +20,7 @@ describe('Experience', () => {
   it('shows every role, org, period and highlight from the content module', () => {
     render(<Experience />);
     for (const e of profile.experience) {
-      expect(screen.getByRole('heading', { level: 3, name: new RegExp(e.role) })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 3, name: e.role })).toBeInTheDocument();
       expect(screen.getByText(e.org)).toBeInTheDocument();
       expect(screen.getByText(e.period)).toBeInTheDocument();
       for (const h of e.highlights) expect(screen.getByText(h)).toBeInTheDocument();
@@ -61,8 +61,6 @@ describe('Experience', () => {
     render(<Experience />);
     const counts = Array.from(document.querySelectorAll<HTMLElement>('[data-count]'));
     expect(counts.length).toBeGreaterThanOrEqual(2);
-    expect(counts.map((c) => c.textContent)).toEqual(
-      expect.arrayContaining(['14.2%', '22+']),
-    );
+    expect(counts.map((c) => c.textContent)).toEqual(expect.arrayContaining(['14.2%', '22+']));
   });
 });

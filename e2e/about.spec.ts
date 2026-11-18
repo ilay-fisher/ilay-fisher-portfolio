@@ -44,7 +44,9 @@ test('scroll-progress hairline follows the scroll position', async ({ page }) =>
   const read = () =>
     page.locator('.nav__progress').evaluate((el) => el.getAttribute('data-progress'));
   expect(Number(await read())).toBeLessThan(0.05);
-  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
+  await page.evaluate(() =>
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }),
+  );
   await expect.poll(async () => Number(await read())).toBeGreaterThan(0.95);
 });
 
@@ -57,7 +59,9 @@ test('mobile nav reaches every section at 390x844 with keyboard and Escape', asy
   for (const label of items) {
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    const link = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: label });
+    const link = page
+      .getByRole('navigation', { name: 'Sections' })
+      .getByRole('link', { name: label });
     await expect(link).toBeVisible();
     await link.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -113,7 +117,9 @@ test('contact: mailto, secondary links and copy-email confirmation', async ({ pa
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('ilay3002@gmail.com');
 });
 
-test('portrait loads with real dimensions and falls back to a monogram on failure', async ({ page }) => {
+test('portrait loads with real dimensions and falls back to a monogram on failure', async ({
+  page,
+}) => {
   await page.goto('/');
   const img = page.locator('#about img');
   await img.scrollIntoViewIfNeeded();
@@ -121,7 +127,9 @@ test('portrait loads with real dimensions and falls back to a monogram on failur
   await page.route('**/images/ilay.jpg', (r) => r.abort());
   await page.reload();
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect(page.locator('#about').getByRole('img', { name: /Ilay Fisher/ })).toContainText('IF');
+  await expect(page.locator('#about').getByRole('img', { name: /Ilay Fisher/ })).toContainText(
+    'IF',
+  );
 });
 
 test('structure: heading order, landmarks and accessible names', async ({ page }) => {
@@ -143,8 +151,9 @@ test('structure: heading order, landmarks and accessible names', async ({ page }
   expect(unnamed).toEqual([]);
   const noAlt = await page.$$eval('img:not([alt])', (els) => els.length);
   expect(noAlt).toBe(0);
-  const badBlank = await page.$$eval('a[target="_blank"]', (els) =>
-    els.filter((a) => !/noopener/.test(a.getAttribute('rel') ?? '')).length,
+  const badBlank = await page.$$eval(
+    'a[target="_blank"]',
+    (els) => els.filter((a) => !/noopener/.test(a.getAttribute('rel') ?? '')).length,
   );
   expect(badBlank).toBe(0);
 });
@@ -153,6 +162,8 @@ test('reduced motion shows final bench readings', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await page.locator('#experience').scrollIntoViewIfNeeded();
-  const texts = await page.$$eval('#experience [data-count]', (els) => els.map((e) => e.textContent));
+  const texts = await page.$$eval('#experience [data-count]', (els) =>
+    els.map((e) => e.textContent),
+  );
   expect(texts).toEqual(expect.arrayContaining(['14.2%', '22+']));
 });

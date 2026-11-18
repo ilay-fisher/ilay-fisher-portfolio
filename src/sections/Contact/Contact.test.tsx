@@ -10,7 +10,9 @@ describe('Contact', () => {
     render(<Contact />);
     expect(document.getElementById('contact')).not.toBeNull();
     expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
-    expect(screen.getByText(/student or part-time role in Backend, Android or Systems/)).toBeVisible();
+    expect(
+      screen.getByText(/student or part-time role in Backend, Android or Systems/),
+    ).toBeVisible();
     expect(screen.getByText(/3 days a week/)).toBeInTheDocument();
   });
 

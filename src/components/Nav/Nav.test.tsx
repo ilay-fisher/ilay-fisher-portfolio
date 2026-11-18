@@ -55,9 +55,7 @@ describe('Nav', () => {
     render(<Nav />);
     expect(observed.map((e) => e.id)).toEqual(NAV_ITEMS.map((i) => i.id));
     expect(document.querySelector('[aria-current]')).toBeNull();
-    act(() =>
-      ioCb?.([{ target: document.getElementById('drone')!, isIntersecting: true }]),
-    );
+    act(() => ioCb?.([{ target: document.getElementById('drone')!, isIntersecting: true }]));
     const current = document.querySelectorAll('[aria-current]');
     expect(current).toHaveLength(1);
     expect(current[0]).toHaveAttribute('href', '#drone');
@@ -122,7 +120,7 @@ describe('Nav', () => {
       );
       const btn = screen.getByRole('button', { name: 'Menu' });
       await user.click(btn);
-      screen.getByRole('button', { name: 'outside' }).focus();
+      act(() => screen.getByRole('button', { name: 'outside' }).focus());
       expect(btn).toHaveAttribute('aria-expanded', 'false');
     });
   });
