@@ -115,7 +115,7 @@ export function buildCatalogue(bp: Breakpoint): ObjectSpec[] {
     hardware('toggle', 'Toggle switch', 1.7, 0.95, 1.1, 'anodised', 0.6),
     hardware('shield', 'Shield block', 1.3, 0.5, 1.55, 'ceramic', 0.45),
   ];
-  if (bp === 'desktop') pieces.push(hardware('lock', 'Lock block', 1.3, 0.85, 1, 'anodised', 0.8));
+  if (bp === 'desktop') pieces.push(hardware('lock', 'Lock block', 1.3, 0.9, 1, 'anodised', 0.8));
   return [...legends.map(key), ...pieces];
 }
 

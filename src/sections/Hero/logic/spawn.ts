@@ -23,7 +23,7 @@ export interface KeepOut {
 }
 
 const WINDOW_MS = 700;
-const STEP_MS = 80;
+const STEP_MS = 70;
 
 /** True when the bounding spheres of two spawn points intersect. */
 export function spawnsOverlap(
@@ -36,7 +36,7 @@ export function spawnsOverlap(
 }
 
 /**
- * Plans a choreographed drop: objects arrive one after another about 80 ms apart, each above a
+ * Plans a choreographed drop: objects arrive one after another about 70 ms apart, each above a
  * free spot in front of the name. Bodies that arrive within 700 ms of each other never start
  * overlapping. Deterministic for a seed.
  */

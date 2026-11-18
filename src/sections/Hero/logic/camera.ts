@@ -149,6 +149,6 @@ export function computeBounds(rig: Rig, region: Region, backZ: number, planeY = 
     maxX: Math.min(br.x, tr.x),
     minZ: backZ,
     maxZ: Math.min(bl.z, br.z) - 0.1,
-    height: 9,
+    height: 7,
   };
 }
