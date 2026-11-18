@@ -1,0 +1,218 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  /*
+   * Fixed from first paint: the lazy scene, the still, fonts and the counter never change this
+   * height, so nothing below the hero moves (anchor scrolling depends on it).
+   */
+  height: max(calc(100svh - var(--nav-h)), 40rem);
+  overflow: hidden;
+}
+
+/* The studio fills the whole hero and has no frame: it is the page's own dark stage. */
+.hero__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero__canvas,
+.hero__still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hero__canvas {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.hero__canvas--off {
+  opacity: 0; /* stays "visible" to tests and layout; the still covers it */
+}
+.hero__still {
+  object-fit: cover;
+  object-position: 62% 100%;
+  pointer-events: none;
+}
+
+/* Text sits above the studio but lets pointers through to the canvas in the gaps. */
+.hero__layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.hero__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 28rem;
+  padding-block: var(--space-7) var(--space-6);
+}
+.hero__copy a,
+.hero__copy button {
+  pointer-events: auto;
+}
+
+.hero__thesis {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.1rem, 1.4rem + 2.3vw, 3.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--text);
+}
+.hero__role {
+  font-size: var(--step-0);
+  line-height: 1.45;
+  color: var(--text-dim);
+  max-width: 34ch;
+}
+.hero__availability {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--text-dim);
+  max-width: 44ch;
+}
+.hero__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pass);
+  transform: translateY(-1px);
+}
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.hero__tools {
+  position: absolute;
+  z-index: 1;
+  right: var(--gutter);
+  bottom: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  pointer-events: none;
+}
+.hero__note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  text-align: right;
+}
+.hero__hint {
+  max-width: 34ch;
+  font-size: var(--step--1);
+  color: var(--text-faint);
+}
+.hero__hits {
+  font-size: var(--step--1);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Name chip: follows the pointer on hover or grab, and sits by the selected object on keyboard focus. */
+.hero__chip {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  padding: 5px 9px;
+  border-radius: var(--radius-chip);
+  background: var(--surface-raised);
+  border: var(--hairline);
+  box-shadow: var(--shadow-contact-sm);
+  color: var(--text);
+  font-size: var(--step--1);
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform;
+}
+.hero__chip[hidden] {
+  display: none;
+}
+.hero__tools .btn {
+  pointer-events: auto;
+}
+.hero__cue {
+  position: absolute;
+  z-index: 1;
+  left: var(--gutter);
+  bottom: var(--space-5);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  text-decoration: none;
+}
+.hero__cue::after {
+  content: '';
+  width: 1px;
+  height: 28px;
+  background: linear-gradient(var(--text-faint), transparent);
+}
+.hero__cue:hover {
+  color: var(--text);
+}
+
+/* Narrow: text on top, the studio underneath it. */
+@media (max-width: 899px) {
+  .hero {
+    height: max(calc(100svh - var(--nav-h)), 49rem);
+  }
+  .hero__layout {
+    align-items: flex-start;
+  }
+  /* The clearance is on the wrapper, not the copy, so the copy's own box ends where the text ends. */
+  .hero__layout {
+    padding-block: var(--space-5) clamp(320px, 46svh, 430px);
+  }
+  .hero__copy {
+    max-width: none;
+    gap: var(--space-3);
+    padding-block: 0;
+  }
+  .hero__thesis {
+    font-size: clamp(2rem, 9vw, 2.6rem);
+  }
+  .hero__role {
+    font-size: var(--step--1);
+  }
+  .hero__tools {
+    right: var(--gutter);
+    bottom: var(--space-4);
+  }
+  .hero__tools {
+    left: var(--gutter);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+  }
+  .hero__hint {
+    max-width: none;
+  }
+  .hero__cue {
+    left: auto;
+    right: auto;
+    bottom: var(--space-4);
+  }
+}
