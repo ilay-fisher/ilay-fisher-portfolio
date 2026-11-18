@@ -372,7 +372,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
       </div>
 
       <div className="ss__bench">
-        <div className="ss-console">
+        <div className="ss-console bevel">
           <p className="ss-invite">
             {busy
               ? 'Want it now? So did I. Come back in an hour.'
@@ -450,7 +450,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             </div>
           </div>
 
-          <div className="ss-display mono">
+          <div className="ss-display well mono">
             <p className="ss-display__main" data-testid="safesurf-request">
               {requestLabel ?? 'No request waiting.'}
             </p>
@@ -547,7 +547,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               </Button>
             ))}
           </div>
-          <div className="ss-display ss-display--small mono">
+          <div className="ss-display ss-display--small well mono">
             <p
               className="ss-bypass"
               data-testid="safesurf-bypass-result"
