@@ -1,6 +1,40 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Nav, NAV_ITEMS } from './Nav';
+
+type IoCb = (entries: Partial<IntersectionObserverEntry>[]) => void;
+let ioCb: IoCb | null = null;
+const observed: Element[] = [];
+
+beforeEach(() => {
+  observed.length = 0;
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      constructor(cb: IoCb) {
+        ioCb = cb;
+      }
+      observe(el: Element) {
+        observed.push(el);
+      }
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    },
+  );
+  for (const i of NAV_ITEMS) {
+    const s = document.createElement('section');
+    s.id = i.id;
+    document.body.appendChild(s);
+  }
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  document.body.innerHTML = '';
+});
 
 describe('Nav', () => {
   it('has a skip link to the main content as the first focusable link', () => {
@@ -15,13 +49,81 @@ describe('Nav', () => {
     const nav = screen.getByRole('navigation', { name: 'Sections' });
     const hrefs = Array.from(nav.querySelectorAll('a')).map((a) => a.getAttribute('href'));
     expect(hrefs).toEqual(['#top', ...NAV_ITEMS.map((i) => `#${i.id}`)]);
-    expect(NAV_ITEMS.map((i) => i.id)).toEqual([
-      'about',
-      'safesurf',
-      'drone',
-      'xray',
-      'experience',
-      'contact',
-    ]);
+  });
+
+  it('observes every section and marks the one in view with aria-current', () => {
+    render(<Nav />);
+    expect(observed.map((e) => e.id)).toEqual(NAV_ITEMS.map((i) => i.id));
+    expect(document.querySelector('[aria-current]')).toBeNull();
+    act(() =>
+      ioCb?.([{ target: document.getElementById('drone')!, isIntersecting: true }]),
+    );
+    const current = document.querySelectorAll('[aria-current]');
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveAttribute('href', '#drone');
+    act(() =>
+      ioCb?.([
+        { target: document.getElementById('drone')!, isIntersecting: false },
+        { target: document.getElementById('xray')!, isIntersecting: true },
+      ]),
+    );
+    expect(document.querySelector('[aria-current]')).toHaveAttribute('href', '#xray');
+  });
+
+  it('renders a scroll-progress hairline that is hidden from assistive tech', () => {
+    render(<Nav />);
+    expect(document.querySelector('.nav__progress')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  describe('mobile menu', () => {
+    it('has a Menu button that toggles aria-expanded and points at the link list', async () => {
+      const user = userEvent.setup();
+      render(<Nav />);
+      const btn = screen.getByRole('button', { name: 'Menu' });
+      expect(btn).toHaveAttribute('aria-expanded', 'false');
+      const list = document.getElementById(btn.getAttribute('aria-controls') ?? '');
+      expect(list).not.toBeNull();
+      await user.click(btn);
+      expect(btn).toHaveAttribute('aria-expanded', 'true');
+      expect(list).toHaveAttribute('data-open', 'true');
+    });
+
+    it('moves focus to the first link on open and closes with Escape, returning focus', async () => {
+      const user = userEvent.setup();
+      render(<Nav />);
+      const btn = screen.getByRole('button', { name: 'Menu' });
+      await user.click(btn);
+      expect(screen.getByRole('link', { name: 'About' })).toHaveFocus();
+      await user.keyboard('{Escape}');
+      expect(btn).toHaveAttribute('aria-expanded', 'false');
+      expect(btn).toHaveFocus();
+    });
+
+    it('is operable with the keyboard alone and closes after choosing a link', async () => {
+      const user = userEvent.setup();
+      render(<Nav />);
+      const btn = screen.getByRole('button', { name: 'Menu' });
+      btn.focus();
+      await user.keyboard('{Enter}');
+      expect(btn).toHaveAttribute('aria-expanded', 'true');
+      await user.keyboard('{Tab}');
+      expect(screen.getByRole('link', { name: 'SafeSurf' })).toHaveFocus();
+      await user.keyboard('{Enter}');
+      expect(btn).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('closes when focus leaves the navigation', async () => {
+      const user = userEvent.setup();
+      render(
+        <>
+          <Nav />
+          <button type="button">outside</button>
+        </>,
+      );
+      const btn = screen.getByRole('button', { name: 'Menu' });
+      await user.click(btn);
+      screen.getByRole('button', { name: 'outside' }).focus();
+      expect(btn).toHaveAttribute('aria-expanded', 'false');
+    });
   });
 });
