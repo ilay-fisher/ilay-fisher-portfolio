@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { XRayDemo } from './XRayDemo';
 import type { Analysis, AnalyzeFn } from './analysis';
 
-const warn = vi.fn();
+const { warn } = vi.hoisted(() => ({ warn: vi.fn() }));
 vi.mock('../../../lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() }),
 }));
@@ -65,7 +65,7 @@ describe('XRayDemo slider', () => {
     const s = screen.getByTestId('xray-slider') as HTMLInputElement;
     fireEvent.change(s, { target: { value: '80' } });
     expect(s).toHaveAttribute('aria-valuetext', expect.stringContaining('80 percent'));
-    expect(screen.getByTestId('xray-heatmap').style.clipPath).toBe('inset(0 20% 0 0)');
+    expect(screen.getByTestId('xray-heatmap').style.clipPath).toBe('inset(0px 20% 0px 0px)');
   });
 });
 
@@ -163,7 +163,7 @@ describe('XRayDemo guess first', () => {
     await ready();
     await userEvent.click(screen.getByRole('button', { name: /guess first/i }));
     expect(screen.queryByRole('button', { name: 'Region 1 of 2' })).toBeNull();
-    expect(screen.getByTestId('xray-heatmap').style.clipPath).toBe('inset(0 100% 0 0)');
+    expect(screen.getByTestId('xray-heatmap').style.clipPath).toBe('inset(0px 100% 0px 0px)');
     await userEvent.click(screen.getByRole('button', { name: /reveal/i }));
     expect(screen.getByRole('button', { name: 'Region 1 of 2' })).toBeInTheDocument();
   });

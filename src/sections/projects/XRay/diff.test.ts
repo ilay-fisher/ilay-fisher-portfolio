@@ -198,13 +198,14 @@ describe('colormap', () => {
     let prev = -1;
     for (let i = 0; i < 256; i++) {
       const lum = 0.2126 * lut[i * 4]! + 0.7152 * lut[i * 4 + 1]! + 0.0722 * lut[i * 4 + 2]!;
-      expect(lum).toBeGreaterThanOrEqual(prev - 1e-6);
+      expect(lum).toBeGreaterThanOrEqual(prev - 0.5); // 8-bit rounding of the channels
       prev = lum;
     }
   });
   it('alpha is non-decreasing', () => {
     const lut = buildLut();
-    for (let i = 1; i < 256; i++) expect(lut[i * 4 + 3]!).toBeGreaterThanOrEqual(lut[(i - 1) * 4 + 3]!);
+    for (let i = 1; i < 256; i++)
+      expect(lut[i * 4 + 3]!).toBeGreaterThanOrEqual(lut[(i - 1) * 4 + 3]!);
   });
   it('heatToRgba maps zero to transparent and the scale value to opaque', () => {
     const out = heatToRgba(Float32Array.from([0, 50, 100]), 3, 1, 50);

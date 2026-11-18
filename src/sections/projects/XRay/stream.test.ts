@@ -60,7 +60,11 @@ describe('runStream', () => {
   it('cancel stops further output', () => {
     const seen: number[] = [];
     const done = vi.fn();
-    const cancel = runStream(TEXT, { onProgress: (n) => seen.push(n), onDone: done, reduced: false });
+    const cancel = runStream(TEXT, {
+      onProgress: (n) => seen.push(n),
+      onDone: done,
+      reduced: false,
+    });
     vi.advanceTimersByTime(300);
     cancel();
     const n = seen.length;
