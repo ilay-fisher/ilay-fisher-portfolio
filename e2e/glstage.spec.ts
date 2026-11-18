@@ -4,7 +4,10 @@ import { expect, test } from '@playwright/test';
 test('GlStage runs, pauses on context loss and recovers on restore', async ({ page }) => {
   await page.goto('/');
   const result = await page.evaluate(async () => {
-    const { GlStage } = await import(/* @vite-ignore */ '/src/lib/glStage.ts');
+    const modPath = '/src/lib/glStage.ts';
+    const { GlStage } = (await import(
+      /* @vite-ignore */ modPath
+    )) as typeof import('../src/lib/glStage');
     const host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:0;top:0;width:200px;height:100px';
     document.body.appendChild(host);
