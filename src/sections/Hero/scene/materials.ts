@@ -14,26 +14,23 @@ const tone = (hex: string, shade: number, spread = 0.035): Color => {
 
 const luminance = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 
-/** Brand colour for enamel: the official hex, lifted when it is too dark to read on the dark stage. */
-export function enamelColor(hex: string): Color {
+/** Cream enamel of a token plate: reads on the dark stage and carries any brand colour. */
+const TOKEN_ENAMEL = '#ecebe5';
+
+/** The brand's own colour for the raised mark; only darkened when it would vanish on cream enamel. */
+export function markColor(hex: string): Color {
   const c = new Color(`#${hex.replace('#', '')}`);
   const hsl = { h: 0, s: 0, l: 0 };
   c.getHSL(hsl);
-  return hsl.l < 0.16 ? c.setHSL(hsl.h, hsl.s * 0.6, 0.2) : c;
-}
-
-/** Ink for the raised mark: white or near-black, whichever contrasts more with the enamel. */
-export function inkColor(hex: string): string {
-  return luminance(enamelColor(hex)) > 0.36 ? '#10141a' : '#ffffff';
+  return luminance(c) > 0.55 ? c.setHSL(hsl.h, hsl.s, hsl.l * 0.72) : c;
 }
 
 /** Base body material for a finish: anodised aluminium, glazed ceramic or machined alloy. */
 export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMaterial {
   const s = spec.shade;
   if (spec.kind === 'token' && spec.mark && MARKS[spec.mark]) {
-    // Glossy enamel in the brand's own colour.
     return new MeshPhysicalMaterial({
-      color: enamelColor(MARKS[spec.mark]!.hex),
+      color: TOKEN_ENAMEL,
       roughness: 0.26,
       metalness: 0.04,
       clearcoat: 1,
@@ -130,7 +127,7 @@ export function materialSet(
   });
   const markHex = spec.mark && MARKS[spec.mark] ? MARKS[spec.mark]!.hex : null;
   const ink = new MeshPhysicalMaterial({
-    color: markHex ? inkColor(markHex) : '#ffffff',
+    color: markHex ? markColor(markHex) : '#ffffff',
     roughness: 0.3,
     metalness: 0,
     clearcoat: 0.8,

@@ -163,6 +163,11 @@ function buildToken(spec: ObjectSpec, m: MaterialSet): Group {
   const mk = mesh(inlayGeometry(markShapes(slug, unit), raise, raise * 0.35), m.ink ?? m.polished);
   mk.position.y = h / 2 - 0.002;
   group.add(mk);
+  // Double sided, like a real pin: the same mark on the back.
+  const back = mk.clone();
+  back.position.y = -(h / 2 - 0.002);
+  back.rotation.x = Math.PI;
+  group.add(back);
   return group;
 }
 
@@ -279,9 +284,12 @@ function buildDrone(spec: ObjectSpec, m: MaterialSet): Group {
     group.add(arm);
   }
   const o = (w / 2 - 0.33 * s) * 0.7071;
-  const y = h / 2 - 0.05 * s;
+  const y = h / 2 - 0.2 * s;
   for (const sx of [-1, 1])
     for (const sz of [-1, 1]) {
+      const foot = mesh(new CylinderGeometry(0.07 * s, 0.1 * s, 0.2 * s, 18), m.body);
+      foot.position.set(sx * o, -h / 2 + 0.1 * s, sz * o);
+      group.add(foot);
       const motor = mesh(new CylinderGeometry(0.11 * s, 0.13 * s, 0.18 * s, 28), m.polished);
       motor.position.set(sx * o, y - 0.02 * s, sz * o);
       group.add(motor);

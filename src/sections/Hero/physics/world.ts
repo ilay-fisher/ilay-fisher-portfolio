@@ -186,7 +186,11 @@ export class PhysicsWorld {
         add(arm, 0.07 * s, 0.08 * s, 0, -Math.PI / 4);
         const o = (w / 2 - 0.33 * s) * 0.7071;
         for (const sx of [-1, 1])
-          for (const sz of [-1, 1]) addAt(0.33 * s, 0.05 * s, 0.33 * s, sx * o, h / 2 - 0.05 * s, sz * o);
+          for (const sz of [-1, 1]) {
+            // Rotor guards sit below the hub's top, and skids reach the ground: upright is the stable pose.
+            addAt(0.33 * s, 0.05 * s, 0.33 * s, sx * o, h / 2 - 0.2 * s, sz * o);
+            addAt(0.1 * s, 0.1 * s, 0.1 * s, sx * o, -h / 2 + 0.1 * s, sz * o);
+          }
         break;
       }
       case 'lens': {
@@ -218,6 +222,7 @@ export class PhysicsWorld {
     body.velocity.set(0, 0, plan.vz ?? 0);
     body.angularVelocity.set(0, 0, 0);
     body.previousPosition.copy(body.position);
+    this.toppleSteps.delete(this.idOf.get(body) ?? '');
     body.wakeUp();
   }
 
@@ -258,6 +263,7 @@ export class PhysicsWorld {
 
   /** Teleports a body and gives it a velocity (clamped). Used by tests and by the throw. */
   throwBody(id: string, pos: Vec3, vel: Vec3): void {
+    this.toppleSteps.delete(id);
     const body = this.bodies.get(id);
     if (!body) return;
     body.position.set(pos.x, pos.y, pos.z);
@@ -320,6 +326,7 @@ export class PhysicsWorld {
       p.q.copy(body.quaternion);
     }
     if (this.grab) this.applyGrab(this.grab);
+    this.topple();
     this.world.step(this.step);
     this.time += this.step;
     for (const body of this.bodies.values()) {
@@ -330,6 +337,44 @@ export class PhysicsWorld {
         body.position.set(0, 3, 2);
         body.velocity.set(0, 0, 0);
       }
+    }
+  }
+
+  /**
+   * A thin piece balanced on its edge is an unstable equilibrium that a solver with friction can hold
+   * forever. Real pieces fall over; nudge slow, upright flat pieces toward lying down.
+   */
+  private readonly toppleSteps = new Map<string, number>();
+
+  private topple(): void {
+    for (const [id, body] of this.bodies) {
+      if (this.grab?.id === id) continue;
+      const kind = this.specs.get(id)?.kind;
+      if (!kind) continue;
+      if (body.velocity.length() > 0.8 || body.angularVelocity.length() > 2) continue;
+      const q = body.quaternion;
+      const ux = 2 * (q.x * q.y - q.z * q.w);
+      const uy = 1 - 2 * (q.x * q.x + q.z * q.z);
+      const uz = 2 * (q.y * q.z + q.x * q.w);
+      const sided = kind !== 'token';
+      if (body.position.y > 1.2 || (uy > 0.96 && uy <= 1) || (uy < -0.96 && !sided)) continue;
+      // A piece jammed against its neighbours gets a few seconds of help, then is left to sleep.
+      const used = this.toppleSteps.get(id) ?? 0;
+      if (used > 480) continue;
+      this.toppleSteps.set(id, used + 1);
+      if (body.sleepState === Body.SLEEPING) body.wakeUp();
+      // Anything with a printed or lit top (all but the double-sided tokens) is nudged face up; tokens take the nearer flat side.
+      const sy = sided || uy >= 0 ? 1 : -1;
+      // up x (sy * worldY): the axis that rotates the plate's normal toward vertical.
+      // Stronger the closer to upright, where the ground's restitution would otherwise bounce it back.
+      const k = body.mass * (2.2 + 8 * Math.max(0, 1 - Math.abs(uy) / 0.25));
+      if (sided && uy < -0.7) {
+        // Upside down is balanced too: kick it over so the printed side faces up.
+        if (body.angularVelocity.length() < 0.5) body.angularVelocity.x += 6;
+        continue;
+      }
+      body.torque.x += (uy * 0 - uz * sy) * k;
+      body.torque.z += (ux * sy - 0) * k;
     }
   }
 

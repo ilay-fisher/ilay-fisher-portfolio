@@ -122,9 +122,9 @@ const FINISHES: Finish[] = ['anodised', 'ceramic', 'alloy', 'anodised', 'ceramic
 const DENSITY = 2.2;
 /** Longest plate side (token) or cap side (keycap) and height per tier, before PIECE_SCALE; top tier is heavier. */
 const TIER_SIZE: Record<Tier, { side: number; h: number; weight: number }> = {
-  A: { side: 1.5, h: 0.7, weight: 1.25 },
-  B: { side: 1.2, h: 0.62, weight: 1 },
-  C: { side: 1, h: 0.6, weight: 1 },
+  A: { side: 1.5, h: 0.66, weight: 1.25 },
+  B: { side: 1.2, h: 0.54, weight: 1 },
+  C: { side: 1, h: 0.46, weight: 1 },
 };
 /** Token thickness as a share of the cap height: a chunky pin, thinner than a keycap. */
 const TOKEN_THICK = 0.62;
