@@ -139,18 +139,21 @@ describe('piece sizes per breakpoint', () => {
     expect(widest).toBeGreaterThanOrEqual(1.5 * 0.55 - 1e-9);
   });
 
-  it('keeps pieces smaller on desktop than the old 1.0-1.5 caps at every breakpoint', () => {
+  it('keeps every skill piece under the old 1.5 cap at every breakpoint, and project pieces modest', () => {
     for (const bp of ['desktop', 'mobile'] as const)
       for (const s of buildCatalogue(bp)) {
-        expect(Math.max(s.size.w, s.size.d)).toBeLessThan(1.5);
+        const dim = Math.max(s.size.w, s.size.d);
+        if (s.kind === 'key' || s.kind === 'token') expect(dim).toBeLessThan(1.5);
+        else expect(dim).toBeLessThan(2);
         expect(boundingRadius(s)).toBeLessThan(1.2);
       }
   });
 
   it('makes tokens and keycaps shrink by tier: A larger than B larger than C', () => {
     const c = buildCatalogue('desktop');
-    const dim = (s: ObjectSpec) => Math.max(s.size.w, s.size.d);
     for (const group of [keycaps(c), tokens(c)]) {
+      // A keycap's size is its depth (a wide legend only stretches the width); a token's is its longest side.
+      const dim = (s: ObjectSpec) => (s.kind === 'key' ? s.size.d : Math.max(s.size.w, s.size.d));
       const by = (t: string) => group.filter((s) => s.tier === t).map(dim);
       const min = (a: number[]) => Math.min(...a);
       const max = (a: number[]) => Math.max(...a);

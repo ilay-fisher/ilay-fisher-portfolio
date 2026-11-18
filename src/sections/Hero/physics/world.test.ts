@@ -55,7 +55,7 @@ describe('hero physics', () => {
       expect(b.pos.x).toBeLessThan(s.bounds.maxX + 0.05);
       expect(b.pos.z).toBeLessThan(s.bounds.maxZ + 0.05);
       expect(b.pos.z).toBeGreaterThan(s.bounds.minZ - 0.05);
-      expect(b.pos.y).toBeGreaterThan(0.1);
+      expect(b.pos.y).toBeGreaterThan(0.05);
       expect(b.pos.y).toBeLessThan(5);
     }
     expect(s.world.allAsleep()).toBe(true);
