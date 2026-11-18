@@ -1,0 +1,909 @@
+/*
+ * X-Ray lens rig, design v2. One light source, top left. Surfaces come from the shared tokens and
+ * utility classes: keycaps (body gradient + bevel), recessed trays and readouts (.well), a lit
+ * panel (.tile), a bevelled bezel (.bevel) around the stage, and a knob riding a rail.
+ */
+.xray {
+  --knob: 44px;
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-4);
+}
+@media (min-width: 900px) {
+  .xray {
+    --knob: 52px;
+    padding: var(--space-6);
+  }
+}
+
+/* controls: keycaps in recessed trays. Every box here has a fixed height, so no label length or
+   font can change how tall the bar is. */
+.xray__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.xray__presets,
+.xray__tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  height: 56px;
+  padding: 6px;
+  border-radius: var(--radius-control);
+  background: rgb(0 0 0 / 0.26);
+  box-shadow: var(--well-inset);
+}
+@media (min-width: 700px) {
+  .xray__bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+  .xray__presets,
+  .xray__tools {
+    border-radius: var(--radius-pill);
+  }
+}
+.xray__chip {
+  position: relative;
+  height: 44px;
+  min-width: 0;
+  padding: 0 var(--space-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  line-height: 1.1;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background:
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  box-shadow: var(--bevel-inset-sm), var(--shadow-contact-sm);
+  cursor: pointer;
+  transition:
+    transform var(--spring-snappy-dur) var(--spring-snappy),
+    box-shadow var(--dur-base) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.xray__chip:hover {
+  color: var(--text);
+  transform: translateY(-1px);
+}
+.xray__chip:active,
+.xray__chip[aria-pressed='true'] {
+  transform: translateY(1px) scale(0.975);
+  box-shadow: var(--well-inset);
+  background:
+    linear-gradient(150deg, var(--body-lo), var(--surface)) padding-box,
+    var(--rim-gradient) border-box;
+}
+.xray__chip[aria-pressed='true'] {
+  color: var(--paint);
+}
+.xray__chip[aria-pressed='true']::after {
+  /* the key's lamp */
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 14px;
+  height: 3px;
+  margin-left: -7px;
+  border-radius: var(--radius-pill);
+  background: var(--paint);
+  box-shadow: 0 0 8px rgb(var(--paint-rgb) / 0.8);
+}
+.xray__chip:focus-visible,
+.xray__region:focus-visible {
+  outline: 2px solid var(--paint);
+  outline-offset: 3px;
+}
+.xray__hint {
+  height: 4.5rem;
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}
+
+@media (min-width: 700px) {
+  .xray__hint {
+    height: 3rem;
+  }
+}
+
+.xray__grid {
+  display: grid;
+  gap: var(--space-5);
+}
+@media (min-width: 900px) {
+  /* the readout sits under the rig, so both columns end together */
+  .xray__grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas:
+      'main panel'
+      'readout panel';
+    grid-template-rows: auto 1fr;
+    align-items: start;
+  }
+  .xray__main {
+    grid-area: main;
+  }
+  .xray__panel {
+    grid-area: panel;
+    align-self: stretch;
+  }
+  .xray__readout {
+    grid-area: readout;
+  }
+}
+.xray__main {
+  display: grid;
+}
+
+/* the bezel: a bevelled ring, wide enough that the knob never overhangs it */
+.xray__rig {
+  padding: calc(var(--knob) / 2 + 2px);
+  padding-top: 14px;
+  border-radius: var(--radius-stage);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: var(--space-4);
+}
+@media (min-width: 900px) {
+  .xray__rig {
+    padding-top: 18px;
+  }
+}
+.xray__slide {
+  position: relative;
+  isolation: isolate;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* the stage: stacked layers over the target, seated in the bezel like a lens */
+.xray__stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--stage);
+  border-radius: var(--radius-card);
+  box-shadow: var(--well-inset);
+}
+.xray__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  max-width: none;
+  pointer-events: none;
+}
+.xray__base {
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.xray__base[data-shown='true'] {
+  opacity: 1;
+}
+/* the machine-vision side: the same frame, desaturated and darkened, with heat glowing over it */
+.xray__heat {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--stage);
+  pointer-events: none;
+}
+.xray__heatbase {
+  filter: grayscale(1) contrast(1.1) brightness(0.36);
+}
+.xray__heat canvas,
+.xray__heat img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+.xray__heat .xray__glowmap {
+  mix-blend-mode: screen;
+  filter: blur(14px) saturate(1.3) brightness(1.5);
+  opacity: 1;
+}
+.xray__heat::after {
+  /* the lens shades toward its rim, lit from the top left */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 100% at 20% 10%, transparent 55%, rgb(0 0 0 / 0.38));
+}
+/* one scan pass when the heatmap arrives; it does not repeat */
+.xray__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--paint-hi);
+  box-shadow: 0 0 12px rgb(var(--paint-hi-rgb) / 0.8);
+  opacity: 0;
+  animation: xray-scan 1100ms var(--ease-in-out) 150ms 1 both;
+}
+.xray__scan::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 22px;
+  background: var(--paint);
+  opacity: 0.12;
+}
+@keyframes xray-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  88% {
+    opacity: 0.85;
+  }
+  100% {
+    top: calc(100% - 2px);
+    opacity: 0;
+  }
+}
+
+/* the divider: a lit line across the stage, its knob rides the rail below */
+.xray__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+.xray__edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: linear-gradient(var(--paint-hi), var(--paint));
+  box-shadow: 0 0 14px rgb(var(--paint-rgb) / 0.75);
+}
+.xray__glow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -14px;
+  width: 28px;
+  background: linear-gradient(90deg, transparent, rgb(var(--paint-rgb) / 0.22), transparent);
+}
+
+/* the rail: an engraved groove with weight, lit up to the knob */
+.xray__rail {
+  position: relative;
+  height: var(--knob);
+  margin-top: var(--space-3);
+  pointer-events: none;
+}
+.xray__groove {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: var(--radius-pill);
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.1) 0 1px, transparent 1px 10%) center
+      bottom / 100% 4px no-repeat,
+    rgb(0 0 0 / 0.4);
+}
+.xray__lit {
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  max-width: calc(100% - 6px);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--paint-deep), var(--paint));
+  box-shadow: 0 0 10px rgb(var(--paint-rgb) / 0.6);
+}
+.xray__knob {
+  --press: 1;
+  position: absolute;
+  top: 50%;
+  width: var(--knob);
+  height: var(--knob);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 24%, rgb(255 255 255 / 0.3), transparent 40%) padding-box,
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-contact-sm), var(--rim-light);
+  transform: translate(-50%, -50%) scale(var(--press));
+  transition: transform var(--spring-snappy-dur) var(--spring-snappy);
+}
+.xray__knob::before {
+  /* knurled edge */
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgb(255 255 255 / 0.09) 0 5deg, transparent 5deg 10deg);
+  -webkit-mask: radial-gradient(circle, transparent 62%, black 64%);
+  mask: radial-gradient(circle, transparent 62%, black 64%);
+}
+.xray__led {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--paint-hi), var(--paint));
+  box-shadow:
+    0 0 0 3px rgb(0 0 0 / 0.45),
+    0 0 10px rgb(var(--paint-rgb) / 0.85);
+}
+.xray__slide:active .xray__knob {
+  --press: 0.93;
+}
+.xray__slide:has(.xray__range:focus-visible) .xray__knob {
+  outline: 2px solid var(--paint);
+  outline-offset: 4px;
+}
+.xray__range {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize; /* the signature cursor takes over on fine pointers */
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  touch-action: pan-y;
+}
+.xray__range::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+.xray__range::-moz-range-track {
+  height: 100%;
+  background: transparent;
+}
+.xray__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 2px;
+  height: 100vh;
+  background: transparent;
+  border: 0;
+}
+.xray__range::-moz-range-thumb {
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+.xray__range:focus-visible {
+  outline: none; /* the knob shows focus instead */
+}
+
+/* regions: a soft rounded target that locks on, then a pulse */
+.xray__region {
+  --lock: 120ms;
+  position: absolute;
+  z-index: 2;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font: inherit;
+}
+.xray__region::before {
+  /* a 44 px hit area even when the box is small */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+.xray__flash,
+.xray__ring,
+.xray__lock {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-control);
+  pointer-events: none;
+}
+.xray__flash {
+  background: var(--paint);
+  opacity: 0;
+  animation: xray-flash 380ms var(--ease-out) calc(420ms + var(--i, 0) * var(--lock)) 1 both;
+}
+.xray__ring {
+  border: 2px solid var(--paint);
+  opacity: 0;
+  animation: xray-pulse 1200ms var(--ease-out) calc(800ms + var(--i, 0) * var(--lock)) 2 both;
+}
+.xray__lock {
+  border: 2px solid rgb(var(--paint-hi-rgb) / 0.85);
+  box-shadow:
+    0 0 14px rgb(var(--paint-rgb) / 0.5),
+    inset 0 0 10px rgb(var(--paint-rgb) / 0.25);
+  transition:
+    transform var(--spring-snappy-dur) var(--spring-snappy),
+    border-color var(--dur-base) var(--ease-out);
+  animation: xray-lock var(--spring-soft-dur) var(--spring-soft) calc(var(--i, 0) * var(--lock)) 1
+    backwards;
+}
+@keyframes xray-flash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xray-pulse {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+@keyframes xray-lock {
+  from {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  30% {
+    opacity: 1;
+  }
+}
+.xray__region:hover .xray__lock {
+  transform: scale(1.06);
+}
+.xray__region[aria-pressed='true'] .xray__lock {
+  border-color: var(--paint);
+  box-shadow:
+    0 0 20px rgb(var(--paint-rgb) / 0.75),
+    inset 0 0 12px rgb(var(--paint-rgb) / 0.35);
+}
+.xray__num {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  transform: translate(-50%, -100%);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--body-lo);
+  box-shadow: var(--bevel-inset-sm);
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: xray-label 360ms steps(8, end) calc(520ms + var(--i, 0) * var(--lock)) 1 backwards;
+}
+@keyframes xray-label {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.xray__region[aria-pressed='true'] .xray__num {
+  color: var(--paint);
+}
+.xray__busy {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--well-inset);
+  color: var(--text-dim);
+  font-size: var(--step--1);
+  pointer-events: none;
+}
+.xray__caption {
+  height: 5.5rem;
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+@media (min-width: 700px) {
+  .xray__caption {
+    height: 3.25rem;
+  }
+}
+
+/* the crop in flight from a region to the panel */
+.xray__fly {
+  position: fixed;
+  z-index: 60;
+  border-radius: var(--radius-control);
+  background-repeat: no-repeat;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 2px var(--paint),
+    var(--shadow-lift);
+}
+
+/* diagnosis panel: a fixed-height tile whose content scrolls inside it, so the page never grows
+   with the recorded text. Under 900px it has its own height, above that it fills the grid row. */
+.xray__panel {
+  position: relative;
+  /* .tile supplies the lit face, bevel and contact shadow */
+  height: 380px;
+  overflow: hidden;
+}
+@media (min-width: 700px) {
+  .xray__panel {
+    height: 640px;
+  }
+}
+@media (min-width: 900px) {
+  .xray__panel {
+    height: auto;
+  }
+}
+.xray__scroller {
+  position: absolute;
+  inset: var(--space-3);
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
+  animation: xray-rise var(--dur-base) var(--ease-out) 1 both;
+}
+.xray__scroller:focus-visible,
+.xray__readout:focus-visible {
+  outline: 2px solid var(--paint);
+  outline-offset: 2px;
+}
+@keyframes xray-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.xray__panel > .xray__idle {
+  position: absolute;
+  inset: var(--space-5);
+}
+/* standby: an unlit display with a faint reticle until a region is selected */
+.xray__idle {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      transparent 0 22px,
+      rgb(var(--paint-rgb) / 0.35) 22px 23px,
+      transparent 24px 46px,
+      rgb(var(--paint-rgb) / 0.16) 46px 47px,
+      transparent 48px
+    ),
+    rgb(0 0 0 / 0.26);
+  box-shadow: var(--well-inset);
+  color: var(--text-dim);
+  text-align: center;
+}
+.xray__panel-title {
+  font-size: var(--step-1);
+  line-height: 1.1;
+}
+.xray__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  align-items: start;
+}
+.xray__crop {
+  margin: 0;
+}
+/* every crop sits in the same fixed-ratio frame, so the pair is one height for any region */
+.xray__crop-frame {
+  container-type: size;
+  aspect-ratio: 5 / 2;
+  display: grid;
+  place-items: center;
+}
+.xray__crop-img {
+  width: min(100cqw, calc(100cqh * var(--ar, 1)));
+  aspect-ratio: var(--ar, 1);
+  border-radius: var(--radius-control);
+  box-shadow: var(--well-inset);
+  background-repeat: no-repeat;
+}
+.xray__crop:last-child .xray__crop-img {
+  /* the target crop is the landing spot of the flying crop */
+  animation: xray-land var(--dur-base) var(--ease-out) 460ms 1 backwards;
+}
+@keyframes xray-land {
+  from {
+    opacity: 0;
+  }
+}
+.xray__crop figcaption {
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__sent {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.xray__fields > div {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  background: rgb(0 0 0 / 0.26);
+  box-shadow: var(--well-inset);
+  animation: xray-rise var(--dur-base) var(--ease-out) 1 backwards;
+}
+.xray__fields > div:nth-child(1) {
+  grid-column: 1 / -1;
+  animation-delay: 520ms;
+}
+.xray__fields > div:nth-child(2) {
+  animation-delay: 640ms;
+}
+.xray__fields > div:nth-child(3) {
+  animation-delay: 760ms;
+}
+.xray__type {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: xray-type 420ms steps(var(--n, 12), end) 560ms 1 backwards;
+}
+@keyframes xray-type {
+  from {
+    width: 0;
+  }
+  to {
+    width: calc(var(--n, 12) * 1ch);
+  }
+}
+.xray__note strong {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.xray__fields dt {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.xray__fields dd {
+  margin: 0;
+  font-size: var(--step-0);
+  overflow-wrap: anywhere;
+}
+.xray__sev {
+  color: var(--paint);
+  font-weight: 700;
+}
+.xray__na {
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__desc {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: rgb(0 0 0 / 0.26);
+  box-shadow: var(--well-inset);
+  color: var(--text);
+}
+.xray__desc.is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: var(--radius-pill);
+  background: var(--paint);
+  animation: xray-caret 900ms steps(1) infinite;
+}
+@keyframes xray-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.xray__note {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* why it matters: an instrument display under the stage */
+.xray__readout {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4) var(--space-6);
+  height: 700px;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
+}
+@media (min-width: 600px) {
+  .xray__readout {
+    height: 480px;
+  }
+}
+@media (min-width: 900px) {
+  .xray__readout {
+    height: 520px;
+  }
+}
+@media (min-width: 1200px) {
+  .xray__readout {
+    height: 460px;
+  }
+}
+.xray__head,
+.xray__side {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+@media (min-width: 900px) {
+  .xray__readout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'bench'
+      'side';
+  }
+  .xray__head {
+    grid-area: head;
+  }
+  .xray__bench {
+    grid-area: bench;
+  }
+  .xray__side {
+    grid-area: side;
+  }
+}
+.xray__readout-title {
+  font-size: var(--step-1);
+}
+.xray__readout-lead {
+  margin: 0;
+  color: var(--text-dim);
+}
+.xray__bench {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+.xray__bench {
+  align-content: start;
+}
+@media (min-width: 600px) {
+  .xray__bench {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-5);
+  }
+}
+.xray__bench dt {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.xray__bench dd {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-1) 0 0;
+}
+.xray__bench dd > .mono {
+  flex: none;
+  min-width: 9ch;
+}
+.xray__bar-fill {
+  display: block;
+  height: 12px;
+  min-width: 12px;
+  flex: none;
+  max-width: calc(100% - 10ch - var(--space-3));
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--paint-deep), var(--paint));
+  box-shadow: 0 0 10px rgb(var(--paint-rgb) / 0.45);
+  transition: width 900ms var(--ease-in-out);
+}
+.xray__bar-fill--full {
+  background: linear-gradient(90deg, var(--body-lo), var(--line-strong));
+  box-shadow: var(--bevel-inset-sm);
+}
+.xray__summary {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  font-size: var(--step-1);
+  line-height: 1.1;
+}
+.xray__measured {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--step--1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xray__scan,
+  .xray__flash,
+  .xray__ring {
+    display: none;
+  }
+  .xray__chip,
+  .xray__knob {
+    transition: none;
+  }
+  .xray__lock,
+  .xray__num,
+  .xray__type,
+  .xray__fields > div,
+  .xray__crop-img {
+    animation: none !important;
+  }
+  .xray__desc.is-typing::after {
+    animation: none;
+  }
+  .xray__bar-fill {
+    transition: none;
+  }
+}
