@@ -63,19 +63,6 @@ function paintHeat(canvas: HTMLCanvasElement | null, heat: Analysis['heat']) {
 }
 
 /** A baseline or target crop drawn with CSS background positioning, no canvas needed. */
-const GHOST_DIAG: Diagnosis = {
-  label: 'Region',
-  at: { x: 0, y: 0 },
-  category: 'missing_component',
-  severity: null,
-  confidence: null,
-  description: '',
-  provenance: '',
-};
-const GHOST_BOX = { x: 0, y: 0, w: 312, h: 84 };
-const PROVENANCE = PRESETS.flatMap((p) => p.diagnoses.map((d) => d.provenance));
-const DESCRIPTIONS = PRESETS.flatMap((p) => p.diagnoses.map((d) => d.description));
-
 function Crop({
   src,
   preset,
@@ -128,7 +115,6 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   const [showBase, setShowBase] = useState(false);
   const [stream, setStream] = useState({ key: '', visible: 0, done: false });
 
-  const [rigRef, rigInView] = useInView<HTMLDivElement>({ rootMargin: '200px 0px' });
   const [stageRef, stageInView] = useInView<HTMLDivElement>({ threshold: 0.5 });
   // Latch: lock-on and scan play when the stage is first seen, not while it is off screen.
   const [seen, setSeen] = useState(false);
@@ -148,29 +134,39 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   const sweepId = useRef(0);
   const descId = useId();
   const canObserve = typeof IntersectionObserver !== 'undefined';
-  const started = rigInView || !canObserve;
 
   useEffect(() => {
     log.info('demo mounted');
     return () => log.info('demo unmounted');
   }, []);
 
-  // Run the diff for the current preset once the rig is near the viewport.
+  // Run the diff for the current preset as soon as the images have decoded. It never waits for
+  // the stage to be in view, an observer or a frame callback: it runs on mount, or on idle.
   useEffect(() => {
-    if (!started) return;
     let cancelled = false;
-    analyze(preset)
-      .then((a) => {
-        if (!cancelled) setAnalysis(a);
-      })
-      .catch((err: unknown) => {
-        log.warn('pixel access failed, using the precomputed heatmap and regions', err);
-        if (!cancelled) setAnalysis(fallbackAnalysis(preset));
-      });
+    const run = () => {
+      analyze(preset)
+        .then((a) => {
+          if (!cancelled) setAnalysis(a);
+        })
+        .catch((err: unknown) => {
+          log.warn('pixel access failed, using the precomputed heatmap and regions', err);
+          if (!cancelled) setAnalysis(fallbackAnalysis(preset));
+        });
+    };
+    let idle = 0;
+    let timer = 0;
+    if (typeof window.requestIdleCallback === 'function') {
+      idle = window.requestIdleCallback(run, { timeout: 400 });
+    } else {
+      timer = window.setTimeout(run, 0);
+    }
     return () => {
       cancelled = true;
+      if (idle) window.cancelIdleCallback(idle);
+      if (timer) window.clearTimeout(timer);
     };
-  }, [analyze, preset, started]);
+  }, [analyze, preset]);
 
   useEffect(() => {
     if (analysis?.source === 'computed') {
@@ -346,15 +342,8 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   const visible = live ? stream.visible : 0;
   const done = live && stream.done;
   const text = diag ? diag.description.slice(0, visible) : '';
-  // Until a region is selected, a hidden stand-in body gives the panel its final height, so
-  // selecting a region never moves anything below it.
-  const ghost = !diag || !sel || !layout;
-  const d = diag ?? GHOST_DIAG;
-  const bx = sel ?? GHOST_BOX;
-  const lay = layout ?? pairLayout(GHOST_BOX);
-
   return (
-    <div className="xray" data-testid="xray-demo" ref={rigRef}>
+    <div className="xray" data-testid="xray-demo">
       <div className="xray__bar">
         <div
           className="xray__presets"
@@ -549,95 +538,91 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           aria-label="Diagnosis"
           ref={panelRef}
         >
-          {ghost && (
+          {!diag || !sel || !layout ? (
             <p className="xray__idle">
               {guess
                 ? 'Reveal the heatmap, then select a region.'
                 : 'Select a region to see what the model is asked.'}
             </p>
-          )}
-          <div
-            className={`xray__body${ghost ? ' xray__body--ghost' : ''}`}
-            key={ghost ? 'ghost' : `${presetId}-${selected}`}
-            aria-hidden={ghost || undefined}
-            inert={ghost || undefined}
-          >
-            <h3 className="xray__panel-title">
-              Region {(selected ?? 0) + 1} of {total}: {d.label}
-            </h3>
+          ) : (
             <div
-              className="xray__pair"
-              data-testid={ghost ? undefined : 'xray-crop-pair'}
-              ref={ghost ? undefined : pairRef}
+              className="xray__scroller"
+              role="region"
+              aria-label="Diagnosis details"
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users must be able to scroll this region
+              tabIndex={0}
+              key={`${presetId}-${selected}`}
             >
-              <Crop
-                src={preset.baseline}
-                preset={preset}
-                box={bx}
-                label="baseline"
-                which="baseline"
-              />
-              <Crop src={preset.target} preset={preset} box={bx} label="target" which="target" />
-            </div>
-            <p className="xray__sent mono">
-              Composite sent to the model: {lay.width} x {lay.height} px
-              {lay.scale > 1 ? `, crop upscaled ${lay.scale}x` : ''}
-            </p>
-            <dl className="xray__fields">
-              <div>
-                <dt>Category</dt>
-                <dd className="mono xray__type" style={{ ['--n' as string]: d.category.length }}>
-                  {d.category}
-                </dd>
+              <h3 className="xray__panel-title">
+                Region {(selected ?? 0) + 1} of {total}: {diag.label}
+              </h3>
+              <div className="xray__pair" data-testid="xray-crop-pair" ref={pairRef}>
+                <Crop
+                  src={preset.baseline}
+                  preset={preset}
+                  box={sel}
+                  label="baseline"
+                  which="baseline"
+                />
+                <Crop src={preset.target} preset={preset} box={sel} label="target" which="target" />
               </div>
-              <div>
-                <dt>Severity</dt>
-                <dd className={d.severity ? 'xray__sev' : 'xray__na'}>
-                  {d.severity ? SEVERITY_LABEL[d.severity] : 'not recorded'}
-                </dd>
-              </div>
-              <div>
-                <dt>Confidence</dt>
-                <dd className={d.confidence !== null ? 'mono' : 'xray__na'}>
-                  {d.confidence !== null ? `${Math.round(d.confidence * 100)}%` : 'not recorded'}
-                </dd>
-              </div>
-            </dl>
-            <div className="xray__descbox">
+              <p className="xray__sent mono">
+                Composite sent to the model: {layout.width} x {layout.height} px
+                {layout.scale > 1 ? `, crop upscaled ${layout.scale}x` : ''}
+              </p>
+              <dl className="xray__fields">
+                <div>
+                  <dt>Category</dt>
+                  <dd
+                    className="mono xray__type"
+                    style={{ ['--n' as string]: diag.category.length }}
+                  >
+                    {diag.category}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Severity</dt>
+                  <dd className={diag.severity ? 'xray__sev' : 'xray__na'}>
+                    {diag.severity ? SEVERITY_LABEL[diag.severity] : 'not recorded'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Confidence</dt>
+                  <dd className={diag.confidence !== null ? 'mono' : 'xray__na'}>
+                    {diag.confidence !== null
+                      ? `${Math.round(diag.confidence * 100)}%`
+                      : 'not recorded'}
+                  </dd>
+                </div>
+              </dl>
               <p
-                id={ghost ? undefined : descId}
+                id={descId}
                 className={`xray__desc${done ? ' is-done' : text ? ' is-typing' : ''}`}
-                data-testid={ghost ? undefined : 'xray-description'}
+                data-testid="xray-description"
                 data-complete={done ? 'true' : 'false'}
                 aria-hidden={!done}
               >
                 {text}
               </p>
-              {/* invisible copies of every recorded description: the box is always as tall as the longest */}
-              {DESCRIPTIONS.map((d, i) => (
-                <p key={i} className="xray__desc xray__desc--ghost" aria-hidden="true">
-                  {d}
-                </p>
-              ))}
-            </div>
-            <p className="visually-hidden" role="status" aria-live="polite">
-              {done ? announcement((selected ?? 0) + 1, total, d) : ''}
-            </p>
-            <div className="xray__descbox">
-              <p className="xray__note mono" data-testid={ghost ? undefined : 'xray-replay-note'}>
-                <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
-                {d.provenance}
+              <p className="visually-hidden" role="status" aria-live="polite">
+                {done ? announcement((selected ?? 0) + 1, total, diag) : ''}
               </p>
-              {PROVENANCE.map((t, i) => (
-                <p key={i} className="xray__note mono xray__desc--ghost" aria-hidden="true">
-                  <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
-                  {t}
-                </p>
-              ))}
+              <p className="xray__note mono" data-testid="xray-replay-note">
+                <strong>Recorded result, replayed from a real run. Not a live model call.</strong>{' '}
+                {diag.provenance}
+              </p>
             </div>
-          </div>
+          )}
         </aside>
-        <div className="xray__readout well" data-testid="xray-readout" ref={readoutRef}>
+        <div
+          className="xray__readout well"
+          data-testid="xray-readout"
+          ref={readoutRef}
+          role="region"
+          aria-label="Why it matters"
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users must be able to scroll this region
+          tabIndex={0}
+        >
           <div className="xray__head">
             <h3 className="xray__readout-title">Why it matters</h3>
             <p className="xray__readout-lead">

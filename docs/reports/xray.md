@@ -107,19 +107,27 @@ the next. This is a real (small) layout shift in this section, not a Playwright 
 reserve the final line count; new e2e test "the rig does not change height when a diff result
 lands" at 390 and 1440. Full suite 5 times in a row: see the PR description for the counts.
 
-## Layout shift fix (manager review, CI about.spec:53)
+## Layout shift fix (manager review, CI about.spec:53, second pass)
 
-The mobile nav test failed because the section changed height after a nav jump (panel filling on
-selection, crops and text of different sizes). Now the section reserves its final height before
-anything loads or computes: crops sit in fixed-ratio frames, every recorded description and note has
-an invisible copy in the same grid cell, the fields are a fixed two-column grid, and the idle panel
-holds an invisible stand-in body with the display laid over it. At 900 px and up the readout moved
-under the rig so both columns end together. New e2e test records `scrollHeight` and the `#experience`
-offset after load, after the diff, after selecting a region and after the diagnosis completes, at
-360, 390, 768 and 1440, and asserts they are identical. The keyboard-only test now runs with reduced
-motion and the stage is scrolled into view first: the region buttons only render once the stage has
-been seen, so a short viewport waited for buttons that never appeared (the CI stall).
-Stills were re-shot. The video and the three contact sheets predate this change.
+The first fix reserved height with invisible copies of the longest text. That depended on how fonts
+wrap, and the Linux runner renders fonts differently, so CI stayed red. Nothing in the section is
+sized by its text now. Fixed CSS heights, per breakpoint:
+
+- Stage: aspect ratio from width (all presets are 960 x 640), so its height only depends on width.
+- Bar: two trays of 56 px, chips 44 px with `overflow: hidden`, three equal columns.
+- Hint 4.5 rem (3 rem from 700 px), caption 5.5 rem (3.25 rem from 700 px), both clipped.
+- Diagnosis panel: 380 px under 700 px, 640 px at 700 to 899 px, and at 900 px and up it fills its
+  grid row (the row is rig plus readout, both fixed). Its content is an absolutely positioned
+  scroll area, so the page never grows with the recorded text. The longest diagnosis fits without
+  scrolling at 768 and 1440. On narrow screens the area scrolls inside the panel.
+- Readout: 700 px under 600, 480 px to 899, 520 px to 1199, 460 px above. Also a scroll area.
+- Both scroll areas are focusable regions with an accessible name and a visible focus ring.
+
+The diff no longer waits for the stage or the rig to be in view: it runs on idle (timeout 400 ms,
+`setTimeout` fallback) as soon as the images decode, with no observer or animation frame involved.
+The e2e layout test now runs with reduced motion, also records the panel and readout heights, and
+all `data-source` and `data-complete` waits use a 60 s poll. Stills were re-shot. The video and the
+three contact sheets predate this change.
 
 ## Evidence
 

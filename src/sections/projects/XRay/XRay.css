@@ -16,24 +16,29 @@
   }
 }
 
-/* controls: keycaps in recessed trays */
+/* controls: keycaps in recessed trays. Every box here has a fixed height, so no label length or
+   font can change how tall the bar is. */
 .xray__bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .xray__presets,
 .xray__tools {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
+  height: 56px;
   padding: 6px;
   border-radius: var(--radius-control);
   background: rgb(0 0 0 / 0.26);
   box-shadow: var(--well-inset);
 }
 @media (min-width: 700px) {
+  .xray__bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
   .xray__presets,
   .xray__tools {
     border-radius: var(--radius-pill);
@@ -41,8 +46,14 @@
 }
 .xray__chip {
   position: relative;
-  min-height: 44px;
-  padding: 0 var(--space-5);
+  height: 44px;
+  min-width: 0;
+  padding: 0 var(--space-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  line-height: 1.1;
+  text-align: center;
   font-size: var(--step--1);
   color: var(--text-dim);
   border: 1px solid transparent;
@@ -91,9 +102,17 @@
   outline-offset: 3px;
 }
 .xray__hint {
+  height: 4.5rem;
+  overflow: hidden;
   margin: 0;
   color: var(--text-dim);
   font-size: var(--step--1);
+}
+
+@media (min-width: 700px) {
+  .xray__hint {
+    height: 3rem;
+  }
 }
 
 .xray__grid {
@@ -516,11 +535,16 @@
   pointer-events: none;
 }
 .xray__caption {
-  /* reserve the final line count so the page below does not jump when the diff result lands */
-  min-height: 2lh;
+  height: 5.5rem;
+  overflow: hidden;
   margin: 0;
   color: var(--text-faint);
   font-size: var(--step--1);
+}
+@media (min-width: 700px) {
+  .xray__caption {
+    height: 3.25rem;
+  }
 }
 
 /* the crop in flight from a region to the panel */
@@ -535,18 +559,40 @@
     var(--shadow-lift);
 }
 
-/* diagnosis panel */
+/* diagnosis panel: a fixed-height tile whose content scrolls inside it, so the page never grows
+   with the recorded text. Under 900px it has its own height, above that it fills the grid row. */
 .xray__panel {
   position: relative;
   /* .tile supplies the lit face, bevel and contact shadow */
-  align-content: start;
-  min-height: 220px;
+  height: 380px;
+  overflow: hidden;
 }
-.xray__body {
+@media (min-width: 700px) {
+  .xray__panel {
+    height: 640px;
+  }
+}
+@media (min-width: 900px) {
+  .xray__panel {
+    height: auto;
+  }
+}
+.xray__scroller {
+  position: absolute;
+  inset: var(--space-3);
   display: grid;
   gap: var(--space-4);
   align-content: start;
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
   animation: xray-rise var(--dur-base) var(--ease-out) 1 both;
+}
+.xray__scroller:focus-visible,
+.xray__readout:focus-visible {
+  outline: 2px solid var(--paint);
+  outline-offset: 2px;
 }
 @keyframes xray-rise {
   from {
@@ -554,17 +600,12 @@
     transform: translateY(8px);
   }
 }
-.xray__body--ghost {
-  visibility: hidden;
-  animation: none;
-}
 .xray__panel > .xray__idle {
   position: absolute;
   inset: var(--space-5);
 }
 /* standby: an unlit display with a faint reticle until a region is selected */
 .xray__idle {
-  position: relative;
   display: grid;
   place-items: center;
   margin: 0;
@@ -583,10 +624,8 @@
   box-shadow: var(--well-inset);
   color: var(--text-dim);
   text-align: center;
-  align-content: end;
 }
 .xray__panel-title {
-  min-height: 2.2em;
   font-size: var(--step-1);
   line-height: 1.1;
 }
@@ -628,7 +667,6 @@
   font-size: var(--step--1);
 }
 .xray__sent {
-  min-height: 3lh;
   margin: calc(-1 * var(--space-2)) 0 0;
   color: var(--text-faint);
   font-size: var(--step--1);
@@ -684,7 +722,6 @@
 }
 .xray__fields dd {
   margin: 0;
-  min-height: 2lh;
   font-size: var(--step-0);
   overflow-wrap: anywhere;
 }
@@ -698,22 +735,11 @@
 }
 .xray__desc {
   margin: 0;
-  min-height: 4.8em;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-control);
   background: rgb(0 0 0 / 0.26);
   box-shadow: var(--well-inset);
   color: var(--text);
-}
-.xray__descbox {
-  display: grid;
-}
-.xray__descbox > * {
-  grid-area: 1 / 1;
-}
-.xray__desc--ghost {
-  visibility: hidden;
-  pointer-events: none;
 }
 .xray__desc.is-typing::after {
   content: '';
@@ -742,9 +768,28 @@
 /* why it matters: an instrument display under the stage */
 .xray__readout {
   display: grid;
+  align-content: start;
   gap: var(--space-4) var(--space-6);
+  height: 700px;
   padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: var(--radius-card);
+}
+@media (min-width: 600px) {
+  .xray__readout {
+    height: 480px;
+  }
+}
+@media (min-width: 900px) {
+  .xray__readout {
+    height: 520px;
+  }
+}
+@media (min-width: 1200px) {
+  .xray__readout {
+    height: 460px;
+  }
 }
 .xray__head,
 .xray__side {
@@ -833,7 +878,6 @@
   line-height: 1.1;
 }
 .xray__measured {
-  min-height: 3lh;
   margin: 0;
   color: var(--text);
   font-size: var(--step--1);
@@ -852,7 +896,6 @@
   .xray__lock,
   .xray__num,
   .xray__type,
-  .xray__body,
   .xray__fields > div,
   .xray__crop-img {
     animation: none !important;
@@ -862,11 +905,5 @@
   }
   .xray__bar-fill {
     transition: none;
-  }
-}
-
-@media (max-width: 379px) {
-  .xray__caption {
-    min-height: 3lh;
   }
 }
