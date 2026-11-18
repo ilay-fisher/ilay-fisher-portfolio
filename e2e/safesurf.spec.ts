@@ -163,3 +163,48 @@ test('a second request while the lock is busy shakes it, and the sponsor gets a 
   await expectSlow(demo.locator('.ss-ring__snap')).toHaveAttribute('data-via', 'sponsor');
   await expectSlow(demo.locator('.ss-ring__check')).toHaveCount(1);
 });
+
+for (const width of [360, 390, 768, 1440]) {
+  test(`the rig causes no layout shift at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/?safesurfDelay=60000');
+    const demo = page.getByTestId('safesurf-demo');
+    const measure = () =>
+      page.evaluate(() => ({
+        scrollHeight: document.documentElement.scrollHeight,
+        drone: (document.querySelector('#drone') as HTMLElement | null)?.offsetTop ?? -1,
+        rig: Math.round(
+          document.querySelector('[data-testid="safesurf-demo"]')?.getBoundingClientRect().height ??
+            -1,
+        ),
+      }));
+    const settle = () => page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
+    await expectSlow(demo).toBeVisible();
+    await settle();
+    const first = await measure();
+    // The stage arrives (lazy chunk, canvas) and the page is scrolled to the rig.
+    await demo.scrollIntoViewIfNeeded();
+    await expectSlow(demo).toHaveAttribute('data-render', 'webgl', { timeout: 90_000 });
+    await settle();
+    expect(await measure()).toEqual(first);
+    // A full request, countdown, allow and block-again cycle.
+    await page.getByTestId('safesurf-allow-site').click();
+    await expectSlow(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
+    await settle();
+    expect(await measure()).toEqual(first);
+    await page.getByTestId('safesurf-sponsor').click();
+    await allIn(page, 'allowed');
+    await settle();
+    expect(await measure()).toEqual(first);
+    // Every refusal line, the longest included, fits the reserved display.
+    for (const key of await page.locator('button[data-testid^="safesurf-bypass-"]').all()) {
+      await key.click();
+      await settle();
+      expect(await measure()).toEqual(first);
+    }
+    await page.getByTestId('safesurf-block').click();
+    await allIn(page, 'blocked');
+    await settle();
+    expect(await measure()).toEqual(first);
+  });
+}
