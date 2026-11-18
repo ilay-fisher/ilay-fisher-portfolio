@@ -122,9 +122,18 @@ the tone: an invitation to play, one human beat, then the thesis as the payoff.
 Approved lines (use exactly):
 
 - Hero invitation: "Throw things at my name. Cheaper than therapy. It holds."
+- SafeSurf invitation (near the filter switch): "Go ahead, turn it off. Everyone tries. It waits."
+- SafeSurf delay lock (shown while an unlock request is waiting): "Want it now? So did I. Come back in an hour."
+- Drone invitation: "Get in its way. It won't take it personally. It re-plans."
+- Contact: "Throwing things was fun. Hiring me is more useful."
+- Footer: "You reached the bottom. Nothing broke. That's the point."
+
+Rejected by the owner, never use: any X-Ray joke about the machine taking 10 ms; "I build things
+people try to break. First me. Then users."; jokes about stats, pointers, DNS, DevTools, cookies.
 
 Rules:
 
 - Only lines listed here may be used as wit. Workers do not invent jokes.
-- At most one witty line per section, in microcopy (hints, status lines), never in facts.
+- At most one witty line visible at a time per section, in microcopy (hints, status lines), never in facts.
+- X-Ray and About carry no wit.
 - Deadpan, short, no exclamation marks, no emoji.
