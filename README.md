@@ -13,6 +13,8 @@ the visitor play with a small, working piece of each one:
 | X-Ray Lens                   | Drag a split slider across an inspected image to reveal the CV diff heatmap and the flagged regions           | [multimodal-visual-qa-xray-lens](https://github.com/ilay-fisher/multimodal-visual-qa-xray-lens) |
 | About / Experience / Contact | Who I am, what I have shipped and taught, how to reach me                                                     | LinkedIn                                                                                        |
 
+**Live:** https://ilay-fisher-portfolio.web.app
+
 ## Tech stack
 
 | Layer    | Technology                                                                                     |
