@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3a6b"/><stop offset=".55" stop-color="#d8647a"/><stop offset="1" stop-color="#f7b267"/></linearGradient>
+<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e58a6b"/><stop offset=".25" stop-color="#4a4f86"/><stop offset="1" stop-color="#1c2347"/></linearGradient>
+<linearGradient id="beam" x1="0" x2="1"><stop offset="0" stop-color="#fff3c4" stop-opacity=".85"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="640" height="400" fill="url(#sky)"/>
+<circle cx="470" cy="238" r="46" fill="#ffe2a8"/>
+<rect y="236" width="640" height="164" fill="url(#sea)"/>
+<g fill="#ffe2a8" opacity=".55"><rect x="430" y="244" width="80" height="4"/><rect x="442" y="256" width="56" height="4"/><rect x="450" y="268" width="40" height="3"/></g>
+<g fill="#ffffff" opacity=".12"><rect x="40" y="290" width="120" height="3"/><rect x="90" y="318" width="200" height="3"/><rect x="300" y="340" width="160" height="3"/><rect x="520" y="300" width="90" height="3"/></g>
+<polygon points="318,96 640,60 640,128" fill="url(#beam)"/>
+<polygon points="318,96 0,62 0,130" fill="url(#beam)" opacity=".5"/>
+<path d="M120 400 L170 322 Q214 296 262 316 L330 300 Q380 312 392 400Z" fill="#161b33"/>
+<path d="M200 322 L226 322 L238 150 L188 150Z" fill="#f2ede4"/>
+<path d="M192 190 L234 190 L232 214 L190 214Z M188 250 L231 250 L229 274 L187 274Z" fill="#c8344f"/>
+<rect x="182" y="140" width="62" height="10" fill="#161b33"/>
+<rect x="194" y="108" width="38" height="32" fill="#ffe9a6"/>
+<rect x="194" y="108" width="38" height="32" fill="none" stroke="#161b33" stroke-width="4"/>
+<path d="M186 108 L213 84 L240 108Z" fill="#161b33"/>
+<g fill="#161b33"><path d="M40 400 Q70 360 118 372 L130 400Z"/><path d="M500 400 Q540 352 600 366 L640 372 L640 400Z"/></g>
+<g stroke="#161b33" stroke-width="3" fill="none"><path d="M70 60 q8 -8 16 0 q8 -8 16 0"/><path d="M120 40 q6 -6 12 0 q6 -6 12 0"/></g>
+</svg>

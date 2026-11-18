@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8c8d9"/><stop offset="1" stop-color="#f4e3d3"/></linearGradient>
+</defs>
+<rect width="640" height="400" fill="url(#sky)"/>
+<circle cx="130" cy="110" r="34" fill="#fff4dc"/>
+<path d="M0 230 L70 180 L140 214 L230 150 L330 210 L430 160 L540 214 L640 170 L640 400 L0 400Z" fill="#9fb0c4"/>
+<path d="M0 270 L90 226 L170 262 L270 200 L380 258 L490 214 L640 262 L640 400 L0 400Z" fill="#7b8fa8"/>
+<rect y="262" width="640" height="40" fill="#f4e3d3" opacity=".45"/>
+<path d="M0 330 L60 296 L130 324 L220 280 L320 330 L420 292 L520 330 L640 300 L640 400 L0 400Z" fill="#4b5f7a"/>
+<rect y="336" width="640" height="34" fill="#f4e3d3" opacity=".35"/>
+<path d="M0 400 L0 360 L80 346 L160 372 L260 340 L360 374 L470 344 L560 372 L640 350 L640 400Z" fill="#26344d"/>
+<g stroke="#26344d" stroke-width="3" fill="none" stroke-linecap="round"><path d="M360 90 q9 -9 18 0 q9 -9 18 0"/><path d="M420 120 q7 -7 14 0 q7 -7 14 0"/><path d="M470 78 q6 -6 12 0 q6 -6 12 0"/><path d="M300 130 q7 -7 14 0 q7 -7 14 0"/></g>
+</svg>
