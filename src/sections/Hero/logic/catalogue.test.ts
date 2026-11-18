@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { MARKS } from '../scene/marks';
-import { boundingRadius, buildCatalogue, IMPORTANCE, SKILLS, type ObjectSpec } from './catalogue';
+import {
+  boundingRadius,
+  buildCatalogue,
+  chipLabel,
+  IMPORTANCE,
+  SKILLS,
+  type ObjectSpec,
+} from './catalogue';
 
 /** Importance order given by the owner (top of his LinkedIn skills), then the rest of the real stack, then tools. */
 const TOP_TEN = [
@@ -201,5 +208,12 @@ describe('accessible names and project pieces', () => {
     for (const kind of ['phone', 'shield', 'lock', 'drone', 'lens'])
       expect(h(kind).description).toMatch(/double-click or press enter/i);
     for (const s of keys(buildCatalogue('desktop'))) expect(s.href).toBeNull();
+  });
+
+  it('words the hover chip: the name, plus a hint on project pieces', () => {
+    const all = buildCatalogue('desktop');
+    expect(chipLabel(all.find((s) => s.id === 'key-kotlin')!)).toBe('Kotlin');
+    expect(chipLabel(all.find((s) => s.id === 'drone')!)).toBe('Quadcopter · double-click to open');
+    expect(chipLabel(all.find((s) => s.id === 'dial')!)).toBe('Dial');
   });
 });

@@ -10,6 +10,8 @@ describe('keyboard commands', () => {
     expect(mapKey({ key: 'n', shiftKey: false })).toEqual({ type: 'select', dir: 1 });
     expect(mapKey({ key: 'N', shiftKey: true })).toEqual({ type: 'select', dir: -1 });
     expect(mapKey({ key: ' ', shiftKey: false })).toEqual({ type: 'hop' });
+    // Enter opens the selected project piece (or hops when it has no section to open).
+    expect(mapKey({ key: 'Enter', shiftKey: false })).toEqual({ type: 'activate' });
     expect(mapKey({ key: 's', shiftKey: false })).toEqual({ type: 'shuffle' });
     expect(mapKey({ key: 'R', shiftKey: true })).toEqual({ type: 'reset' });
   });
