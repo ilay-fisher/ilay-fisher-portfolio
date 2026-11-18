@@ -143,4 +143,52 @@ describe('SafeSurfDemo', () => {
     click(/ask sponsor/i);
     expect(states().every((s) => s === 'allowed')).toBe(true);
   });
+
+  it('the lock shakes when a second request is refused, and the ring marks each way it opens', () => {
+    render(<SafeSurfDemo delayMs={8000} />);
+    const lock = document.querySelector<HTMLElement>('.ss-lock')!;
+    expect(lock.dataset.shake).toBeUndefined();
+    click(/allow for this site/i);
+    expect(lock.dataset.shake).toBeUndefined();
+    click(/allow for this page/i);
+    expect(['0', '1']).toContain(lock.dataset.shake);
+    // The ring ticks once a second: five of eight seconds left is five eighths of the arc.
+    advance(3000);
+    const arc = document.querySelector<SVGElement>('.ss-ring__arc')!;
+    const circ = 2 * Math.PI * 26;
+    expect(Number(arc.getAttribute('stroke-dashoffset'))).toBeCloseTo(circ * (1 - 5 / 8), 1);
+    expect(document.querySelector('.ss-ring__pulse')).not.toBeNull();
+    click(/ask sponsor/i);
+    expect(document.querySelector('.ss-ring__snap')?.getAttribute('data-via')).toBe('sponsor');
+    expect(document.querySelector('.ss-ring__check')).not.toBeNull();
+  });
+
+  it('a delay that runs out snaps the ring without the sponsor check', () => {
+    render(<SafeSurfDemo delayMs={2000} />);
+    click(/allow for this site/i);
+    advance(2300);
+    expect(document.querySelector('.ss-ring__snap')?.getAttribute('data-via')).toBe('delay');
+    expect(document.querySelector('.ss-ring__check')).toBeNull();
+  });
+
+  it('every blocked tile is a labelled, numbered object, not an empty box', () => {
+    render(<SafeSurfDemo delayMs={8000} />);
+    const tiles = document.querySelectorAll('.ss-media__tile');
+    expect(tiles).toHaveLength(5);
+    expect(tiles[0]).toHaveTextContent('Image 1');
+    expect(tiles[0]).toHaveTextContent('Image blocked');
+    const video = document.querySelector('[data-ss-media="video"] .ss-media__tile')!;
+    expect(video).toHaveTextContent(/Video \d/);
+    expect(video).toHaveTextContent('Withheld by SafeSurf');
+  });
+
+  it('keeps the bypass result animation to refusals only', () => {
+    render(<SafeSurfDemo delayMs={8000} />);
+    const out = screen.getByTestId('safesurf-bypass-result');
+    expect(out.dataset.p).toBeUndefined();
+    click(/open another browser/i);
+    expect(out.dataset.p).toBe('1');
+    click(/change private dns/i);
+    expect(out.dataset.p).toBe('0');
+  });
 });

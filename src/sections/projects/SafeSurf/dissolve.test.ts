@@ -5,6 +5,8 @@ import {
   burnPhase,
   createBurn,
   easeBurn,
+  emberAlpha,
+  emberColor,
   EmberPool,
   emberSpawnCount,
   frontValue,
@@ -72,6 +74,9 @@ describe('burn state machine', () => {
   it('staggers by index', () => {
     expect(staggerMs(0)).toBe(0);
     expect(staggerMs(3)).toBeGreaterThan(staggerMs(1));
+    // Five images and a 1 s sweep stay inside the 1.2 to 1.8 s choreography window.
+    expect(staggerMs(4) + 1000).toBeGreaterThanOrEqual(1200);
+    expect(staggerMs(4) + 1000).toBeLessThanOrEqual(1800);
   });
 });
 
@@ -193,5 +198,41 @@ describe('EmberPool', () => {
     expect(n).toBe(2);
     expect(pos[0]).toBeCloseTo(5, 5);
     expect(size[0]).toBeGreaterThan(0);
+  });
+});
+
+describe('ember look and motion', () => {
+  it('burning embers run white-hot to paint to dark ash, and fade out', () => {
+    const early = emberColor(0, false);
+    const late = emberColor(1, false);
+    expect(early[0]).toBeGreaterThan(0.9);
+    expect(late[0]).toBeLessThan(0.4);
+    expect(emberAlpha(0, false)).toBe(0);
+    expect(emberAlpha(0.3, false)).toBeGreaterThan(emberAlpha(0.95, false));
+    expect(emberAlpha(1, false)).toBeCloseTo(0, 5);
+  });
+
+  it('re-forming embers brighten as they arrive and converge on their target', () => {
+    const pool = new EmberPool(2, rng(5));
+    pool.spawn(100, 100, true);
+    const before = Math.hypot(pool.x[0]! - 100, pool.y[0]! - 100);
+    expect(before).toBeGreaterThan(10);
+    pool.step(200);
+    const mid = Math.hypot(pool.x[0]! - 100, pool.y[0]! - 100);
+    expect(mid).toBeLessThan(before);
+    expect(emberAlpha(0.6, true)).toBeGreaterThan(emberAlpha(0.05, true));
+  });
+
+  it('burning embers lift with turbulence rather than in a straight line', () => {
+    const pool = new EmberPool(2, rng(9));
+    pool.spawn(50, 200, false);
+    const xs: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      pool.step(60);
+      xs.push(pool.x[0]!);
+    }
+    const diffs = xs.slice(1).map((x, i) => x - xs[i]!);
+    expect(new Set(diffs.map((d) => Math.sign(d))).size + Math.max(...diffs)).toBeGreaterThan(0);
+    expect(pool.y[0]!).toBeLessThan(200);
   });
 });

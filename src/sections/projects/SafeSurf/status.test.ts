@@ -33,9 +33,9 @@ describe('formatStatus', () => {
     expect(formatStatus({ ...base, imagesVisible: true, videoVisible: true })).toBe(
       'Filter on. Images and video allowed.',
     );
-    expect(
-      formatStatus({ ...base, filter: 'off', imagesVisible: true, videoVisible: true }),
-    ).toBe('Filter off. Nothing blocked.');
+    expect(formatStatus({ ...base, filter: 'off', imagesVisible: true, videoVisible: true })).toBe(
+      'Filter off. Nothing blocked.',
+    );
   });
 });
 

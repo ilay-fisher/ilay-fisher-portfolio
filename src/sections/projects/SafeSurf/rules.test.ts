@@ -142,7 +142,11 @@ describe('bypass attempts', () => {
   });
 
   it('is refused even with the filter off or a request pending', () => {
-    const queued = run(fresh(), { type: 'toggleFilter', now: 0 }, { type: 'bypass', attempt: 'dns' });
+    const queued = run(
+      fresh(),
+      { type: 'toggleFilter', now: 0 },
+      { type: 'bypass', attempt: 'dns' },
+    );
     expect(queued.pending).not.toBeNull();
     expect(queued.lastEvent?.type).toBe('refused');
     expect(queued.refusals).toBe(1);
