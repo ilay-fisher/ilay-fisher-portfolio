@@ -139,7 +139,7 @@ describe('hero physics', () => {
   it('gives the project pieces real collision shapes that fall asleep inside the walls', () => {
     const s = setup(11);
     run(s, 9);
-    for (const id of ['phone', 'drone', 'lens']) {
+    for (const id of ['logo', 'drone', 'lens', 'shield']) {
       const b = s.world.get(id)!;
       expect(b, id).toBeDefined();
       expect(b.asleep, id).toBe(true);

@@ -77,11 +77,11 @@ describe('catalogue allowed list and importance order', () => {
 });
 
 describe('body counts per breakpoint', () => {
-  const PROJECT_PIECES = ['drone', 'lens', 'lock', 'phone', 'shield'];
+  const PROJECT_PIECES = ['drone', 'lens', 'logo', 'shield'];
 
-  it('desktop has 30 bodies: 25 skill pieces plus the 5 project pieces, nothing generic', () => {
+  it('desktop has 29 bodies: 25 skill pieces plus the 4 project pieces, nothing generic', () => {
     const c = buildCatalogue('desktop');
-    expect(c).toHaveLength(30);
+    expect(c).toHaveLength(29);
     expect(keys(c)).toHaveLength(25);
     expect(
       hardware(c)
@@ -95,11 +95,11 @@ describe('body counts per breakpoint', () => {
     expect(c).toHaveLength(17);
     expect(keys(c)).toHaveLength(13);
     const kinds = hardware(c).map((s) => s.kind);
-    for (const k of ['phone', 'shield', 'drone', 'lens']) expect(kinds).toContain(k);
+    for (const k of ['logo', 'shield', 'drone', 'lens']) expect(kinds).toContain(k);
   });
 
   it('lite sets (software renderers, lowest quality) are smaller still', () => {
-    expect(buildCatalogue('desktop', true)).toHaveLength(20);
+    expect(buildCatalogue('desktop', true)).toHaveLength(19);
     expect(buildCatalogue('mobile', true)).toHaveLength(14);
     expect(buildCatalogue('desktop', true).length).toBeLessThan(buildCatalogue('desktop').length);
     expect(buildCatalogue('mobile', true).length).toBeLessThan(buildCatalogue('mobile').length);
@@ -109,7 +109,7 @@ describe('body counts per breakpoint', () => {
     for (const bp of ['desktop', 'mobile'] as const)
       for (const lite of [false, true])
         for (const s of buildCatalogue(bp, lite))
-          expect(['key', 'token', 'shield', 'lock', 'phone', 'drone', 'lens']).toContain(s.kind);
+          expect(['key', 'token', 'shield', 'logo', 'drone', 'lens']).toContain(s.kind);
   });
 
   it('has unique ids and positive masses and sizes', () => {
@@ -163,7 +163,7 @@ describe('piece sizes per breakpoint', () => {
     }
   });
 
-  it('keeps the phone, drone and lens big enough to read at a glance (at least a tier B token)', () => {
+  it('keeps the logo, drone, lens and shield big enough to read at a glance (at least a tier B token)', () => {
     const c = buildCatalogue('desktop');
     const dim = (s: ObjectSpec) => Math.max(s.size.w, s.size.d);
     const tierB = Math.min(
@@ -171,8 +171,19 @@ describe('piece sizes per breakpoint', () => {
         .filter((s) => s.tier === 'B')
         .map(dim),
     );
-    for (const kind of ['phone', 'drone', 'lens', 'shield', 'lock'])
+    for (const kind of ['logo', 'drone', 'lens', 'shield'])
       expect(dim(c.find((s) => s.kind === kind)!)).toBeGreaterThanOrEqual(tierB);
+  });
+
+  it('makes the SafeSurf logo one of the larger pieces, at least as large as any tier A token', () => {
+    const c = buildCatalogue('desktop');
+    const dim = (s: ObjectSpec) => Math.max(s.size.w, s.size.d);
+    const tierA = Math.max(
+      ...tokens(c)
+        .filter((s) => s.tier === 'A')
+        .map(dim),
+    );
+    expect(dim(c.find((s) => s.kind === 'logo')!)).toBeGreaterThan(tierA);
   });
 });
 
@@ -192,13 +203,9 @@ describe('importance drives size, weight and accent', () => {
     expect(avg(tier('B'))).toBeGreaterThan(avg(tier('C')));
   });
 
-  it('gives the accent body to the keycap caps of tier A only (tokens wear their own brand colours)', () => {
+  it('gives the accent legend to tier A only (tokens wear their own brand colours)', () => {
     for (const s of tier('A')) expect(s.accentLegend).toBe(true);
-    expect(
-      tier('A')
-        .filter((s) => s.accentBody)
-        .map((s) => s.id),
-    ).toEqual(['key-java']);
+    expect(tier('A').filter((s) => s.accentBody)).toEqual([]);
     for (const s of [...tier('B'), ...tier('C')]) {
       expect(s.accentLegend).toBe(false);
       expect(s.accentBody).toBe(false);
@@ -211,7 +218,7 @@ describe('die-cut tokens and keycaps', () => {
   const k = keys(all);
   const byId = (id: string) => k.find((s) => s.id.endsWith(`-${id}`))!;
 
-  it('turns every skill that has a usable logo into a die-cut token, except two kept as keys for variety', () => {
+  it('turns every skill that has a usable logo into a die-cut token, except a few kept as keys for variety', () => {
     expect(
       tokens(all)
         .map((s) => s.id.replace(/^token-/, ''))
@@ -230,6 +237,8 @@ describe('die-cut tokens and keycaps', () => {
         'pytorch',
         'onnx',
         'cpp',
+        'java',
+        'c',
         'wasm',
         'docker',
         'postgresql',
@@ -245,11 +254,9 @@ describe('die-cut tokens and keycaps', () => {
     }
   });
 
-  it('keeps a handful of real keycaps: the four skills without a mark, plus TypeScript and GitHub', () => {
+  it('keeps a handful of real keycaps: ML and VS Code (no usable mark), plus TypeScript and GitHub', () => {
     expect(keycaps(all).map((s) => s.id.replace(/^key-/, ''))).toEqual([
-      'java',
       'ml',
-      'c',
       'typescript',
       'github',
       'vscode',
@@ -271,16 +278,16 @@ describe('die-cut tokens and keycaps', () => {
     const text = keycaps(all)
       .filter((s) => s.legend)
       .map((s) => s.id.replace(/^key-/, ''));
-    expect(text).toEqual(['java', 'ml', 'c', 'vscode']);
-    expect(byId('java').legend).toBe('Java');
+    expect(text).toEqual(['ml', 'vscode']);
     expect(byId('vscode').legend).toBe('VS Code');
     expect(byId('ml').legend).toBe('ML');
-    expect(byId('c').legend).toBe('C');
+    expect(byId('java').mark).toBe('java');
+    expect(byId('c').mark).toBe('c');
   });
 
   it('has a self-hosted mark for every mark reference, with source and licence recorded', () => {
     const marked = k.filter((s) => s.mark);
-    expect(marked).toHaveLength(21);
+    expect(marked).toHaveLength(23);
     for (const s of marked) {
       const m = MARKS[s.mark!];
       expect(m, `mark ${s.mark}`).toBeDefined();
@@ -289,6 +296,16 @@ describe('die-cut tokens and keycaps', () => {
       expect(m!.source).toMatch(/^https:\/\//);
       expect(m!.licence.length).toBeGreaterThan(2);
     }
+  });
+});
+
+describe('one piece per project', () => {
+  it('has exactly one piece for each of SafeSurf, SafeGuard, Drone Sandbox and X-Ray at every size', () => {
+    for (const bp of ['desktop', 'mobile'] as const)
+      for (const lite of [false, true]) {
+        const names = hardware(buildCatalogue(bp, lite)).map((s) => s.name);
+        expect(names.sort()).toEqual(['Drone Sandbox', 'SafeGuard', 'SafeSurf', 'X-Ray']);
+      }
   });
 });
 
@@ -301,17 +318,16 @@ describe('accessible names and project pieces', () => {
     const k = keys(buildCatalogue('desktop'));
     expect(k[0]!.label).toBe('Android Development token');
     expect(k.find((s) => s.id === 'token-tflite')!.label).toBe('TensorFlow Lite token');
-    expect(k.find((s) => s.id === 'key-java')!.label).toBe('Java key');
+    expect(k.find((s) => s.id === 'token-java')!.label).toBe('Java token');
   });
 
   it('links the project pieces to their sections and says so in the description', () => {
     const h = (kind: string) => hardware(buildCatalogue('desktop')).find((s) => s.kind === kind)!;
-    expect(h('phone').href).toBe('#safesurf');
+    expect(h('logo').href).toBe('#safesurf');
     expect(h('shield').href).toBe('#safesurf');
-    expect(h('lock').href).toBe('#safesurf');
     expect(h('drone').href).toBe('#drone');
     expect(h('lens').href).toBe('#xray');
-    for (const kind of ['phone', 'shield', 'lock', 'drone', 'lens'])
+    for (const kind of ['logo', 'shield', 'drone', 'lens'])
       expect(h(kind).description).toMatch(/double-click or press enter/i);
     for (const s of keys(buildCatalogue('desktop'))) expect(s.href).toBeNull();
   });
@@ -319,9 +335,8 @@ describe('accessible names and project pieces', () => {
   it('words the hover chip: the name, plus a hint on project pieces', () => {
     const all = buildCatalogue('desktop');
     expect(chipLabel(all.find((s) => s.id === 'token-kotlin')!)).toBe('Kotlin');
-    expect(chipLabel(all.find((s) => s.id === 'phone')!)).toBe('SafeSurf · double-click to open');
+    expect(chipLabel(all.find((s) => s.id === 'logo')!)).toBe('SafeSurf · double-click to open');
     expect(chipLabel(all.find((s) => s.id === 'shield')!)).toBe('SafeGuard · double-click to open');
-    expect(chipLabel(all.find((s) => s.id === 'lock')!)).toBe('SafeGuard · double-click to open');
     expect(chipLabel(all.find((s) => s.id === 'drone')!)).toBe(
       'Drone Sandbox · double-click to open',
     );

@@ -82,12 +82,14 @@ test.describe('hero scene', () => {
   test('is ready already settled, with every body inside the bounds', async ({ page }) => {
     const errors = await openHero(page);
     const ids = await hero(page, (h) => h.ids());
-    // 30 on a wide GPU screen (25 technologies and 5 projects), 17 on a phone; fewer on software renderers.
+    // 29 on a wide GPU screen (25 technologies and 4 projects), 17 on a phone; fewer on software renderers.
     expect(ids.length).toBeGreaterThanOrEqual(14);
-    expect(ids.length).toBeLessThanOrEqual(30);
+    expect(ids.length).toBeLessThanOrEqual(29);
     // Everything is a technology or a project: no generic hardware.
     expect(ids.filter((id) => /dial|toggle|switch/.test(id))).toEqual([]);
-    for (const id of ['shield', 'phone', 'drone', 'lens']) expect(ids).toContain(id);
+    for (const id of ['shield', 'logo', 'drone', 'lens']) expect(ids).toContain(id);
+    expect(ids).not.toContain('lock');
+    expect(ids).not.toContain('phone');
     await expect(canvas(page)).toHaveAttribute('data-bodies', String(ids.length));
     // Fast path is already at rest; `settle()` re-publishes synchronously, so this never races a frame.
     expect(await hero(page, (h) => h.settle())).toBe(true);
@@ -230,6 +232,49 @@ test.describe('hero scene', () => {
     expect(found, 'a project piece announces how to open it').toBe(true);
     await page.keyboard.press('Enter');
     await expect.poll(() => page.evaluate(() => location.hash)).toMatch(/#(safesurf|drone|xray)/);
+  });
+
+  test('a real mouse double-click on each project piece jumps to its section', async ({ page }) => {
+    test.setTimeout(120_000);
+    await openHero(page);
+    const projects = [
+      ['logo', '#safesurf'],
+      ['shield', '#safesurf'],
+      ['drone', '#drone'],
+      ['lens', '#xray'],
+    ] as const;
+    for (const [id, hash] of projects) {
+      await page.goto(URL);
+      await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const at = await hero(page, (h, i: string) => h.project(i), id);
+      expect(at, `${id} is on screen`).not.toBeNull();
+      const onCanvas = await page.evaluate(
+        ([x, y]) => document.elementFromPoint(x!, y!)?.getAttribute('data-testid'),
+        [at!.x, at!.y],
+      );
+      expect(onCanvas, `${id} is not covered by other content`).toBe('hero-canvas');
+      await page.mouse.dblclick(at!.x, at!.y);
+      await expect.poll(() => page.evaluate(() => location.hash), { message: id }).toBe(hash);
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              (h) => Math.abs(document.querySelector(h)?.getBoundingClientRect().top ?? 9999),
+              hash,
+            ),
+          { message: `${id} scrolls its section to the top`, timeout: 15_000 },
+        )
+        .toBeLessThan(160);
+    }
+  });
+
+  test('a single click does not open a section', async ({ page }) => {
+    await openHero(page);
+    const at = await hero(page, (h) => h.project('logo'));
+    await page.mouse.click(at!.x, at!.y);
+    await page.waitForTimeout(700);
+    expect(await page.evaluate(() => location.hash)).toBe('');
   });
 
   test('hits on the name are counted, with nothing else changing', async ({ page }) => {
