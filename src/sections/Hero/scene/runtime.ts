@@ -1,6 +1,7 @@
 import {
   ACESFilmicToneMapping,
   AmbientLight,
+  Box3,
   CanvasTexture,
   DirectionalLight,
   Euler,
@@ -26,7 +27,8 @@ import {
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { createLogger } from '../../../lib/logger';
-import { computeBounds, fitRig, type Bounds, type Rig, type Vec3 } from '../logic/camera';
+import type { Bounds, Rig, Vec3 } from '../logic/camera';
+import { computeStage, nameCap, type Stage } from '../logic/stage';
 import { buildCatalogue, chipLabel, type Breakpoint, type ObjectSpec } from '../logic/catalogue';
 import { VelocityTracker } from '../logic/drag';
 import { FixedStepper } from '../logic/fixedStep';
@@ -34,7 +36,6 @@ import { IdleScheduler } from '../logic/idle';
 import { mapKey } from '../logic/keys';
 import { layoutName, type NameLayout } from '../logic/nameLayout';
 import { QualityController, isSoftwareRenderer } from '../logic/quality';
-import { breakpointFor, computeRegion } from '../logic/region';
 import { createRng } from '../logic/rng';
 import { planSpawns, type SpawnPlan } from '../logic/spawn';
 import { MAX_SPEED, PhysicsWorld, type BodyState } from '../physics/world';
@@ -43,6 +44,7 @@ import { buildEnvironment } from './env';
 import { buildLetter, buildObject } from './geometry';
 import { makeLegendTextures, type LegendTextures } from './legend';
 import { MARKS } from './marks';
+import { makeCircuit, makePhoneScreen, type PhoneScreen } from './screens';
 import { bodyMaterial, materialSet, nameMaterials } from './materials';
 
 const log = createLogger('hero');
@@ -83,6 +85,10 @@ export interface HeroDebug {
   snapshot(): BodyState[];
   nameSnapshot(): number[][];
   bounds(): Bounds;
+  /** The name's projected bounds in client pixels. */
+  nameBounds(): { x0: number; y0: number; x1: number; y1: number } | null;
+  /** A body's projected bounds in client pixels (from its visual's bounding box). */
+  bodyBounds(id: string): { x0: number; y0: number; x1: number; y1: number } | null;
   /** Client-pixel position of a body's centre. */
   project(id: string): { x: number; y: number } | null;
   throwBody(id: string, vel: Vec3): void;
@@ -106,20 +112,6 @@ export interface HeroDebug {
   };
 }
 
-interface Tuning {
-  worldWidth: number;
-  elevationDeg: number;
-  fovDeg: number;
-  targetZ: number;
-}
-
-const TUNING: Record<Breakpoint, Tuning> = {
-  desktop: { worldWidth: 15.5, elevationDeg: 42, fovDeg: 26, targetZ: 1.7 },
-  mobile: { worldWidth: 9.4, elevationDeg: 40, fovDeg: 30, targetZ: 1.5 },
-};
-
-/** Share of the world width the name occupies. */
-const NAME_SHARE = 0.92;
 const MAX_DPR = 2;
 const WARMUP_FRAMES = 24;
 
@@ -281,6 +273,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   let content: Content | null = null;
   let rig: Rig;
   let bounds: Bounds;
+  let lastStage: Stage | null = null;
   let canvasW = 1;
   let canvasH = 1;
   let active = false;
@@ -320,11 +313,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   // ---- content ---------------------------------------------------------------------------
 
   const buildContent = (bp: Breakpoint): Content => {
-    const tune = TUNING[bp];
-    const unit = layoutName(1).width;
-    const approxWidth = tune.worldWidth * 0.94;
-    const cap = Math.min(2, Math.max(0.5, (NAME_SHARE * approxWidth) / unit));
-    const layout = layoutName(cap);
+    const layout = layoutName(nameCap(bp));
     const specs = buildCatalogue(bp, software);
     const disposables: Content['disposables'] = [];
     const nameGroup = new Group();
@@ -345,6 +334,23 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
 
     const world = new PhysicsWorld(bounds, layout.colliders, 0);
     const items = new Map<string, Item>();
+    let phoneScreen: PhoneScreen | null = null;
+    let circuit: CanvasTexture | null = null;
+    const phoneSpec = specs.find((x) => x.kind === 'phone');
+    if (phoneSpec) {
+      phoneScreen = makePhoneScreen(phoneSpec.size.w / phoneSpec.size.d, anisotropy);
+      const screen = phoneScreen;
+      disposables.push(screen.map);
+      const img = new Image();
+      img.onload = () => {
+        if (!disposed) screen.setLogo(img);
+      };
+      img.src = '/hero/safesurf-logo.webp';
+    }
+    if (specs.some((x) => x.kind === 'lens')) {
+      circuit = makeCircuit(anisotropy);
+      disposables.push(circuit);
+    }
     for (const spec of specs) {
       let legend: LegendTextures | null = null;
       if (spec.kind === 'key') {
@@ -363,7 +369,10 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
           anisotropy,
         });
       }
-      const set = materialSet(spec, palette, legend);
+      const set = materialSet(spec, palette, legend, {
+        screen: phoneScreen?.map,
+        circuit: circuit ?? undefined,
+      });
       const built = buildObject(spec, set);
       built.group.userData.id = spec.id;
       built.group.visible = false;
@@ -381,6 +390,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       blob.visible = false;
       scene.add(blob);
       disposables.push(set.body, set.metal, set.polished, set.accent, set.glass, blobMat);
+      for (const x of [set.rim, set.ink, set.brass, set.screen, set.circuit]) if (x) disposables.push(x);
       if (set.top) disposables.push(set.top);
       if (legend) disposables.push(legend.map);
       if (legend?.bump) disposables.push(legend.bump);
@@ -438,22 +448,16 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     if (rect.width < 2 || rect.height < 2) return;
     canvasW = rect.width;
     canvasH = rect.height;
-    const bp = breakpointFor(window.innerWidth);
-    const tune = TUNING[bp];
     const t = o.textEl.getBoundingClientRect();
-    const region = computeRegion(
-      { width: canvasW, height: canvasH },
-      { right: t.right - rect.left, bottom: t.bottom - rect.top },
-      bp === 'mobile',
-    );
-    const aspect = canvasW / canvasH;
-    rig = fitRig({ aspect, region, ...tune });
-    const unit = layoutName(1).width;
-    const cap = Math.min(2, Math.max(0.5, (NAME_SHARE * tune.worldWidth * 0.94) / unit));
-    const backZ = -layoutName(cap).depth / 2 - 0.35;
-    const raw = computeBounds(rig, region, backZ);
-    const probeKeep = layoutName(cap).keepOut;
-    bounds = { ...raw, maxZ: Math.max(raw.maxZ, probeKeep.maxZ + 3.2) };
+    const stage = computeStage({
+      canvas: { width: canvasW, height: canvasH },
+      text: { right: t.right - rect.left, bottom: t.bottom - rect.top },
+      windowWidth: window.innerWidth,
+    });
+    const { bp, aspect } = stage;
+    rig = stage.rig;
+    bounds = stage.bounds;
+    lastStage = stage;
 
     camera.aspect = aspect;
     camera.fov = rig.fovDeg;
@@ -833,7 +837,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       if (!s) continue;
       const target = it.spec.id === hovered || it.spec.id === selectedId ? 1 : 0;
       it.lift += (target - it.lift) * 0.18;
-      it.group.position.set(s.pos.x, s.pos.y + it.lift * 0.14, s.pos.z);
+      it.group.position.set(s.pos.x, s.pos.y + it.lift * 0.14 * it.spec.scale, s.pos.z);
       it.group.quaternion.set(s.quat.x, s.quat.y, s.quat.z, s.quat.w);
       for (const m of it.hover) m.envMapIntensity = 1 + it.lift * 0.7;
       tmpQ.set(s.quat.x, s.quat.y, s.quat.z, s.quat.w);
@@ -845,9 +849,9 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       it.blob.position.set(s.pos.x, 0.012, s.pos.z);
       it.blob.rotation.y = tmpE.y;
       it.blob.scale.set(
-        (it.spec.size.w * 1.35 + 0.35) * spread,
+        (it.spec.size.w * 1.35 + 0.35 * it.spec.scale) * spread,
         1,
-        (it.spec.size.d * 1.35 + 0.35) * spread,
+        (it.spec.size.d * 1.35 + 0.35 * it.spec.scale) * spread,
       );
       it.blobMat.opacity = 0.62 * Math.max(0, 1 - gap / (3 + r));
     }
@@ -986,6 +990,50 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
         const v = new Vector3(st.pos.x, st.pos.y, st.pos.z).project(camera);
         const r = canvas.getBoundingClientRect();
         return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+      },
+      nameBounds: () => {
+        if (!lastStage) return null;
+        const r = canvas.getBoundingClientRect();
+        const { width, height, depth } = lastStage.layout;
+        const hz = Math.max(depth / 2, lastStage.layout.slabs[0]?.hz ?? 0);
+        let x0 = Infinity;
+        let y0 = Infinity;
+        let x1 = -Infinity;
+        let y1 = -Infinity;
+        for (const x of [-width / 2, width / 2])
+          for (const y of [0, height])
+            for (const z of [-hz, hz]) {
+              const v = new Vector3(x, y, z).project(camera);
+              const px = r.left + ((v.x + 1) / 2) * r.width;
+              const py = r.top + ((1 - v.y) / 2) * r.height;
+              x0 = Math.min(x0, px);
+              x1 = Math.max(x1, px);
+              y0 = Math.min(y0, py);
+              y1 = Math.max(y1, py);
+            }
+        return { x0, y0, x1, y1 };
+      },
+      bodyBounds: (id) => {
+        const it = content?.items.get(id);
+        if (!it || !it.spawned) return null;
+        camera.updateMatrixWorld();
+        it.group.updateMatrixWorld(true);
+        const box = new Box3().setFromObject(it.group);
+        const r = canvas.getBoundingClientRect();
+        let x0 = Infinity;
+        let y0 = Infinity;
+        let x1 = -Infinity;
+        let y1 = -Infinity;
+        for (const x of [box.min.x, box.max.x])
+          for (const y of [box.min.y, box.max.y])
+            for (const z of [box.min.z, box.max.z]) {
+              const v = new Vector3(x, y, z).project(camera);
+              x0 = Math.min(x0, r.left + ((v.x + 1) / 2) * r.width);
+              x1 = Math.max(x1, r.left + ((v.x + 1) / 2) * r.width);
+              y0 = Math.min(y0, r.top + ((1 - v.y) / 2) * r.height);
+              y1 = Math.max(y1, r.top + ((1 - v.y) / 2) * r.height);
+            }
+        return { x0, y0, x1, y1 };
       },
       throwBody: (id, vel) => {
         const st = content?.world.get(id);

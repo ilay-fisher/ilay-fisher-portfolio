@@ -1,4 +1,4 @@
-/* global process, console, document */
+/* global process, console, document, Path2D */
 // Dev-time generator (not shipped). For every mark that becomes a die-cut token it computes, from the
 // official 24x24 path data in simple-icons:
 //   - the cut line: the mark's silhouette grown by a thin margin with its holes filled, traced to a
