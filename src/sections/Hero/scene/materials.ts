@@ -26,7 +26,7 @@ export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMa
   switch (spec.finish) {
     case 'ceramic':
       return new MeshPhysicalMaterial({
-        color: tone('#22292f', s),
+        color: tone('#313a44', s),
         roughness: 0.3 + s * 0.1,
         metalness: 0.05,
         clearcoat: 1,
@@ -34,14 +34,14 @@ export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMa
       });
     case 'alloy':
       return new MeshPhysicalMaterial({
-        color: tone('#3b434d', s, 0.06),
+        color: tone('#4b535d', s, 0.06),
         roughness: 0.3 + s * 0.14,
         metalness: 1,
         clearcoat: 0.15,
       });
     default:
       return new MeshPhysicalMaterial({
-        color: tone('#1d232a', s),
+        color: tone('#2b333c', s),
         roughness: 0.36 + s * 0.12,
         metalness: 0.8,
         clearcoat: 0.3,
@@ -92,10 +92,10 @@ export function materialSet(
 export function nameMaterials(palette: Palette): { letters: MeshPhysicalMaterial; slab: MeshPhysicalMaterial } {
   return {
     letters: new MeshPhysicalMaterial({
-      color: palette.paper.clone().multiplyScalar(0.82),
-      metalness: 0.9,
-      roughness: 0.36,
-      clearcoat: 0.25,
+      color: palette.paper.clone().multiplyScalar(0.95),
+      metalness: 0.55,
+      roughness: 0.34,
+      clearcoat: 0.5,
       clearcoatRoughness: 0.3,
     }),
     slab: new MeshPhysicalMaterial({

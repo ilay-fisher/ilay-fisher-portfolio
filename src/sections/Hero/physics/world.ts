@@ -105,7 +105,8 @@ export class PhysicsWorld {
       mk(t, 30, 60, b.maxX + t, 30, midZ),
       mk(60, 30, t, midX, 30, b.maxZ + t),
       mk(60, 30, t, midX, 30, b.minZ - t),
-      mk(60, t, 60, midX, b.height + t, midZ),
+      // Well above any spawn height (spawns may sit above `bounds.height` in a crowded plan).
+      mk(60, t, 60, midX, b.height + 10 + t, midZ),
     ];
   }
 

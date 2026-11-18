@@ -89,7 +89,7 @@ interface Tuning {
 }
 
 const TUNING: Record<Breakpoint, Tuning> = {
-  desktop: { worldWidth: 15.5, elevationDeg: 36, fovDeg: 26, targetZ: 1.7 },
+  desktop: { worldWidth: 15.5, elevationDeg: 42, fovDeg: 26, targetZ: 1.7 },
   mobile: { worldWidth: 9.4, elevationDeg: 40, fovDeg: 30, targetZ: 1.5 },
 };
 
@@ -193,7 +193,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   key.shadow.normalBias = 0.02;
   key.shadow.radius = 4;
   scene.add(key, key.target);
-  const rim = new DirectionalLight(palette.accentHi, 1.1);
+  const rim = new DirectionalLight('#cfdcf2', 0.9);
   rim.position.set(9, 6, -10);
   scene.add(rim);
   scene.add(new AmbientLight('#8da0bd', 0.12));

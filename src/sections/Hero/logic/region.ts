@@ -21,7 +21,7 @@ export function computeRegion(
   stacked = false,
 ): Region {
   if (stacked) {
-    return { x0: -0.97, x1: 0.97, y0: -0.97, y1: 1 - (2 * text.bottom) / canvas.height };
+    return { x0: -0.97, x1: 0.97, y0: -0.72, y1: 1 - (2 * text.bottom) / canvas.height };
   }
-  return { x0: -1 + (2 * text.right) / canvas.width, x1: 0.98, y0: -0.96, y1: 0.8 };
+  return { x0: -1 + (2 * text.right) / canvas.width, x1: 0.98, y0: -0.84, y1: 0.9 };
 }

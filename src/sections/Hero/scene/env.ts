@@ -48,7 +48,7 @@ export function buildEnvironment(renderer: WebGLRenderer, palette: Palette): Tex
   panel(22, 14, [-20, 22, 12], new Color('#fff1e0'), 9);
   panel(4, 22, [26, 10, 4], new Color('#cfe0ff'), 5);
   panel(24, 7, [0, 30, -10], new Color('#ffffff'), 2.6);
-  panel(16, 3, [14, 3, 20], palette.accentHi, 1.8);
+  panel(16, 3, [14, 3, 20], palette.accentHi, 0.9);
   panel(40, 3, [0, 4, -34], new Color('#9db4d6'), 1.2);
 
   const pmrem = new PMREMGenerator(renderer);

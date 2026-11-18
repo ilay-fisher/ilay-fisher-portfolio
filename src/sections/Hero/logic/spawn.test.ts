@@ -52,4 +52,13 @@ describe('spawn plan', () => {
     const p = planSpawns(m, narrow, { minX: -3.5, maxX: 3.5, minZ: -1.2, maxZ: 0.7 }, 3);
     expect(p).toHaveLength(m.length);
   });
+
+  it('never plans a spawn above the ceiling in a crowded floor (seed 7, phone bounds)', () => {
+    const phone = { minX: -4.2, maxX: 4.2, minZ: -0.7, maxZ: 6.8, height: 7 };
+    const m = buildCatalogue('mobile');
+    for (const seed of [1, 7, 20260]) {
+      const p = planSpawns(m, phone, { minX: -3.5, maxX: 3.5, minZ: -0.7, maxZ: 0.7 }, seed);
+      for (const x of p) expect(x.y).toBeLessThan(phone.height + 4.5);
+    }
+  });
 });

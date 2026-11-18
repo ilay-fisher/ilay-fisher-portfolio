@@ -73,16 +73,17 @@ export function planSpawns(
       };
       found = clear(cand);
     }
-    for (let bump = 0; bump < 30 && !found; bump++) {
+    for (let bump = 0; bump < 30 && !found && cand.y < bounds.height + 3; bump++) {
       cand.y += 1.1;
       found = clear(cand);
     }
     plans.push({
       id: spec.id,
       ...cand,
-      rx: (rng() - 0.5) * 1.2,
-      ry: rng() * Math.PI * 2,
-      rz: (rng() - 0.5) * 1.2,
+      rx: (rng() - 0.5) * 0.5,
+      // Mostly facing the camera so printed legends stay readable once things settle.
+      ry: (rng() - 0.5) * 1.5,
+      rz: (rng() - 0.5) * 0.5,
       delayMs,
     });
   });
