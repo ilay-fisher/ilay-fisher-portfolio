@@ -77,4 +77,11 @@ describe('Contact (v2)', () => {
     expect(document.querySelector('.contact__panel.stage')).not.toBeNull();
     expect(document.querySelector('.ticks')).toBeNull();
   });
+
+  it('shows the approved wit line near the call to action', () => {
+    render(<Contact />);
+    expect(
+      screen.getByText('Throwing things was fun. Hiring me is more useful.'),
+    ).toBeInTheDocument();
+  });
 });

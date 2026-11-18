@@ -27,11 +27,12 @@ test.describe('design v2: nothing is a sharp rectangle', () => {
 });
 
 test.describe('design v2: no horizontal scroll', () => {
-  for (const [w, h] of [
+  const sizes: Array<[number, number]> = [
     [360, 740],
     [390, 844],
     [1440, 900],
-  ]) {
+  ];
+  for (const [w, h] of sizes) {
     test(`at ${w}px`, async ({ page }) => {
       await page.setViewportSize({ width: w, height: h });
       await page.goto('/');
