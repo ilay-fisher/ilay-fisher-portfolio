@@ -174,18 +174,63 @@ void main() {
   o = vec4(rgb * a, a * 0.8);
 }`;
 
-const WARM = {
-  hot: [1.0, 0.96, 0.88],
-  hi: [1.0, 0.62, 0.5],
-  mid: [1.0, 0.22, 0.42],
-  char: [0.12, 0.035, 0.065],
-} as const;
-const COOL = {
-  hot: [0.92, 1.0, 0.97],
-  hi: [0.62, 1.0, 0.84],
-  mid: [0.3, 0.82, 0.6],
-  char: [0.04, 0.18, 0.13],
-} as const;
+interface Palette {
+  hot: [number, number, number];
+  hi: [number, number, number];
+  mid: [number, number, number];
+  char: [number, number, number];
+}
+
+/** Parses `#rgb`, `#rrggbb` or `rgb()` into 0 to 1 channels; null when it is anything else. */
+function parseColor(raw: string): [number, number, number] | null {
+  const v = raw.trim();
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+  if (hex) {
+    const h = hex[1]!.length === 3 ? [...hex[1]!].map((c) => c + c).join('') : hex[1]!;
+    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number];
+  }
+  const rgb = /^rgba?\(([^)]+)\)/i.exec(v);
+  if (rgb) {
+    const p = rgb[1]!.split(/[\s,/]+/).map(Number);
+    return [p[0]! / 255, p[1]! / 255, p[2]! / 255];
+  }
+  return null;
+}
+
+const mix3 = (a: readonly number[], b: readonly number[], m: number): [number, number, number] => [
+  a[0]! + (b[0]! - a[0]!) * m,
+  a[1]! + (b[1]! - a[1]!) * m,
+  a[2]! + (b[2]! - a[2]!) * m,
+];
+
+/**
+ * Burn and re-form palettes from the live design tokens, so a token change recolours the burn
+ * without touching this file. The fallbacks only apply where the tokens are missing.
+ */
+function readPalettes(el: HTMLElement): { warm: Palette; cool: Palette } {
+  const cs = getComputedStyle(el);
+  const tok = (name: string, fb: [number, number, number]) =>
+    parseColor(cs.getPropertyValue(name)) ?? fb;
+  const paint = tok('--paint', [1, 0.4, 0.2]);
+  const paintHi = tok('--paint-hi', [1, 0.62, 0.45]);
+  const paintDeep = tok('--paint-deep', [0.6, 0.1, 0.05]);
+  const pass = tok('--pass', [0.48, 0.88, 0.69]);
+  const white: [number, number, number] = [1, 0.97, 0.9];
+  return {
+    warm: {
+      hot: mix3(paintHi, white, 0.72),
+      hi: paintHi,
+      mid: paint,
+      char: mix3(paintDeep, [0, 0, 0], 0.82),
+    },
+    cool: {
+      hot: mix3(pass, white, 0.8),
+      hi: mix3(pass, white, 0.35),
+      mid: pass,
+      char: mix3(pass, [0, 0, 0], 0.85),
+    },
+  };
+}
 
 interface Item {
   img: HTMLImageElement;
@@ -238,6 +283,7 @@ export class BurnStage {
   private readonly siz = new Float32Array(EMBER_CAPACITY);
   private drewLast = false;
   private disposed = false;
+  private palettes: { warm: Palette; cool: Palette } | null = null;
   private stage: GlStage | null = null;
   private clock = 0;
   private stepMs = 0;
@@ -279,6 +325,12 @@ export class BurnStage {
     if (!stage) return;
     const gl = stage.gl;
     this.root = new Transform();
+    this.palettes = readPalettes(this.opts.screen);
+    const { warm, cool } = this.palettes;
+    this.pool.palettes = {
+      warm: { hot: warm.hi, mid: warm.mid, char: mix3(warm.mid, warm.char, 0.7) },
+      cool: { hot: mix3(cool.mid, [0, 0, 0], 0.35), mid: cool.mid, char: cool.hot },
+    };
     this.noiseTex = new Texture(gl, {
       image: this.noise,
       width: NOISE_SIZE,
@@ -396,10 +448,10 @@ export class BurnStage {
         uRect: { value: [0, 0, 1, 1] },
         uRes: { value: [1, 1] },
         uPad: { value: PAD },
-        uHot: { value: [...WARM.hot] },
-        uHi: { value: [...WARM.hi] },
-        uMid: { value: [...WARM.mid] },
-        uChar: { value: [...WARM.char] },
+        uHot: { value: [1, 1, 1] },
+        uHi: { value: [1, 1, 1] },
+        uMid: { value: [1, 1, 1] },
+        uChar: { value: [0, 0, 0] },
       };
       const program = new Program(gl, {
         vertex: VERT,
@@ -474,7 +526,8 @@ export class BurnStage {
         const r = item.img.getBoundingClientRect();
         const rect = [r.left - screen.left, r.top - screen.top, r.width, r.height];
         const p = easeBurn(item.burn.p);
-        const palette = phase === 'forming' ? COOL : WARM;
+        const pals = this.palettes ?? readPalettes(this.opts.screen);
+        const palette = phase === 'forming' ? pals.cool : pals.warm;
         item.uniforms.uRect!.value = rect;
         item.uniforms.uSize!.value = [r.width, r.height];
         item.uniforms.uRadius!.value = item.radius;
@@ -483,10 +536,10 @@ export class BurnStage {
         item.uniforms.uTime!.value = this.clock / 1000;
         item.uniforms.uMode!.value = phase === 'forming' ? 1 : 0;
         item.uniforms.uHeat!.value = Math.sin(Math.PI * item.burn.p) ** 1.5;
-        item.uniforms.uHot!.value = [...palette.hot];
-        item.uniforms.uHi!.value = [...palette.hi];
-        item.uniforms.uMid!.value = [...palette.mid];
-        item.uniforms.uChar!.value = [...palette.char];
+        item.uniforms.uHot!.value = palette.hot;
+        item.uniforms.uHi!.value = palette.hi;
+        item.uniforms.uMid!.value = palette.mid;
+        item.uniforms.uChar!.value = palette.char;
         const spawn = emberSpawnCount(
           phase,
           dt,

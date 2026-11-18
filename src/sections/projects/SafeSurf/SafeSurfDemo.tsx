@@ -273,11 +273,12 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
   };
 
   const requestLabel = pending ? ucfirst(describeRequest(pending.request)) : null;
-  const ringR = 26;
+  const ringR = 22;
   const circ = 2 * Math.PI * ringR;
   // The ring ticks once a second with weight, rather than draining smoothly.
   const totalSec = Math.max(1, Math.ceil(state.delayMs / 1000));
   const secLeft = pending ? Math.ceil(remaining / 1000) : 0;
+  const ticks = Math.min(12, totalSec);
   const frac = pending ? Math.min(1, secLeft / totalSec) : 0;
   const ev = state.lastEvent;
   const doneVia = ev?.type === 'applied' ? ev.via : null;
@@ -300,7 +301,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
         onPointerMove={onDeviceMove}
         onPointerLeave={onDeviceLeave}
       >
-        <div className="ss-phone" ref={phoneRef}>
+        <div className="ss-phone" ref={phoneRef} data-cursor="tilt">
           <div className="ss-bar">
             <svg
               width="16"
@@ -328,6 +329,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               // A scrollable region must be focusable so keyboard users can scroll the article.
               // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
               tabIndex={0}
+              data-cursor="scroll"
             >
               <p className="ss-masthead">Tidewatch</p>
               <article>
@@ -350,11 +352,11 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               </article>
               <p className="ss-more">
                 {state.page === 'harbour' ? (
-                  <a href="/#safesurf" onClick={go('weather')}>
+                  <a href="/#safesurf" data-cursor="open" onClick={go('weather')}>
                     Next story: Wind at the bar, and why it matters
                   </a>
                 ) : (
-                  <a href="/#safesurf" onClick={go('harbour')}>
+                  <a href="/#safesurf" data-cursor="open" onClick={go('harbour')}>
                     Back to the harbour story
                   </a>
                 )}
@@ -382,6 +384,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             aria-checked={state.filter === 'on'}
             aria-labelledby={switchLabelId}
             className="ss-switch"
+            data-cursor="flip"
             data-testid="safesurf-switch"
             onClick={() => act('filter')}
           >
@@ -389,6 +392,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               Regular browser
             </span>
             <span className="ss-switch__track" aria-hidden="true">
+              <span className="ss-switch__led" />
               <span className="ss-switch__knob" />
             </span>
             <span className="ss-switch__side mono" data-active={state.filter === 'on'}>
@@ -403,6 +407,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
           </p>
           <div className="ss-row">
             <Button
+              data-cursor="press"
               aria-disabled={busy || undefined}
               data-testid="safesurf-allow-site"
               onClick={() => act('allowSite')}
@@ -410,6 +415,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               Allow for this site
             </Button>
             <Button
+              data-cursor="press"
               aria-disabled={busy || undefined}
               data-testid="safesurf-allow-page"
               onClick={() => act('allowPage')}
@@ -417,13 +423,18 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               Allow for this page
             </Button>
             <Button
+              data-cursor="press"
               aria-disabled={busy || !hasVideo || undefined}
               data-testid="safesurf-allow-video"
               onClick={() => hasVideo && act('allowVideo')}
             >
               Allow only the video
             </Button>
-            <Button data-testid="safesurf-block" onClick={() => dispatch({ type: 'blockAgain' })}>
+            <Button
+              data-cursor="press"
+              data-testid="safesurf-block"
+              onClick={() => dispatch({ type: 'blockAgain' })}
+            >
               Block again
             </Button>
           </div>
@@ -437,6 +448,18 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               <span className="ss-ring__snap" data-via={doneVia} data-p={state.seq % 2} />
             )}
             <svg viewBox="0 0 64 64" width="64" height="64">
+              {Array.from({ length: ticks }, (_, i) => (
+                <line
+                  key={i}
+                  className="ss-ring__tick"
+                  data-lit={busy && i < Math.ceil(frac * ticks)}
+                  x1="32"
+                  y1="3.5"
+                  x2="32"
+                  y2="7.5"
+                  transform={`rotate(${(i * 360) / ticks} 32 32)`}
+                />
+              ))}
               <circle cx="32" cy="32" r={ringR} className="ss-ring__track" />
               <circle
                 cx="32"
@@ -471,6 +494,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
             </p>
             <div className="ss-row">
               <Button
+                data-cursor="press"
                 aria-disabled={!busy || undefined}
                 data-testid="safesurf-cancel"
                 onClick={() => dispatch({ type: 'cancel' })}
@@ -478,6 +502,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
                 Cancel request
               </Button>
               <Button
+                data-cursor="press"
                 aria-disabled={!busy || undefined}
                 data-testid="safesurf-sponsor"
                 onClick={() => dispatch({ type: 'sponsorApprove' })}
@@ -495,6 +520,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
           <div className="ss-row">
             {BYPASSES.map((b) => (
               <Button
+                data-cursor="press"
                 key={b.id}
                 data-testid={`safesurf-bypass-${b.id}`}
                 onClick={() => {

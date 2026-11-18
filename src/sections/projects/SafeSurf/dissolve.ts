@@ -205,16 +205,43 @@ export function emberSpawnCount(
   return { count, carry: total - count };
 }
 
-/** Ember colour (linear 0 to 1 rgb, not faded) at life fraction `t`. Hot to paint to ash when burning, mint to white when re-forming. */
-export function emberColor(t: number, cool: boolean): [number, number, number] {
+/** Three colour stops (0 to 1 rgb) an ember passes through. */
+export interface EmberPalette {
+  hot: readonly [number, number, number];
+  mid: readonly [number, number, number];
+  char: readonly [number, number, number];
+}
+
+/** Fallback palettes. The stage reads the real accent from the `--paint*` tokens at runtime. */
+export const DEFAULT_EMBERS: { warm: EmberPalette; cool: EmberPalette } = {
+  warm: { hot: [1, 0.62, 0.52], mid: [1, 0.24, 0.42], char: [0.28, 0.06, 0.12] },
+  cool: { hot: [0.26, 0.74, 0.56], mid: [0.42, 0.86, 0.68], char: [0.56, 0.92, 0.76] },
+};
+
+const lerp3 = (
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+  m: number,
+): [number, number, number] => [
+  a[0] + (b[0] - a[0]) * m,
+  a[1] + (b[1] - a[1]) * m,
+  a[2] + (b[2] - a[2]) * m,
+];
+
+/**
+ * Ember colour (0 to 1 rgb, not faded) at life fraction `t`. Burning embers run hot, accent,
+ * ash; re-forming ones run from deep to bright mint as they arrive.
+ */
+export function emberColor(
+  t: number,
+  cool: boolean,
+  palette: EmberPalette = cool ? DEFAULT_EMBERS.cool : DEFAULT_EMBERS.warm,
+): [number, number, number] {
   const k = Math.min(1, Math.max(0, t));
-  if (cool) return [0.26 + 0.3 * k, 0.74 + 0.18 * k, 0.56 + 0.2 * k];
-  if (k < 0.3) {
-    const m = k / 0.3;
-    return [1, 0.62 - 0.38 * m, 0.52 - 0.1 * m];
-  }
-  const m = (k - 0.3) / 0.7;
-  return [1 - 0.72 * m, 0.33 - 0.27 * m, 0.38 - 0.26 * m];
+  if (cool) return lerp3(palette.hot, palette.char, k);
+  return k < 0.3
+    ? lerp3(palette.hot, palette.mid, k / 0.3)
+    : lerp3(palette.mid, palette.char, (k - 0.3) / 0.7);
 }
 
 /** Ember opacity at life fraction `t`: quick rise, long fade. Re-forming embers brighten as they arrive. */
@@ -245,6 +272,8 @@ export class EmberPool {
   private readonly cool: Uint8Array;
   /** Live embers; they occupy indices 0 to count - 1. */
   count = 0;
+  /** Palettes for burning (warm) and re-forming (cool) embers. */
+  palettes: { warm: EmberPalette; cool: EmberPalette } = DEFAULT_EMBERS;
 
   constructor(
     readonly capacity: number,
@@ -351,7 +380,7 @@ export class EmberPool {
       const t = this.age[i]! / this.life[i]!;
       pos[i * 2] = this.x[i]!;
       pos[i * 2 + 1] = this.y[i]!;
-      const [r, g, b] = emberColor(t, cool);
+      const [r, g, b] = emberColor(t, cool, cool ? this.palettes.cool : this.palettes.warm);
       const al = emberAlpha(t, cool);
       col[i * 4] = r;
       col[i * 4 + 1] = g;
