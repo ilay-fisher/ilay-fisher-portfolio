@@ -5,6 +5,7 @@
 //   node src/sections/Hero/tools/build-marks.mjs > src/sections/Hero/scene/marks.ts
 import * as si from 'simple-icons';
 import fs from 'node:fs';
+import { vendorMarks } from './vendor.mjs';
 
 const pkg = JSON.parse(fs.readFileSync('node_modules/simple-icons/package.json', 'utf8'));
 
@@ -82,6 +83,16 @@ for (const slug of SLUGS) {
   out.push('    source: ' + JSON.stringify(i.source) + ',');
   out.push('    guidelines: ' + JSON.stringify(i.guidelines ?? null) + ',');
   out.push('    licence: ' + JSON.stringify(licence) + ',');
+  out.push('  },');
+}
+for (const [slug, i] of Object.entries(vendorMarks())) {
+  out.push('  ' + JSON.stringify(slug) + ': {');
+  out.push('    title: ' + JSON.stringify(i.title) + ',');
+  out.push('    path: ' + JSON.stringify(i.path) + ',');
+  out.push('    hex: ' + JSON.stringify(i.hex) + ',');
+  out.push('    source: ' + JSON.stringify(i.source) + ',');
+  out.push('    guidelines: ' + JSON.stringify(i.guidelines) + ',');
+  out.push('    licence: ' + JSON.stringify(i.licence) + ',');
   out.push('  },');
 }
 out.push('};');

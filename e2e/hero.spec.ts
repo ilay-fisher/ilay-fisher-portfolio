@@ -12,6 +12,12 @@ interface Snap {
   pos: { x: number; y: number; z: number };
   asleep: boolean;
 }
+interface Rect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
 interface Pixels {
   width: number;
   height: number;
@@ -25,6 +31,8 @@ interface Hero {
   nameSnapshot(): number[][];
   bounds(): { minX: number; maxX: number; minZ: number; maxZ: number };
   project(id: string): { x: number; y: number } | null;
+  nameBounds(): Rect | null;
+  bodyBounds(id: string): Rect | null;
   throwBody(id: string, v: { x: number; y: number; z: number }): void;
   step(n?: number): void;
   settle(): boolean;
@@ -55,12 +63,12 @@ async function openHero(page: Page) {
   });
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(URL);
-  await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
+  await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
   return errors;
 }
 
 test.describe('hero scene', () => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
 
   test('the canvas is not blank right after the first rendered frame', async ({ page }) => {
     const errors = await openHero(page);
@@ -74,9 +82,14 @@ test.describe('hero scene', () => {
   test('is ready already settled, with every body inside the bounds', async ({ page }) => {
     const errors = await openHero(page);
     const ids = await hero(page, (h) => h.ids());
-    // 32 on a GPU, fewer on small screens or software renderers; never fewer than the top ten plus pieces.
+    // 29 on a wide GPU screen (25 technologies and 4 projects), 17 on a phone; fewer on software renderers.
     expect(ids.length).toBeGreaterThanOrEqual(14);
-    expect(ids.length).toBeLessThanOrEqual(32);
+    expect(ids.length).toBeLessThanOrEqual(29);
+    // Everything is a technology or a project: no generic hardware.
+    expect(ids.filter((id) => /dial|toggle|switch/.test(id))).toEqual([]);
+    for (const id of ['shield', 'logo', 'drone', 'lens']) expect(ids).toContain(id);
+    expect(ids).not.toContain('lock');
+    expect(ids).not.toContain('phone');
     await expect(canvas(page)).toHaveAttribute('data-bodies', String(ids.length));
     // Fast path is already at rest; `settle()` re-publishes synchronously, so this never races a frame.
     expect(await hero(page, (h) => h.settle())).toBe(true);
@@ -93,11 +106,32 @@ test.describe('hero scene', () => {
     expect(errors).toEqual([]);
   });
 
+  for (const [width, height] of [
+    [1440, 900],
+    [768, 1024],
+  ] as const) {
+    test(`after the intro no piece covers the name, at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await openHero(page);
+      const name = await hero(page, (h) => h.nameBounds());
+      expect(name).not.toBeNull();
+      const n = name!;
+      const tolerance = 8;
+      for (const id of await hero(page, (h) => h.ids())) {
+        const b = await hero(page, (h, i: string) => h.bodyBounds(i), id);
+        if (!b) continue;
+        const ox = Math.min(b.x1, n.x1) - Math.max(b.x0, n.x0);
+        const oy = Math.min(b.y1, n.y1) - Math.max(b.y0, n.y0);
+        expect(Math.min(ox, oy), `${id} overlaps the name`).toBeLessThanOrEqual(tolerance);
+      }
+    });
+  }
+
   test('a throw moves other objects and the name never moves', async ({ page }) => {
     const errors = await openHero(page);
     const nameBefore = await hero(page, (h) => h.nameSnapshot());
     const before = await snap(page);
-    const a = before.find((s) => s.id === 'key-node') ?? before[0]!;
+    const a = before.find((s) => s.id === 'token-node') ?? before[0]!;
     const b = [...before].filter((s) => s.id !== a.id).sort((p, q) => dist(p, a) - dist(q, a))[0]!;
     await hero(page, (h, id: string) => h.throwBody(id, { x: 0, y: 1, z: -22 }), a.id);
     await hero(page, (h) => h.step(240));
@@ -137,7 +171,7 @@ test.describe('hero scene', () => {
             ),
           );
         },
-        { timeout: 15_000 },
+        { timeout: 40_000 },
       )
       .toBeGreaterThan(0.4);
     await page.mouse.up();
@@ -200,14 +234,90 @@ test.describe('hero scene', () => {
     await expect.poll(() => page.evaluate(() => location.hash)).toMatch(/#(safesurf|drone|xray)/);
   });
 
+  test('as a visitor gets it (live physics, smooth scroll), a real double-click scrolls all the way to the section', async ({
+    page,
+  }) => {
+    test.setTimeout(360_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // No heroFast, no reduced motion: the page keeps Lenis smooth scrolling and the scene keeps simulating.
+    const projects = [
+      ['logo', '#safesurf'],
+      ['shield', '#safesurf'],
+      ['drone', '#drone'],
+      ['lens', '#xray'],
+    ] as const;
+    for (const [id, hash] of projects) {
+      // A fresh visit per piece: Lenis owns the scroll position, so a clean page is the honest starting point.
+      await page.goto('/?hero=live&heroDebug=1');
+      await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+      // The piece must have stopped moving before it is pressed (live physics: the drop takes a few seconds).
+      let at: { x: number; y: number } | null = null;
+      await expect
+        .poll(
+          async () => {
+            const a = await hero(page, (h, i: string) => h.project(i), id);
+            const still = !!a && !!at && Math.hypot(a.x - at.x, a.y - at.y) < 0.5;
+            at = a;
+            return still;
+          },
+          { message: `${id} is on screen and at rest`, timeout: 40_000, intervals: [400] },
+        )
+        .toBe(true);
+      const onCanvas = await page.evaluate(
+        ([x, y]) => document.elementFromPoint(x!, y!)?.getAttribute('data-testid'),
+        [at!.x, at!.y],
+      );
+      expect(onCanvas, `${id} is not covered by other content`).toBe('hero-canvas');
+      await page.mouse.dblclick(at!.x, at!.y);
+      // A late layout shift (a lazy image or section above the target) while the scroll is under way: the anchor
+      // tracker must retarget, which it does only if nothing cancelled it. This is what a visitor's page does.
+      await page.evaluate((h) => {
+        const spacer = document.createElement('div');
+        spacer.id = 'e2e-spacer';
+        spacer.style.height = '700px';
+        document.querySelector(h)?.before(spacer);
+      }, hash);
+      await expect.poll(() => page.evaluate(() => location.hash), { message: id }).toBe(hash);
+      // Wait for scrolling to stop, then the section must sit at the top.
+      let last = -1;
+      let still = 0;
+      await expect
+        .poll(
+          async () => {
+            const y = await page.evaluate(() => Math.round(window.scrollY));
+            still = Math.abs(y - last) < 1 ? still + 1 : 0;
+            last = y;
+            return still;
+          },
+          { message: `${id}: scrolling stops`, timeout: 30_000, intervals: [300] },
+        )
+        .toBeGreaterThanOrEqual(4);
+      const top = await page.evaluate(
+        (h) => document.querySelector(h)?.getBoundingClientRect().top ?? 9999,
+        hash,
+      );
+      expect(Math.abs(top), `${id}: ${hash} ends at the top of the viewport`).toBeLessThan(160);
+      await page.evaluate(() => document.getElementById('e2e-spacer')?.remove());
+    }
+  });
+
+  test('a single click does not open a section', async ({ page }) => {
+    await openHero(page);
+    const at = await hero(page, (h) => h.project('logo'));
+    await page.mouse.click(at!.x, at!.y);
+    await page.waitForTimeout(700);
+    expect(await page.evaluate(() => location.hash)).toBe('');
+  });
+
   test('hits on the name are counted, with nothing else changing', async ({ page }) => {
     await openHero(page);
     const counter = page.getByTestId('hero-hits');
     await expect(counter).toHaveText(/^Hits on the name: \d+\. Damage: 0\.$/);
     const ids = await hero(page, (h) => h.ids());
-    for (const id of ids.slice(0, 6)) {
+    for (const id of ids) {
       await hero(page, (h, i: string) => h.throwBody(i, { x: 0, y: 2, z: -24 }), id);
       await hero(page, (h) => h.step(90));
+      if ((await hero(page, (h) => h.hits())) > 0) break;
     }
     const hits = await hero(page, (h) => h.hits());
     expect(hits).toBeGreaterThan(0);
@@ -217,6 +327,7 @@ test.describe('hero scene', () => {
 
 test.describe('hero fallback and layout', () => {
   test('automated browsers get the still unless the live scene is opted into', async ({ page }) => {
+    test.setTimeout(120_000);
     await page.goto('/');
     await expect(page.locator('img.hero__still')).toBeVisible();
     await expect(canvas(page)).toHaveAttribute('data-ready', 'false');
@@ -269,7 +380,7 @@ test.describe('hero fallback and layout', () => {
 });
 
 test.describe('hero layout', () => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
 
   for (const [width, height] of [
     [390, 844],

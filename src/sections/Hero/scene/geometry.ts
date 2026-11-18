@@ -1,12 +1,13 @@
 import {
   BufferGeometry,
+  CircleGeometry,
   CylinderGeometry,
   ExtrudeGeometry,
   Group,
-  LatheGeometry,
   Material,
   Mesh,
   MeshPhysicalMaterial,
+  Path,
   SphereGeometry,
   Shape,
   ShapePath,
@@ -14,8 +15,12 @@ import {
   Vector2,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { ObjectSpec } from '../logic/catalogue';
 import type { PlacedGlyph } from '../logic/nameLayout';
+import { SHIELD_OUTLINE, tokenFootprint } from '../logic/token';
+import { MARKS } from './marks';
+import { TOKEN_SHAPES } from './tokenData';
 
 /** Materials the builders need; created by `materials.ts`. */
 export interface MaterialSet {
@@ -25,8 +30,18 @@ export interface MaterialSet {
   metal: MeshPhysicalMaterial;
   polished: MeshPhysicalMaterial;
   accent: MeshPhysicalMaterial;
-  /** Dark glossy glass for the phone screen and the lens. */
+  /** Dark glossy glass (camera pod, keyhole, fallback). */
   glass: MeshPhysicalMaterial;
+  /** Thin metal rim of a die-cut token or shield (the plate's side and bevel). */
+  rim?: MeshPhysicalMaterial;
+  /** Raised mark on a token, in white or near-black, whichever reads on the brand colour. */
+  ink?: MeshPhysicalMaterial;
+  /** Brass of the padlock body. */
+  brass?: MeshPhysicalMaterial;
+  /** The SafeSurf logo printed on both faces of its token. */
+  logo?: MeshPhysicalMaterial;
+  /** Magnifier glass showing a tiny circuit. */
+  circuit?: MeshPhysicalMaterial;
 }
 
 /** A built object: the visual group (centred on the body origin) and the materials that react to hover. */
@@ -42,10 +57,80 @@ const mesh = (g: BufferGeometry, m: Material | Material[]) => {
   return x;
 };
 
+/** Closed loop smoothed by corner cutting, so a traced outline reads as a rounded die cut. */
+function chaikin(pts: ReadonlyArray<[number, number]>, rounds: number): Array<[number, number]> {
+  let p = pts.map(([x, y]) => [x, y] as [number, number]);
+  for (let r = 0; r < rounds; r++) {
+    const out: Array<[number, number]> = [];
+    for (let i = 0; i < p.length; i++) {
+      const a = p[i]!;
+      const b = p[(i + 1) % p.length]!;
+      out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+      out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+    }
+    p = out;
+  }
+  return p;
+}
+
+/**
+ * Extrudes outlines (x, z on the floor, +z toward the camera) into a plate lying flat: thickness `h` centred
+ * on y = 0, rounded edges. The sides (rim and edge bevel) take the second material.
+ */
+function plateGeometry(loops: Array<Array<[number, number]>>, h: number, bevel: number) {
+  const shapes = loops.map((l) => new Shape(l.map(([x, z]) => new Vector2(x, -z))));
+  const g = new ExtrudeGeometry(shapes, {
+    depth: Math.max(0.001, h - bevel * 2),
+    bevelEnabled: true,
+    bevelSize: bevel,
+    bevelOffset: -bevel,
+    bevelThickness: bevel,
+    bevelSegments: 4,
+    curveSegments: 6,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, -h / 2 + bevel, 0);
+  return g;
+}
+
+/** Raised flat shapes (the mark, a check) sitting on the plate top. */
+function inlayGeometry(shapes: Shape[], height: number, bevel: number) {
+  const g = new ExtrudeGeometry(shapes, {
+    depth: height - bevel,
+    bevelEnabled: bevel > 0,
+    bevelSize: bevel,
+    bevelThickness: bevel * 0.8,
+    bevelSegments: 2,
+    curveSegments: 6,
+  });
+  g.rotateX(-Math.PI / 2);
+  return g;
+}
+
+/** The official mark as shapes in plate coordinates: centred on the plate, scaled, y down becomes +z. */
+function markShapes(slug: string, unit: number): Shape[] {
+  const mark = MARKS[slug];
+  const t = TOKEN_SHAPES[slug];
+  if (!mark || !t) return [];
+  const data = new SVGLoader().parse(
+    `<svg xmlns="http://www.w3.org/2000/svg"><path d="${mark.path}"/></svg>`,
+  );
+  const out: Shape[] = [];
+  const tx = (v: Vector2) => new Vector2((v.x - t.cx) * unit, -(v.y - t.cy) * unit);
+  for (const p of data.paths)
+    for (const sh of SVGLoader.createShapes(p)) {
+      const { shape, holes } = sh.extractPoints(6);
+      const s = new Shape(shape.map(tx));
+      s.holes = holes.map((hole) => new Path(hole.map(tx)));
+      out.push(s);
+    }
+  return out;
+}
+
 /** Keycap: bevelled block whose top is a little narrower than its base, legend on the top face. */
 function buildKey(spec: ObjectSpec, m: MaterialSet): Group {
   const { w, h, d } = spec.size;
-  const g = new RoundedBoxGeometry(w, h, d, 6, 0.13);
+  const g = new RoundedBoxGeometry(w, h, d, 6, Math.min(w, d) * 0.14);
   const pos = g.attributes.position!;
   for (let i = 0; i < pos.count; i++) {
     const k = 1 - 0.1 * (pos.getY(i) / h + 0.5);
@@ -59,199 +144,187 @@ function buildKey(spec: ObjectSpec, m: MaterialSet): Group {
   return group;
 }
 
-/** Dial: turned alloy cylinder with a knurled edge, a shallow dished top and an accent pointer. */
-function buildDial(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h } = spec.size;
-  const r = w / 2;
-  const t = h / 2;
-  const prof: Vector2[] = [new Vector2(0, -t)];
-  const arc = (cx: number, cy: number, a0: number, a1: number, rad: number) => {
-    for (let i = 0; i <= 6; i++) {
-      const a = a0 + ((a1 - a0) * i) / 6;
-      prof.push(new Vector2(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad));
-    }
-  };
-  arc(r - 0.1, -t + 0.1, -Math.PI / 2, 0, 0.1);
-  arc(r - 0.07, t - 0.07, 0, Math.PI / 2, 0.07);
-  prof.push(new Vector2(r * 0.8, t), new Vector2(r * 0.72, t - 0.03), new Vector2(0, t - 0.06));
-  const lathe = new LatheGeometry(prof, 120);
-  const p = lathe.attributes.position!;
-  for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i);
-    const z = p.getZ(i);
-    const rad = Math.hypot(x, z);
-    if (Math.abs(p.getY(i)) < t - 0.12 && rad > r - 0.03) {
-      const k = (rad + 0.022 * Math.cos(Math.atan2(z, x) * 30)) / rad;
-      p.setX(i, x * k);
-      p.setZ(i, z * k);
-    }
-  }
-  lathe.computeVertexNormals();
+/**
+ * Die-cut token: the logo's silhouette (grown by a thin margin) extruded into a chunky, rounded plate in the
+ * brand colour, a thin metal rim, and the official mark raised on top. Like an enamel pin.
+ */
+function buildToken(spec: ObjectSpec, m: MaterialSet): Group {
+  const { h } = spec.size;
+  const slug = spec.mark!;
+  const t = TOKEN_SHAPES[slug]!;
+  const unit = tokenFootprint(slug, Math.max(spec.size.w, spec.size.d)).unit;
+  const loops = t.cut.map((flat) => {
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i < flat.length; i += 2) pts.push([flat[i]! * unit, flat[i + 1]! * unit]);
+    return chaikin(pts, 2);
+  });
   const group = new Group();
-  group.add(mesh(lathe, m.metal));
-  const pointer = mesh(new RoundedBoxGeometry(0.1, 0.05, 0.4, 3, 0.02), m.accent);
-  pointer.position.set(0, t - 0.035, -r * 0.5);
-  group.add(pointer);
+  const plate = mesh(plateGeometry(loops, h, h * 0.3), [m.body, m.rim ?? m.metal]);
+  group.add(plate);
+  const raise = h * 0.2;
+  const mk = mesh(inlayGeometry(markShapes(slug, unit), raise, raise * 0.35), m.ink ?? m.polished);
+  mk.position.y = h / 2 - 0.002;
+  group.add(mk);
+  // Double sided, like a real pin: the same mark on the back.
+  const back = mk.clone();
+  back.position.y = -(h / 2 - 0.002);
+  back.rotation.x = Math.PI;
+  group.add(back);
   return group;
 }
 
-/** Toggle: anodised base plate, polished collar, brushed lever with an accent tip. */
-function buildToggle(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h, d } = spec.size;
-  const group = new Group();
-  const base = mesh(new RoundedBoxGeometry(w, 0.5, d, 5, 0.14), m.body);
-  base.position.y = -h / 2 + 0.25;
-  group.add(base);
-  const collar = mesh(new CylinderGeometry(0.26, 0.3, 0.12, 40), m.polished);
-  collar.position.y = -h / 2 + 0.56;
-  group.add(collar);
-  const lever = new Group();
-  lever.position.set(0, -h / 2 + 0.6, 0);
-  lever.rotation.z = 0.22;
-  const rod = mesh(new CylinderGeometry(0.1, 0.15, 0.55, 32), m.metal);
-  rod.position.y = 0.27;
-  const tip = mesh(new SphereGeometry(0.17, 32, 20), m.accent);
-  tip.position.y = 0.58;
-  lever.add(rod, tip);
-  group.add(lever);
-  return group;
-}
-
-const shieldShape = (w: number, d: number): Shape => {
-  const s = new Shape();
-  const hw = w / 2;
-  const hd = d / 2;
-  s.moveTo(-hw, hd);
-  s.lineTo(hw, hd);
-  s.lineTo(hw, -hd * 0.1);
-  s.bezierCurveTo(hw, -hd * 0.62, hw * 0.4, -hd * 0.88, 0, -hd);
-  s.bezierCurveTo(-hw * 0.4, -hd * 0.88, -hw, -hd * 0.62, -hw, -hd * 0.1);
-  s.lineTo(-hw, hd);
-  return s;
-};
-
-/** Shield block: a thick bevelled shield with a raised accent inset, lying flat. */
+/** Shield: a die-cut shield in SafeSurf blue with a raised check, the SafeGuard promise. */
 function buildShield(spec: ObjectSpec, m: MaterialSet): Group {
   const { w, h, d } = spec.size;
   const group = new Group();
-  const opts = (depth: number, bevel: number) => ({
-    depth,
-    bevelEnabled: true,
-    bevelSize: bevel,
-    bevelThickness: bevel,
-    bevelSegments: 5,
-    curveSegments: 28,
-  });
-  const body = new ExtrudeGeometry(shieldShape(w - 0.14, d - 0.14), opts(h - 0.14, 0.07));
-  body.rotateX(-Math.PI / 2);
-  body.translate(0, -h / 2 + 0.07, 0);
-  group.add(mesh(body, m.body));
-  const inset = new ExtrudeGeometry(shieldShape(w * 0.52, d * 0.52), opts(0.03, 0.03));
-  inset.rotateX(-Math.PI / 2);
-  inset.translate(0, h / 2 - 0.02, d * 0.02);
-  group.add(mesh(inset, m.accent));
+  const loop = chaikin(
+    SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2) * 0.97, z * (d / 2) * 0.97] as [number, number]),
+    3,
+  );
+  group.add(mesh(plateGeometry([loop], h, h * 0.3), [m.body, m.rim ?? m.metal]));
+  // Raised inner shield rim and a check mark.
+  const inner = chaikin(
+    SHIELD_OUTLINE.map(
+      ([x, z]) => [x * (w / 2) * 0.66, z * (d / 2) * 0.66 + d * 0.01] as [number, number],
+    ),
+    3,
+  );
+  const innerShape = new Shape(inner.map(([x, z]) => new Vector2(x, -z)));
+  const hole = new Path(
+    chaikin(
+      SHIELD_OUTLINE.map(
+        ([x, z]) => [x * (w / 2) * 0.56, z * (d / 2) * 0.56 + d * 0.01] as [number, number],
+      ),
+      3,
+    )
+      .reverse()
+      .map(([x, z]) => new Vector2(x, -z)),
+  );
+  innerShape.holes = [hole];
+  const k = Math.min(w, d) / 2;
+  const tick = new Shape(
+    (
+      [
+        [-0.42, 0.02],
+        [-0.26, -0.14],
+        [-0.08, 0.06],
+        [0.3, -0.38],
+        [0.46, -0.22],
+        [-0.08, 0.4],
+      ] as const
+    ).map(([x, z]) => new Vector2(x * k * 0.95, -(z * k * 0.95 + d * 0.02))),
+  );
+  const raise = h * 0.18;
+  const inlay = mesh(inlayGeometry([innerShape, tick], raise, raise * 0.3), m.ink ?? m.polished);
+  inlay.position.y = h / 2 - 0.002;
+  group.add(inlay);
   return group;
 }
 
-/** Lock block: machined body, polished shackle arc, small key slot. */
-function buildLock(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h, d } = spec.size;
+/**
+ * SafeSurf logo token: a round, double-sided enamel disc with the owner's own logo printed on both faces
+ * (the logo is a raster file, so it is a decal on a disc rather than a cut-out silhouette).
+ */
+function buildLogo(spec: ObjectSpec, m: MaterialSet): Group {
+  const { w, h } = spec.size;
+  const R = w / 2;
   const group = new Group();
-  const body = mesh(new RoundedBoxGeometry(w, 0.5, d, 5, 0.12), m.body);
-  body.position.y = -h / 2 + 0.25;
-  group.add(body);
-  const R = 0.27;
-  const arc = mesh(new TorusGeometry(R, 0.075, 18, 40, Math.PI), m.polished);
-  arc.position.y = -h / 2 + 0.5 + 0.12;
-  group.add(arc);
-  for (const sx of [-1, 1]) {
-    const leg = mesh(new CylinderGeometry(0.075, 0.075, 0.12, 18), m.polished);
-    leg.position.set(sx * R, -h / 2 + 0.5 + 0.06, 0);
-    group.add(leg);
+  const disc = new CylinderGeometry(R, R, h, 48, 1);
+  group.add(mesh(disc, [m.rim ?? m.metal, m.body, m.body]));
+  const decal = new CircleGeometry(R * 0.9, 48);
+  decal.rotateX(-Math.PI / 2);
+  for (const side of [1, -1]) {
+    const face = new Mesh(decal, m.logo ?? m.glass);
+    face.position.y = side * (h / 2 + 0.0015);
+    if (side < 0) face.rotation.x = Math.PI;
+    face.receiveShadow = true;
+    group.add(face);
   }
-  const slot = mesh(new RoundedBoxGeometry(0.08, 0.04, 0.26, 2, 0.015), m.accent);
-  slot.position.set(0, -h / 2 + 0.5, d * 0.28);
-  group.add(slot);
   return group;
 }
 
-/** Phone slab: anodised body, black glass screen set into the top, a small lens at one end. */
-function buildPhone(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h, d } = spec.size;
-  const group = new Group();
-  group.add(mesh(new RoundedBoxGeometry(w, h, d, 5, 0.1), m.body));
-  const screen = mesh(new RoundedBoxGeometry(w - 0.14, 0.03, d - 0.22, 3, 0.012), m.glass);
-  screen.position.set(0, h / 2 - 0.004, 0.02);
-  group.add(screen);
-  const cam = mesh(new CylinderGeometry(0.045, 0.05, 0.03, 24), m.polished);
-  cam.position.set(0, h / 2 + 0.002, -d / 2 + 0.11);
-  group.add(cam);
-  const bar = mesh(new RoundedBoxGeometry(0.26, 0.012, 0.03, 2, 0.006), m.accent);
-  bar.position.set(0, h / 2 + 0.012, d / 2 - 0.15);
-  group.add(bar);
-  return group;
-}
-
-/** Quadcopter: hub, crossed arms, four motors with ringed rotors; the colliders in the physics world match. */
+/** Quadcopter: a body with a camera pod, four diagonal arms, motors and ringed rotors. */
 function buildDrone(spec: ObjectSpec, m: MaterialSet): Group {
   const { w, h } = spec.size;
+  const s = w / 1.9;
   const group = new Group();
-  const hub = mesh(new RoundedBoxGeometry(0.72, h * 0.8, 0.72, 4, 0.14), m.body);
+  const hub = mesh(new RoundedBoxGeometry(0.78 * s, h * 0.8, 0.78 * s, 4, 0.16 * s), m.body);
   group.add(hub);
-  const reach = w / 2 - 0.2;
+  const reach = w / 2 - 0.22 * s;
   for (const a of [Math.PI / 4, -Math.PI / 4]) {
-    const arm = mesh(new RoundedBoxGeometry(reach * 2, 0.12, 0.14, 3, 0.045), m.metal);
+    const arm = mesh(new RoundedBoxGeometry(reach * 2, 0.13 * s, 0.15 * s, 3, 0.05 * s), m.metal);
     arm.rotation.y = a;
     group.add(arm);
   }
-  const o = (w / 2 - 0.3) * 0.7071;
-  const y = h / 2 - 0.05;
+  const o = (w / 2 - 0.33 * s) * 0.7071;
+  const y = h / 2 - 0.2 * s;
   for (const sx of [-1, 1])
     for (const sz of [-1, 1]) {
-      const motor = mesh(new CylinderGeometry(0.1, 0.12, 0.16, 28), m.polished);
-      motor.position.set(sx * o, y - 0.02, sz * o);
+      const foot = mesh(new CylinderGeometry(0.07 * s, 0.1 * s, 0.2 * s, 18), m.body);
+      foot.position.set(sx * o, -h / 2 + 0.1 * s, sz * o);
+      group.add(foot);
+      const motor = mesh(new CylinderGeometry(0.11 * s, 0.13 * s, 0.18 * s, 28), m.polished);
+      motor.position.set(sx * o, y - 0.02 * s, sz * o);
       group.add(motor);
-      const ring = mesh(new TorusGeometry(0.27, 0.03, 12, 40), m.metal);
+      const ring = mesh(new TorusGeometry(0.3 * s, 0.035 * s, 12, 40), m.metal);
       ring.rotation.x = Math.PI / 2;
       ring.position.set(sx * o, y, sz * o);
       group.add(ring);
-      const blade = mesh(new RoundedBoxGeometry(0.5, 0.014, 0.07, 2, 0.006), m.body);
-      blade.position.set(sx * o, y + 0.07, sz * o);
-      blade.rotation.y = sx * sz * 0.6;
-      group.add(blade);
+      for (const a of [0.55, 0.55 + Math.PI / 2]) {
+        const blade = mesh(
+          new RoundedBoxGeometry(0.54 * s, 0.014 * s, 0.075 * s, 2, 0.006),
+          m.accent,
+        );
+        blade.position.set(sx * o, y + 0.08 * s, sz * o);
+        blade.rotation.y = a;
+        group.add(blade);
+      }
     }
-  const led = mesh(new SphereGeometry(0.06, 20, 12), m.accent);
-  led.position.set(0, 0.02, -0.38);
+  // Camera pod at the front (toward the viewer) and a status light at the back.
+  const pod = mesh(new SphereGeometry(0.17 * s, 24, 16), m.glass);
+  pod.position.set(0, -0.02 * s, 0.4 * s);
+  group.add(pod);
+  const led = mesh(new SphereGeometry(0.06 * s, 20, 12), m.accent);
+  led.position.set(0, h * 0.4, -0.3 * s);
   group.add(led);
   return group;
 }
 
-/** Lens: polished ring with a glass disc, and a handle; centred on its bounding box like the colliders. */
+/** Magnifier: a brass ring around a glass disc that shows a tiny circuit, with a handle running to the lower right. */
 function buildLens(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, d, h } = spec.size;
+  const { w, h } = spec.size;
+  const u = w / 1.82;
+  const ring = 0.62 * u;
+  const c = -0.28 * u;
   const group = new Group();
-  const r = Math.min(w, d) / 2;
-  const zr = -d / 2 + r;
-  const ring = mesh(new TorusGeometry(r - 0.1, 0.1, 18, 56), m.polished);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.set(0, 0, zr);
-  group.add(ring);
-  const glass = mesh(new CylinderGeometry(r - 0.1, r - 0.1, 0.05, 56), m.glass);
-  glass.position.set(0, 0, zr);
+  const tube = Math.min(h * 0.5, ring * 0.22);
+  const rim = mesh(new TorusGeometry(ring - tube, tube, 18, 56), m.polished);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.set(c, 0, c);
+  group.add(rim);
+  const glass = mesh(
+    new CylinderGeometry(ring - tube, ring - tube, h * 0.35, 56),
+    m.circuit ?? m.glass,
+  );
+  glass.position.set(c, 0, c);
   group.add(glass);
-  const hl = d - 2 * r + 0.12;
-  const handle = mesh(new CylinderGeometry(0.085, 0.1, hl, 28), m.body);
-  handle.rotation.x = Math.PI / 2;
-  handle.position.set(0, 0, d / 2 - hl / 2);
-  group.add(handle);
-  const collar = mesh(new CylinderGeometry(0.115, 0.115, 0.1, 28), m.accent);
+  const from = ring - 0.04 * u;
+  const to = 1.55 * u;
+  const mid = c + ((from + to) / 2) * 0.7071;
+  const arm = new Group();
+  arm.position.set(mid, 0, mid);
+  arm.rotation.y = Math.PI / 4;
+  const grip = mesh(new CylinderGeometry(0.095 * u, 0.12 * u, to - from, 28), m.body);
+  grip.rotation.x = Math.PI / 2;
+  arm.add(grip);
+  const collar = mesh(new CylinderGeometry(0.13 * u, 0.13 * u, 0.12 * u, 28), m.accent);
   collar.rotation.x = Math.PI / 2;
-  collar.position.set(0, 0, zr + r + 0.02);
-  group.add(collar);
-  const cap = mesh(new SphereGeometry(0.1, 20, 14), m.metal);
-  cap.position.set(0, 0, d / 2 - 0.02);
-  group.add(cap);
-  void h;
+  collar.position.z = -(to - from) / 2 + 0.03 * u;
+  arm.add(collar);
+  const cap = mesh(new SphereGeometry(0.12 * u, 20, 14), m.metal);
+  cap.position.z = (to - from) / 2;
+  arm.add(cap);
+  group.add(arm);
   return group;
 }
 
@@ -260,20 +333,16 @@ export function buildObject(spec: ObjectSpec, m: MaterialSet): BuiltObject {
   const group =
     spec.kind === 'key'
       ? buildKey(spec, m)
-      : spec.kind === 'dial'
-        ? buildDial(spec, m)
-        : spec.kind === 'toggle'
-          ? buildToggle(spec, m)
-          : spec.kind === 'shield'
-            ? buildShield(spec, m)
-            : spec.kind === 'lock'
-              ? buildLock(spec, m)
-              : spec.kind === 'phone'
-                ? buildPhone(spec, m)
-                : spec.kind === 'drone'
-                  ? buildDrone(spec, m)
-                  : buildLens(spec, m);
-  const hoverMaterials = [m.body, m.top, m.metal, m.polished].filter(
+      : spec.kind === 'token'
+        ? buildToken(spec, m)
+        : spec.kind === 'shield'
+          ? buildShield(spec, m)
+          : spec.kind === 'logo'
+            ? buildLogo(spec, m)
+            : spec.kind === 'drone'
+              ? buildDrone(spec, m)
+              : buildLens(spec, m);
+  const hoverMaterials = [m.body, m.top, m.metal, m.polished, m.brass, m.ink, m.rim, m.logo].filter(
     (x): x is MeshPhysicalMaterial => Boolean(x),
   );
   return { group, hoverMaterials };

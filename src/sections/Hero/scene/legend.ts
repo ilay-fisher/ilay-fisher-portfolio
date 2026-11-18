@@ -1,7 +1,7 @@
 import { CanvasTexture, LinearFilter, LinearMipmapLinearFilter, SRGBColorSpace } from 'three';
 
 /** Pixel density of legend textures: crisp when a key is about 90 px wide on a 2x screen. */
-const PX_PER_UNIT = 240;
+const PX_PER_UNIT = 400;
 
 /** The three canvases of one printed key top. */
 export interface LegendTextures {

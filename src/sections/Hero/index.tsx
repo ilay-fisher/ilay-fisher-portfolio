@@ -66,16 +66,19 @@ export default function Hero() {
     log.info('mode', { mode, reason });
   }, [mode, reason]);
 
-  // Double-click or Enter on a project piece: scroll to its section (instant under reduced motion).
-  const goTo = useCallback(
-    (hash: string) => {
-      const target = document.getElementById(hash.replace(/^#/, ''));
-      if (!target) return;
-      target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-      history.replaceState(null, '', hash);
-    },
-    [reduced],
-  );
+  // Double-click or Enter on a project piece: go to its section through the same anchor navigation as the nav
+  // links. A real `<a href="#id">` click is what Lenis (smooth scroll, `anchors: true`) handles, and under
+  // reduced motion it is the browser's own anchor jump. Calling `scrollIntoView` here instead made the browser's
+  // smooth scroll fight Lenis, which could stop the page far short of the section.
+  const goTo = useCallback((hash: string) => {
+    if (!document.getElementById(hash.replace(/^#/, ''))) return;
+    const a = document.createElement('a');
+    a.href = hash;
+    a.hidden = true;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, []);
 
   // Load the 3D chunk after first paint so the text is never waiting on it.
   useEffect(() => {

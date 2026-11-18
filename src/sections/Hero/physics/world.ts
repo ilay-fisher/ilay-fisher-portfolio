@@ -2,6 +2,7 @@ import {
   Body,
   Box,
   ContactEquation,
+  ConvexPolyhedron,
   ContactMaterial,
   GSSolver,
   Material,
@@ -13,6 +14,7 @@ import {
 import type { Bounds, Vec3 } from '../logic/camera';
 import type { ObjectSpec } from '../logic/catalogue';
 import { clampVec, springAccel } from '../logic/drag';
+import { regularPolygon, SHIELD_OUTLINE, tokenFootprint } from '../logic/token';
 import type { Box as BoxDef } from '../logic/nameLayout';
 import type { SpawnPlan } from '../logic/spawn';
 
@@ -80,13 +82,13 @@ export class PhysicsWorld {
     (this.world.solver as GSSolver).iterations = 14;
     this.world.defaultContactMaterial.contactEquationRelaxation = 4;
     this.world.addContactMaterial(
-      new ContactMaterial(this.thing, this.thing, { friction: 0.38, restitution: 0.22 }),
+      new ContactMaterial(this.thing, this.thing, { friction: 0.2, restitution: 0.3 }),
     );
     this.world.addContactMaterial(
-      new ContactMaterial(this.thing, this.solid, { friction: 0.5, restitution: 0.28 }),
+      new ContactMaterial(this.thing, this.solid, { friction: 0.3, restitution: 0.3 }),
     );
     this.world.addContactMaterial(
-      new ContactMaterial(this.thing, this.monument, { friction: 0.3, restitution: 0.42 }),
+      new ContactMaterial(this.thing, this.monument, { friction: 0.25, restitution: 0.45 }),
     );
     this.buildWalls();
     for (const b of nameColliders) {
@@ -141,7 +143,7 @@ export class PhysicsWorld {
     this.bounds = bounds;
     this.buildWalls();
     for (const [id, body] of this.bodies) {
-      const r = Math.hypot(this.specs.get(id)!.size.w, this.specs.get(id)!.size.d) / 2;
+      const r = this.specs.get(id)!.radius;
       const x = Math.min(Math.max(body.position.x, bounds.minX + r), bounds.maxX - r);
       const z = Math.min(Math.max(body.position.z, bounds.minZ + r), bounds.maxZ - r);
       if (x !== body.position.x || z !== body.position.z) {
@@ -161,42 +163,55 @@ export class PhysicsWorld {
     };
     const addAt = (hx: number, hy: number, hz: number, x: number, y: number, z: number) =>
       body.addShape(new Box(new CVec3(hx, hy, hz)), new CVec3(x, y, z));
+    const prism = (poly: ReadonlyArray<[number, number]>, y = 0, thick = h, x = 0, z = 0) =>
+      body.addShape(convexPrism(poly, thick), new CVec3(x, y, z));
     switch (spec.kind) {
-      case 'phone':
-        add(w / 2, h / 2, d / 2);
+      case 'token': {
+        // The die-cut silhouette's convex outline, extruded: a chunky pin that slides and tumbles.
+        prism(tokenFootprint(spec.mark!, Math.max(w, d)).hull);
+        break;
+      }
+      case 'shield':
+        prism(SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2), z * (d / 2)]));
+        break;
+      case 'logo':
+        // A round token: a regular polygon prism that rolls a little and settles flat.
+        prism(regularPolygon(18, w / 2));
         break;
       case 'drone': {
         // Hub, two crossed arms and four rotor guards: stays a sturdy compound when it lands on its side.
-        add(0.36, h / 2, 0.36);
-        const arm = w / 2 - 0.2;
-        add(arm, 0.06, 0.07, 0, Math.PI / 4);
-        add(arm, 0.06, 0.07, 0, -Math.PI / 4);
-        const o = (w / 2 - 0.3) * 0.7071;
+        const s = w / 1.9;
+        add(0.4 * s, h / 2, 0.4 * s);
+        const arm = w / 2 - 0.22 * s;
+        add(arm, 0.07 * s, 0.08 * s, 0, Math.PI / 4);
+        add(arm, 0.07 * s, 0.08 * s, 0, -Math.PI / 4);
+        const o = (w / 2 - 0.33 * s) * 0.7071;
         for (const sx of [-1, 1])
-          for (const sz of [-1, 1]) addAt(0.3, 0.05, 0.3, sx * o, h / 2 - 0.05, sz * o);
+          for (const sz of [-1, 1]) {
+            // Rotor guards sit below the hub's top, and skids reach the ground: upright is the stable pose.
+            addAt(0.33 * s, 0.05 * s, 0.33 * s, sx * o, h / 2 - 0.2 * s, sz * o);
+            addAt(0.1 * s, 0.1 * s, 0.1 * s, sx * o, -h / 2 + 0.1 * s, sz * o);
+          }
         break;
       }
       case 'lens': {
-        // Ring at the far end, handle toward the near end; the group is centred on the bounding box.
-        const r = Math.min(w, d) / 2;
-        addAt(r, h / 2, r, 0, 0, -d / 2 + r);
-        addAt(0.1, 0.1, (d - 2 * r) / 2 + 0.05, 0, 0, d / 2 - (d - 2 * r) / 2);
+        // A magnifier: a ring at the upper left and a handle running down to the lower right.
+        const u = w / 1.82;
+        const ring = 0.62 * u;
+        const c = -0.28 * u;
+        prism(regularPolygon(14, ring), 0, h, c, c);
+        const from = ring - 0.04 * u;
+        const to = 1.55 * u;
+        const q = new Quaternion();
+        q.setFromEuler(0, -Math.PI / 4, 0);
+        const mid = c + ((from + to) / 2) * 0.7071;
+        body.addShape(
+          new Box(new CVec3((to - from) / 2, h * 0.4, 0.1 * u)),
+          new CVec3(mid, 0, mid),
+          q,
+        );
         break;
       }
-      case 'dial': {
-        const a = w / 2 / 1.0824;
-        add(a, h / 2, a);
-        add(a, h / 2, a, 0, Math.PI / 4);
-        break;
-      }
-      case 'toggle':
-        add(w / 2, 0.25, d / 2, -h / 2 + 0.25);
-        add(0.2, (h - 0.5) / 2, 0.2, -h / 2 + 0.5 + (h - 0.5) / 2);
-        break;
-      case 'lock':
-        add(w / 2, 0.25, d / 2, -h / 2 + 0.25);
-        add(w / 2 - 0.3, (h - 0.5) / 2, 0.12, -h / 2 + 0.5 + (h - 0.5) / 2);
-        break;
       default:
         add(w / 2, h / 2, d / 2);
     }
@@ -208,6 +223,7 @@ export class PhysicsWorld {
     body.velocity.set(0, 0, plan.vz ?? 0);
     body.angularVelocity.set(0, 0, 0);
     body.previousPosition.copy(body.position);
+    this.toppleSteps.delete(this.idOf.get(body) ?? '');
     body.wakeUp();
   }
 
@@ -248,6 +264,7 @@ export class PhysicsWorld {
 
   /** Teleports a body and gives it a velocity (clamped). Used by tests and by the throw. */
   throwBody(id: string, pos: Vec3, vel: Vec3): void {
+    this.toppleSteps.delete(id);
     const body = this.bodies.get(id);
     if (!body) return;
     body.position.set(pos.x, pos.y, pos.z);
@@ -310,6 +327,7 @@ export class PhysicsWorld {
       p.q.copy(body.quaternion);
     }
     if (this.grab) this.applyGrab(this.grab);
+    this.topple();
     this.world.step(this.step);
     this.time += this.step;
     for (const body of this.bodies.values()) {
@@ -320,6 +338,44 @@ export class PhysicsWorld {
         body.position.set(0, 3, 2);
         body.velocity.set(0, 0, 0);
       }
+    }
+  }
+
+  /**
+   * A thin piece balanced on its edge is an unstable equilibrium that a solver with friction can hold
+   * forever. Real pieces fall over; nudge slow, upright flat pieces toward lying down.
+   */
+  private readonly toppleSteps = new Map<string, number>();
+
+  private topple(): void {
+    for (const [id, body] of this.bodies) {
+      if (this.grab?.id === id) continue;
+      const kind = this.specs.get(id)?.kind;
+      if (!kind) continue;
+      if (body.velocity.length() > 0.8 || body.angularVelocity.length() > 2) continue;
+      const q = body.quaternion;
+      const ux = 2 * (q.x * q.y - q.z * q.w);
+      const uy = 1 - 2 * (q.x * q.x + q.z * q.z);
+      const uz = 2 * (q.y * q.z + q.x * q.w);
+      const sided = kind !== 'token' && kind !== 'logo';
+      if (body.position.y > 1.2 || (uy > 0.96 && uy <= 1) || (uy < -0.96 && !sided)) continue;
+      // A piece jammed against its neighbours gets a few seconds of help, then is left to sleep.
+      const used = this.toppleSteps.get(id) ?? 0;
+      if (used > 480) continue;
+      this.toppleSteps.set(id, used + 1);
+      if (body.sleepState === Body.SLEEPING) body.wakeUp();
+      // Anything with a printed or lit top (all but the double-sided tokens) is nudged face up; tokens take the nearer flat side.
+      const sy = sided || uy >= 0 ? 1 : -1;
+      // up x (sy * worldY): the axis that rotates the plate's normal toward vertical.
+      // Stronger the closer to upright, where the ground's restitution would otherwise bounce it back.
+      const k = body.mass * (2.2 + 8 * Math.max(0, 1 - Math.abs(uy) / 0.25));
+      if (sided && uy < -0.7) {
+        // Upside down is balanced too: kick it over so the printed side faces up.
+        if (body.angularVelocity.length() < 0.5) body.angularVelocity.x += 6;
+        continue;
+      }
+      body.torque.x += (uy * 0 - uz * sy) * k;
+      body.torque.z += (ux * sy - 0) * k;
     }
   }
 
@@ -420,4 +476,30 @@ export class PhysicsWorld {
   wakeAll(): void {
     for (const b of this.bodies.values()) b.wakeUp();
   }
+}
+
+/** A convex prism (outline in x, z; thickness along y) centred on the origin, with CCW faces for cannon. */
+export function convexPrism(
+  poly: ReadonlyArray<[number, number]>,
+  thick: number,
+): ConvexPolyhedron {
+  const n = poly.length;
+  const verts: CVec3[] = [];
+  for (const [x, z] of poly) verts.push(new CVec3(x, thick / 2, z));
+  for (const [x, z] of poly) verts.push(new CVec3(x, -thick / 2, z));
+  const faces: number[][] = [
+    Array.from({ length: n }, (_, i) => i),
+    Array.from({ length: n }, (_, i) => n + i),
+  ];
+  for (let i = 0; i < n; i++) faces.push([i, (i + 1) % n, n + ((i + 1) % n), n + i]);
+  // Wind every face counter-clockwise seen from outside (the solid is centred on the origin).
+  for (const f of faces) {
+    const [a, b, c] = [verts[f[0]!]!, verts[f[1]!]!, verts[f[2]!]!];
+    const nrm = b.vsub(a).cross(c.vsub(b));
+    const centre = new CVec3();
+    for (const i of f) centre.vadd(verts[i]!, centre);
+    centre.scale(1 / f.length, centre);
+    if (nrm.dot(centre) < 0) f.reverse();
+  }
+  return new ConvexPolyhedron({ vertices: verts, faces });
 }

@@ -2,10 +2,10 @@
 /**
  * Generates the hero's committed stills and report evidence from the real scene.
  *
- *   npm run dev -- --port 5187   (in another shell)
+ *   npm run dev -- --port 5189   (in another shell)
  *   node src/sections/Hero/tools/build-evidence.mjs
  *
- * Writes public/hero/still-{desktop,mobile}.webp (transparent, text hidden),
+ * Writes public/hero/still-{desktop,mobile}.webp (the tablet viewport only gets report images) (transparent, text hidden),
  * docs/reports/img/hero-*.png, docs/reports/video/hero.webm and prints frame times.
  * Uses the machine GPU (ANGLE Metal) so frame times are real, not software GL.
  * Needs: @playwright/test, cwebp, python3 with Pillow (contact sheets).
@@ -15,13 +15,14 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-const BASE = process.env.HERO_URL ?? 'http://localhost:5187';
+const BASE = process.env.HERO_URL ?? 'http://localhost:5189';
 const OUT_IMG = 'docs/reports/img';
 const OUT_VIDEO = 'docs/reports/video';
 const OUT_STILL = 'public/hero';
 const TMP = process.env.HERO_TMP ?? '/tmp/hero-evidence';
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
+  { name: 'tablet', width: 768, height: 1024 },
   { name: 'mobile', width: 390, height: 844 },
 ];
 const SEED = 7;
@@ -102,13 +103,14 @@ for (const vp of VIEWPORTS) {
   });
   const png = join(TMP, `still-${vp.name}.png`);
   await page.locator('canvas.hero__canvas').screenshot({ path: png, omitBackground: true });
-  execFileSync(
-    'cwebp',
-    ['-q', '84', '-alpha_q', '92', '-m', '6', png, '-o', `${OUT_STILL}/still-${vp.name}.webp`],
-    {
-      stdio: 'ignore',
-    },
-  );
+  if (vp.name !== 'tablet')
+    execFileSync(
+      'cwebp',
+      ['-q', '84', '-alpha_q', '92', '-m', '6', png, '-o', `${OUT_STILL}/still-${vp.name}.webp`],
+      {
+        stdio: 'ignore',
+      },
+    );
   await ctx.close();
 
   // Mid-throw.

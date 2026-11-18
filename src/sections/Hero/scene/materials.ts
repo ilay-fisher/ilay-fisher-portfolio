@@ -3,6 +3,7 @@ import type { ObjectSpec } from '../logic/catalogue';
 import type { MaterialSet } from './geometry';
 import type { Palette } from './css';
 import type { LegendTextures } from './legend';
+import { MARKS } from './marks';
 
 const tone = (hex: string, shade: number, spread = 0.035): Color => {
   const c = new Color(hex);
@@ -11,9 +12,49 @@ const tone = (hex: string, shade: number, spread = 0.035): Color => {
   return c.setHSL(hsl.h, hsl.s, Math.max(0.02, hsl.l + (shade - 0.5) * spread));
 };
 
+const luminance = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+
+/** Cream enamel of a token plate: reads on the dark stage and carries any brand colour. */
+const TOKEN_ENAMEL = '#ecebe5';
+
+/** The brand's own colour for the raised mark; only darkened when it would vanish on cream enamel. */
+export function markColor(hex: string): Color {
+  const c = new Color(`#${hex.replace('#', '')}`);
+  const hsl = { h: 0, s: 0, l: 0 };
+  c.getHSL(hsl);
+  return luminance(c) > 0.55 ? c.setHSL(hsl.h, hsl.s, hsl.l * 0.72) : c;
+}
+
 /** Base body material for a finish: anodised aluminium, glazed ceramic or machined alloy. */
 export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMaterial {
   const s = spec.shade;
+  if (spec.kind === 'token' && spec.mark && MARKS[spec.mark]) {
+    return new MeshPhysicalMaterial({
+      color: TOKEN_ENAMEL,
+      roughness: 0.26,
+      metalness: 0.04,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+    });
+  }
+  if (spec.kind === 'shield') {
+    return new MeshPhysicalMaterial({
+      color: '#1d4fd8',
+      roughness: 0.26,
+      metalness: 0.04,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+    });
+  }
+  if (spec.kind === 'logo') {
+    return new MeshPhysicalMaterial({
+      color: TOKEN_ENAMEL,
+      roughness: 0.26,
+      metalness: 0.04,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+    });
+  }
   if (spec.accentBody) {
     return new MeshPhysicalMaterial({
       color: palette.accentDeep.clone().multiplyScalar(0.8),
@@ -55,6 +96,7 @@ export function materialSet(
   spec: ObjectSpec,
   palette: Palette,
   legend: LegendTextures | null,
+  extras: { logo?: Texture; circuit?: Texture } = {},
 ): MaterialSet {
   const body = bodyMaterial(spec, palette);
   let top: MeshPhysicalMaterial | undefined;
@@ -95,7 +137,49 @@ export function materialSet(
     clearcoatRoughness: 0.04,
     envMapIntensity: 1.2,
   });
-  return { body, top, metal, polished, accent, glass };
+  const markHex = spec.mark && MARKS[spec.mark] ? MARKS[spec.mark]!.hex : null;
+  const ink = new MeshPhysicalMaterial({
+    color: markHex ? markColor(markHex) : '#ffffff',
+    roughness: 0.3,
+    metalness: 0,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.12,
+  });
+  const rim = new MeshPhysicalMaterial({
+    color: '#d6d9de',
+    metalness: 1,
+    roughness: 0.2,
+    clearcoat: 0.4,
+  });
+  const brass = new MeshPhysicalMaterial({
+    color: '#c9a24a',
+    metalness: 1,
+    roughness: 0.25,
+    clearcoat: 0.3,
+  });
+  const logo = new MeshPhysicalMaterial({
+    color: '#ffffff',
+    roughness: 0.2,
+    metalness: 0,
+    clearcoat: 1,
+    clearcoatRoughness: 0.05,
+    map: extras.logo ?? null,
+    emissive: '#ffffff',
+    emissiveMap: extras.logo ?? null,
+    emissiveIntensity: 0.28,
+    alphaTest: 0.5,
+  });
+  const circuit = new MeshPhysicalMaterial({
+    color: '#0c2a26',
+    roughness: 0.1,
+    metalness: 0.2,
+    clearcoat: 1,
+    map: extras.circuit ?? null,
+    emissive: '#ffffff',
+    emissiveMap: extras.circuit ?? null,
+    emissiveIntensity: 0.35,
+  });
+  return { body, top, metal, polished, accent, glass, rim, ink, brass, logo, circuit };
 }
 
 /** The name's materials: brushed warm-white alloy letters on dark anodised plinths. */

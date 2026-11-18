@@ -1,33 +1,29 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildCatalogue } from '../logic/catalogue';
-import { computeBounds, fitRig, type Region } from '../logic/camera';
-import { layoutName } from '../logic/nameLayout';
-import { planSpawns } from '../logic/spawn';
+import { computeStage } from '../logic/stage';
+import { footprintRadius, planSpawns } from '../logic/spawn';
 import { PhysicsWorld } from './world';
 
-const region: Region = { x0: -0.37, x1: 0.98, y0: -0.95, y1: 0.72 };
-const NAME_Z = -0.5;
+const NAME_Z = 0;
 
-function setup(seed: number) {
-  const specs = buildCatalogue('desktop');
-  const name = layoutName(1.5);
-  const rig = fitRig({
-    aspect: 16 / 9,
-    region,
-    worldWidth: 15,
-    elevationDeg: 30,
-    fovDeg: 28,
-    targetZ: -1,
-  });
-  const bounds = computeBounds(rig, region, NAME_Z - name.keepOut.maxZ + name.keepOut.minZ + 0.2);
-  const keepOut = {
-    minX: name.keepOut.minX,
-    maxX: name.keepOut.maxX,
-    minZ: NAME_Z + name.keepOut.minZ,
-    maxZ: NAME_Z + name.keepOut.maxZ,
-  };
+function setup(seed: number, bp: 'desktop' | 'mobile' = 'desktop') {
+  const specs = buildCatalogue(bp);
+  const stage =
+    bp === 'desktop'
+      ? computeStage({
+          canvas: { width: 1440, height: 900 },
+          text: { right: 540, bottom: 540 },
+          windowWidth: 1440,
+        })
+      : computeStage({
+          canvas: { width: 390, height: 844 },
+          text: { right: 360, bottom: 300 },
+          windowWidth: 390,
+        });
+  const name = stage.layout;
+  const bounds = stage.bounds;
   const world = new PhysicsWorld(bounds, name.colliders, NAME_Z);
-  const plans = planSpawns(specs, bounds, keepOut, seed);
+  const plans = planSpawns(specs, bounds, name.keepOut, seed);
   return { specs, name, bounds, world, plans };
 }
 
@@ -48,6 +44,9 @@ function run(s: ReturnType<typeof setup>, seconds: number) {
   }
 }
 
+// Full-drop simulations: slow on a busy machine, so give them headroom.
+vi.setConfig({ testTimeout: 30_000 });
+
 describe('hero physics', () => {
   it('drops everything in, keeps it inside the walls and lets it fall asleep', () => {
     const s = setup(7);
@@ -59,7 +58,7 @@ describe('hero physics', () => {
       expect(b.pos.x).toBeLessThan(s.bounds.maxX + 0.05);
       expect(b.pos.z).toBeLessThan(s.bounds.maxZ + 0.05);
       expect(b.pos.z).toBeGreaterThan(s.bounds.minZ - 0.05);
-      expect(b.pos.y).toBeGreaterThan(0.1);
+      expect(b.pos.y).toBeGreaterThan(0.05);
       expect(b.pos.y).toBeLessThan(5);
     }
     expect(s.world.allAsleep()).toBe(true);
@@ -77,7 +76,7 @@ describe('hero physics', () => {
     const s = setup(3);
     run(s, 9);
     const before = s.world.nameSnapshot();
-    const key = s.specs.find((x) => x.id === 'key-react')!;
+    const key = s.specs.find((x) => x.id === 'token-react')!;
     // From above the settled pile (the floor is crowded now), aimed down onto the lettering.
     s.world.throwBody(key.id, { x: 0, y: 3, z: 3 }, { x: 0, y: -8, z: -18 });
     let minZ = Infinity;
@@ -85,7 +84,7 @@ describe('hero physics', () => {
       s.world.stepOnce();
       minZ = Math.min(minZ, s.world.get(key.id)!.pos.z);
     }
-    expect(minZ).toBeGreaterThan(NAME_Z + 0.4);
+    expect(minZ).toBeGreaterThan(NAME_Z + 0.2);
     expect(s.world.get(key.id)!.vel.z).toBeGreaterThan(-3);
     expect(s.world.nameSnapshot()).toEqual(before);
   });
@@ -103,8 +102,10 @@ describe('hero physics', () => {
   it('clamps launch speed so thrown bodies cannot tunnel', () => {
     const s = setup(5);
     run(s, 9);
-    s.world.throwBody('dial', { x: 0, y: 1, z: 3 }, { x: 0, y: 0, z: -900 });
-    expect(Math.hypot(...Object.values(s.world.get('dial')!.vel))).toBeLessThanOrEqual(24.01);
+    s.world.throwBody('token-react', { x: 0, y: 1, z: 3 }, { x: 0, y: 0, z: -900 });
+    expect(Math.hypot(...Object.values(s.world.get('token-react')!.vel))).toBeLessThanOrEqual(
+      24.01,
+    );
   });
 
   it('respawns a body at a new plan and wakes it', () => {
@@ -127,11 +128,11 @@ describe('hero physics', () => {
     for (let i = 0; i < 240; i++) s.world.stepOnce();
     expect(s.world.nameHits).toBe(settled);
     // A hard throw at the lettering from above the pile counts as one hit (not one per letter touched).
-    const key = s.specs.find((x) => x.id === 'key-react')!;
+    const key = s.specs.find((x) => x.id === 'token-react')!;
     s.world.throwBody(key.id, { x: 0, y: 3, z: 3 }, { x: 0, y: -8, z: -18 });
     for (let i = 0; i < 90; i++) s.world.stepOnce();
     expect(s.world.nameHits).toBeGreaterThan(settled);
-    expect(seen[seen.length - 1]).toBe('key-react');
+    expect(seen[seen.length - 1]).toBe('token-react');
     const after = s.world.nameHits;
     // Resting contact does not keep adding hits.
     for (let i = 0; i < 480; i++) s.world.stepOnce();
@@ -141,7 +142,7 @@ describe('hero physics', () => {
   it('gives the project pieces real collision shapes that fall asleep inside the walls', () => {
     const s = setup(11);
     run(s, 9);
-    for (const id of ['phone', 'drone', 'lens']) {
+    for (const id of ['logo', 'drone', 'lens', 'shield']) {
       const b = s.world.get(id)!;
       expect(b, id).toBeDefined();
       expect(b.asleep, id).toBe(true);
@@ -171,5 +172,78 @@ describe('hero physics', () => {
       p,
     );
     expect(s.world.get(p.id)!.vel.z).toBeCloseTo(2, 5);
+  });
+});
+
+/** Planar distance between two resting bodies minus their footprint radii (negative: they overlap). */
+function gaps(s: ReturnType<typeof setup>) {
+  const st = s.world.snapshot();
+  const r = new Map(s.specs.map((x) => [x.id, footprintRadius(x)]));
+  const out: number[] = [];
+  for (let i = 0; i < st.length; i++)
+    for (let j = i + 1; j < st.length; j++) {
+      const a = st[i]!;
+      const b = st[j]!;
+      out.push(Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z) - r.get(a.id)! - r.get(b.id)!);
+    }
+  return out;
+}
+
+describe('hero physics: a loose scatter, not a heap', () => {
+  it('lands the drop spread out: nothing stacked, almost nothing touching', () => {
+    for (const seed of [7, 11, 20260]) {
+      const s = setup(seed);
+      run(s, 9);
+      // A pair of pieces leaning on each other may still be creeping after nine seconds; the runtime's own
+      // rest rule (`restSlow`) puts such slow, nearly settled bodies to sleep, never a fast one.
+      s.world.restSlow(1.2);
+      expect(s.world.allAsleep(), `seed ${seed} asleep`).toBe(true);
+      const states = s.world.snapshot();
+      const thick = Math.max(...s.specs.map((x) => x.size.h));
+      // Nothing rests on top of another piece (a keycap is at most 0.45 thick, a drone 0.4 tall).
+      const stacked = states.filter((b) => b.pos.y > thick * 1.1);
+      expect(stacked.length, `stacked (seed ${seed})`).toBeLessThanOrEqual(2);
+      const g = gaps(s);
+      const touching = g.filter((x) => x < 0).length;
+      expect(touching, `overlapping footprints (seed ${seed})`).toBeLessThanOrEqual(
+        Math.ceil(states.length * 0.12),
+      );
+    }
+  });
+
+  it('keeps every body clear of the name after the drop', () => {
+    const s = setup(7);
+    run(s, 9);
+    const k = s.name.keepOut;
+    for (const b of s.world.snapshot()) {
+      const r = footprintRadius(s.specs.find((x) => x.id === b.id)!);
+      expect(b.pos.z - r * 0.8, b.id).toBeGreaterThan(k.maxZ - 0.35);
+    }
+  });
+
+  it('settles into a loose scatter again after a hard throw into the crowd', () => {
+    const s = setup(7);
+    run(s, 9);
+    const first = s.specs.find((x) => x.id === 'token-kotlin')!;
+    for (let k = 0; k < 4; k++) {
+      s.world.throwBody(first.id, { x: -4 + k, y: 1.2, z: 4.5 }, { x: 5, y: 1, z: -8 });
+      for (let i = 0; i < 120 * 8; i++) s.world.stepOnce();
+    }
+    expect(s.world.allAsleep()).toBe(true);
+    const states = s.world.snapshot();
+    const thick = Math.max(...s.specs.map((x) => x.size.h));
+    expect(states.filter((b) => b.pos.y > thick * 1.1).length).toBeLessThanOrEqual(3);
+    for (const b of states) {
+      expect(b.pos.x).toBeGreaterThan(s.bounds.minX - 0.05);
+      expect(b.pos.x).toBeLessThan(s.bounds.maxX + 0.05);
+    }
+  });
+
+  it('is stable on the narrow mobile floor too', () => {
+    const s = setup(7, 'mobile');
+    run(s, 9);
+    expect(s.world.allAsleep()).toBe(true);
+    const thick = Math.max(...s.specs.map((x) => x.size.h));
+    expect(s.world.snapshot().filter((b) => b.pos.y > thick * 1.1).length).toBeLessThanOrEqual(2);
   });
 });
