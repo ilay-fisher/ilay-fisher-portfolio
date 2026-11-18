@@ -1,0 +1,450 @@
+.xray {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-4);
+}
+@media (min-width: 900px) {
+  .xray {
+    padding: var(--space-6);
+  }
+}
+
+/* controls */
+.xray__bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.xray__presets,
+.xray__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.xray__chip {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  font-size: var(--step--1);
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+@media (min-width: 600px) {
+  .xray__chip {
+    padding: 0 var(--space-4);
+  }
+}
+.xray__chip:hover {
+  color: var(--text);
+  background: var(--surface-raised);
+}
+.xray__chip[aria-pressed='true'] {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--text);
+}
+.xray__hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}
+
+.xray__grid {
+  display: grid;
+  gap: var(--space-5);
+}
+@media (min-width: 900px) {
+  .xray__grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+  }
+}
+
+/* the stage: stacked layers over the target */
+.xray__stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--stage);
+  border: var(--hairline);
+  touch-action: pan-y;
+  user-select: none;
+}
+.xray__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  max-width: none;
+  pointer-events: none;
+}
+.xray__base {
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.xray__base[data-shown='true'] {
+  opacity: 1;
+}
+.xray__heat {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--stage) 62%, transparent);
+  pointer-events: none;
+}
+.xray__heat canvas,
+.xray__heat img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+/* the handle is drawn from the input value; the input itself is invisible */
+.xray__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+  border-left: 2px solid var(--text);
+}
+.xray__grip {
+  position: absolute;
+  top: 50%;
+  left: -17px;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  background: var(--stage);
+  border: 2px solid var(--text);
+  border-radius: var(--radius-pill);
+}
+.xray__grip::before,
+.xray__grip::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  width: 6px;
+  height: 10px;
+  border: solid var(--text);
+  border-width: 0 0 2px 2px;
+}
+.xray__grip::before {
+  left: 5px;
+  transform: translateX(1px) rotate(45deg) scale(0.8);
+  transform-origin: center;
+}
+.xray__grip::after {
+  right: 5px;
+  transform: translateX(-1px) rotate(-135deg) scale(0.8);
+}
+.xray__stage:has(.xray__range:focus-visible) .xray__grip {
+  outline: 2px solid var(--paint);
+  outline-offset: 3px;
+}
+.xray__range {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  touch-action: pan-y;
+}
+.xray__range::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+.xray__range::-moz-range-track {
+  height: 100%;
+  background: transparent;
+}
+.xray__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 2px;
+  height: 100vh;
+  background: transparent;
+  border: 0;
+}
+.xray__range::-moz-range-thumb {
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+.xray__range:focus-visible {
+  outline: none; /* the handle shows focus instead */
+}
+
+/* regions: svg drawing under real buttons */
+.xray__boxes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.xray__boxes rect {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: xray-draw 450ms var(--ease-out) backwards;
+}
+.xray__boxes rect.is-selected {
+  stroke: var(--paint);
+  stroke-width: 2.5;
+}
+@keyframes xray-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+.xray__region {
+  position: absolute;
+  z-index: 2;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.xray__region::before {
+  /* a 44 px hit area even when the box is small */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+.xray__region:hover {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+.xray__num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(-100%);
+  min-width: 20px;
+  padding: 0 5px;
+  line-height: 20px;
+  text-align: center;
+  background: var(--text);
+  color: var(--on-paint);
+  font-size: 0.72rem;
+}
+.xray__region[aria-pressed='true'] .xray__num {
+  background: var(--paint);
+}
+.xray__busy {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--stage);
+  color: var(--text-dim);
+  font-size: var(--step--1);
+  pointer-events: none;
+}
+.xray__caption {
+  margin: var(--space-2) 0 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+
+/* diagnosis panel */
+.xray__panel {
+  display: grid;
+  gap: var(--space-4);
+  min-height: 220px;
+  padding: var(--space-4);
+  border: var(--hairline);
+  background: var(--stage);
+  align-content: start;
+}
+.xray__idle {
+  margin: 0;
+  color: var(--text-dim);
+}
+.xray__panel-title {
+  font-size: var(--step-1);
+  line-height: 1.1;
+}
+.xray__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px; /* the real composite uses an 8 px gray gap */
+  background: rgb(128 128 128);
+  align-items: start;
+}
+.xray__crop {
+  margin: 0;
+  background: var(--stage);
+}
+.xray__crop-img {
+  width: 100%;
+  background-repeat: no-repeat;
+}
+.xray__crop figcaption {
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__sent {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.xray__fields > div:first-child {
+  flex-basis: 100%;
+}
+.xray__note strong {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.xray__fields dt {
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__fields dd {
+  margin: 0;
+  font-size: var(--step-0);
+  overflow-wrap: anywhere;
+}
+.xray__sev {
+  color: var(--paint);
+  font-weight: 700;
+}
+.xray__na {
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}
+.xray__desc {
+  margin: 0;
+  min-height: 4.8em;
+  color: var(--text);
+}
+.xray__desc:not(.is-done)::after {
+  content: '';
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--paint);
+  animation: xray-caret 900ms steps(1) infinite;
+}
+@keyframes xray-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.xray__note {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* why it matters */
+.xray__readout {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: var(--hairline);
+}
+.xray__readout-title {
+  font-size: var(--step-2);
+}
+.xray__readout-lead {
+  margin: 0;
+  color: var(--text-dim);
+}
+.xray__bench {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+@media (min-width: 900px) {
+  .xray__bench {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-7);
+  }
+}
+.xray__bench dt {
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}
+.xray__bench dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-1) 0 0;
+}
+.xray__bench dd > .mono {
+  flex: none;
+  min-width: 9ch;
+}
+.xray__bench dd {
+  position: relative;
+}
+.xray__bar-fill {
+  display: block;
+  height: 14px;
+  min-width: 3px;
+  flex: none;
+  max-width: calc(100% - 10ch - var(--space-3));
+  background: var(--text);
+}
+.xray__bar-fill--full {
+  background: var(--line-strong);
+}
+.xray__summary {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: var(--step-2);
+  line-height: 1.05;
+}
+.xray__measured {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--step--1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xray__boxes rect {
+    animation: none;
+  }
+  .xray__desc:not(.is-done)::after {
+    animation: none;
+  }
+}
