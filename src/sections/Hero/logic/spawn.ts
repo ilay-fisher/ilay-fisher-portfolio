@@ -11,6 +11,8 @@ export interface SpawnPlan {
   rx: number;
   ry: number;
   rz: number;
+  /** Start velocity toward the camera (+z), so bodies land in front of the name, not on it. */
+  vz: number;
   delayMs: number;
 }
 
@@ -24,6 +26,10 @@ export interface KeepOut {
 
 const WINDOW_MS = 700;
 const STEP_MS = 70;
+/** The whole drop arrives within this, so a crowd of bodies stays a quick shower, not a slow drizzle. */
+const TOTAL_MS = 1250;
+/** Spawns sit at least this far in front of the name's keep-out (when the floor is deep enough). */
+const FRONT_GAP = 1.2;
 
 /** True when the bounding spheres of two spawn points intersect. */
 export function spawnsOverlap(
@@ -47,6 +53,7 @@ export function planSpawns(
   seed: number,
 ): SpawnPlan[] {
   const rng = createRng(seed);
+  const step = Math.min(STEP_MS, TOTAL_MS / Math.max(1, specs.length - 1));
   const order = shuffled(specs, rng);
   const plans: SpawnPlan[] = [];
   const radius = new Map<string, number>();
@@ -56,9 +63,10 @@ export function planSpawns(
     radius.set(spec.id, r);
     const xLo = bounds.minX + r;
     const xHi = Math.max(xLo, bounds.maxX - r);
-    const zLo = keepOut.maxZ + r;
-    const zHi = Math.max(zLo, bounds.maxZ - r);
-    const delayMs = Math.round(i * STEP_MS + rng() * 30);
+    const zMin = keepOut.maxZ + r;
+    const zHi = Math.max(zMin, bounds.maxZ - r);
+    const zLo = Math.min(zMin + FRONT_GAP, zMin + (zHi - zMin) * 0.6);
+    const delayMs = Math.round(i * step + rng() * 30);
     const near = plans.filter((p) => Math.abs(p.delayMs - delayMs) < WINDOW_MS);
     const clear = (c: { x: number; y: number; z: number }) =>
       near.every((p) => !spawnsOverlap(c, r, p, radius.get(p.id)!));
@@ -84,6 +92,7 @@ export function planSpawns(
       // Mostly facing the camera so printed legends stay readable once things settle.
       ry: (rng() - 0.5) * 1.5,
       rz: (rng() - 0.5) * 0.5,
+      vz: 0.8 + rng() * 1.4,
       delayMs,
     });
   });

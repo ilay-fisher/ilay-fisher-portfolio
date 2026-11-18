@@ -152,7 +152,10 @@ describe('hero physics', () => {
   it('gives a planned body its start velocity', () => {
     const s = setup(5);
     const p = { ...s.plans[0]!, vz: 2 };
-    s.world.spawn(s.specs.find((x) => x.id === p.id)!, p);
+    s.world.spawn(
+      s.specs.find((x) => x.id === p.id)!,
+      p,
+    );
     expect(s.world.get(p.id)!.vel.z).toBeCloseTo(2, 5);
   });
 });

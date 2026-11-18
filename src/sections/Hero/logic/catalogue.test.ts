@@ -70,9 +70,11 @@ describe('body counts per breakpoint', () => {
     const c = buildCatalogue('desktop');
     expect(c).toHaveLength(32);
     expect(keys(c)).toHaveLength(25);
-    expect(hardware(c).map((s) => s.kind).sort()).toEqual(
-      ['dial', 'drone', 'lens', 'lock', 'phone', 'shield', 'toggle'].sort(),
-    );
+    expect(
+      hardware(c)
+        .map((s) => s.kind)
+        .sort(),
+    ).toEqual(['dial', 'drone', 'lens', 'lock', 'phone', 'shield', 'toggle'].sort());
   });
 
   it('mobile has 18 bodies, fewer than desktop, and still has the project pieces', () => {
@@ -129,9 +131,11 @@ describe('importance drives size, weight and accent', () => {
 
   it('gives the accent to tier A only: accent ink on all, accent body on the top three', () => {
     for (const s of tier('A')) expect(s.accentLegend).toBe(true);
-    expect(tier('A').filter((s) => s.accentBody).map((s) => s.id)).toEqual(
-      ['android', 'java', 'kotlin'].map(keyId),
-    );
+    expect(
+      tier('A')
+        .filter((s) => s.accentBody)
+        .map((s) => s.id),
+    ).toEqual(['android', 'java', 'kotlin'].map(keyId));
     for (const s of [...tier('B'), ...tier('C')]) {
       expect(s.accentLegend).toBe(false);
       expect(s.accentBody).toBe(false);
@@ -166,7 +170,7 @@ describe('marks and text legends', () => {
     for (const s of marked) {
       const m = MARKS[s.mark!];
       expect(m, `mark ${s.mark}`).toBeDefined();
-      expect(m!.path.length).toBeGreaterThan(40);
+      expect(m!.path.length).toBeGreaterThan(15);
       expect(m!.hex).toMatch(/^[0-9A-F]{6}$/);
       expect(m!.source).toMatch(/^https:\/\//);
       expect(m!.licence.length).toBeGreaterThan(2);

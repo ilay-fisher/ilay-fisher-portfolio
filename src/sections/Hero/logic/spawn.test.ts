@@ -63,7 +63,9 @@ describe('spawn plan', () => {
   });
 
   it('starts bodies in front of the name and drifting a little toward the camera', () => {
-    const gap = plan.map((p) => p.z - boundingRadius(specs.find((s) => s.id === p.id)!) - keepOut.maxZ);
+    const gap = plan.map(
+      (p) => p.z - boundingRadius(specs.find((s) => s.id === p.id)!) - keepOut.maxZ,
+    );
     expect(gap.reduce((a, b) => a + b, 0) / gap.length).toBeGreaterThan(0.5);
     for (const p of plan) {
       expect(p.vz).toBeGreaterThanOrEqual(0.6);

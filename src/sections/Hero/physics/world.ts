@@ -1,6 +1,7 @@
 import {
   Body,
   Box,
+  ContactEquation,
   ContactMaterial,
   GSSolver,
   Material,
@@ -27,6 +28,10 @@ export interface BodyState {
 /** Fastest a body may move; with a 1/120 s step this keeps travel per step far below any wall thickness. */
 export const MAX_SPEED = 24;
 const GRAVITY = -24;
+/** An impact counts as a hit on the name above this speed (m/s along the contact normal) ... */
+const HIT_SPEED = 1.6;
+/** ... and a body is counted at most once per this many simulated seconds. */
+const HIT_COOLDOWN = 0.35;
 
 /** Tuning of the grab spring (see report): stiff enough to feel attached, soft enough to swing. */
 const GRAB_K = 220;
@@ -51,11 +56,18 @@ export class PhysicsWorld {
   private readonly solid = new Material('solid');
   private readonly monument = new Material('monument');
   private readonly bodies = new Map<string, Body>();
+  private readonly idOf = new Map<Body, string>();
   private readonly specs = new Map<string, ObjectSpec>();
   private readonly prev = new Map<string, { p: CVec3; q: Quaternion }>();
   private readonly nameBodies: Body[] = [];
   private walls: Body[] = [];
   private grab: Grab | null = null;
+  private time = 0;
+  private readonly lastHit = new Map<string, number>();
+  /** Real impacts on the name so far (an impact: a body meeting the lettering at speed, once per body per 0.35 s). */
+  nameHits = 0;
+  /** Called with the body id on every counted hit on the name. */
+  onNameHit: ((id: string) => void) | null = null;
 
   constructor(
     private bounds: Bounds,
@@ -83,7 +95,21 @@ export class PhysicsWorld {
       body.position.set(b.cx, b.cy, b.cz + nameZ);
       this.world.addBody(body);
       this.nameBodies.push(body);
+      body.addEventListener('collide', (e: { body: Body; contact: ContactEquation }) =>
+        this.hit(e),
+      );
     }
+  }
+
+  private hit(e: { body: Body; contact: ContactEquation }): void {
+    const id = this.idOf.get(e.body);
+    if (!id) return;
+    if (Math.abs(e.contact.getImpactVelocityAlongNormal()) < HIT_SPEED) return;
+    const last = this.lastHit.get(id);
+    if (last !== undefined && this.time - last < HIT_COOLDOWN) return;
+    this.lastHit.set(id, this.time);
+    this.nameHits += 1;
+    this.onNameHit?.(id);
   }
 
   private buildWalls(): void {
@@ -133,7 +159,30 @@ export class PhysicsWorld {
       q.setFromEuler(0, rotY, 0);
       body.addShape(new Box(new CVec3(hx, hy, hz)), new CVec3(0, y, 0), q);
     };
+    const addAt = (hx: number, hy: number, hz: number, x: number, y: number, z: number) =>
+      body.addShape(new Box(new CVec3(hx, hy, hz)), new CVec3(x, y, z));
     switch (spec.kind) {
+      case 'phone':
+        add(w / 2, h / 2, d / 2);
+        break;
+      case 'drone': {
+        // Hub, two crossed arms and four rotor guards: stays a sturdy compound when it lands on its side.
+        add(0.36, h / 2, 0.36);
+        const arm = w / 2 - 0.12;
+        add(arm, 0.06, 0.07, 0, Math.PI / 4);
+        add(arm, 0.06, 0.07, 0, -Math.PI / 4);
+        const o = (w / 2 - 0.34) * 0.7071;
+        for (const sx of [-1, 1])
+          for (const sz of [-1, 1]) addAt(0.3, 0.05, 0.3, sx * o, h / 2 - 0.05, sz * o);
+        break;
+      }
+      case 'lens': {
+        // Ring at the far end, handle toward the near end; the group is centred on the bounding box.
+        const r = Math.min(w, d) / 2;
+        addAt(r, h / 2, r, 0, 0, -d / 2 + r);
+        addAt(0.1, 0.1, (d - 2 * r) / 2 + 0.05, 0, 0, d / 2 - (d - 2 * r) / 2);
+        break;
+      }
       case 'dial': {
         const a = w / 2 / 1.0824;
         add(a, h / 2, a);
@@ -156,7 +205,7 @@ export class PhysicsWorld {
   private place(body: Body, plan: SpawnPlan): void {
     body.position.set(plan.x, plan.y, plan.z);
     body.quaternion.setFromEuler(plan.rx, plan.ry, plan.rz, 'YXZ');
-    body.velocity.set(0, 0, 0);
+    body.velocity.set(0, 0, plan.vz ?? 0);
     body.angularVelocity.set(0, 0, 0);
     body.previousPosition.copy(body.position);
     body.wakeUp();
@@ -181,6 +230,7 @@ export class PhysicsWorld {
     this.place(body, plan);
     this.world.addBody(body);
     this.bodies.set(spec.id, body);
+    this.idOf.set(body, spec.id);
     this.specs.set(spec.id, spec);
     this.prev.set(spec.id, { p: body.position.clone(), q: body.quaternion.clone() });
   }
@@ -261,6 +311,7 @@ export class PhysicsWorld {
     }
     if (this.grab) this.applyGrab(this.grab);
     this.world.step(this.step);
+    this.time += this.step;
     for (const body of this.bodies.values()) {
       const v = body.velocity;
       const s = v.length();

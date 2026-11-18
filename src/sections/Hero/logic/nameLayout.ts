@@ -48,7 +48,7 @@ const PAD_EM = 0.05;
  */
 export function layoutName(capHeight: number): NameLayout {
   const em = capHeight / NAME_GLYPHS.capHeight;
-  const depth = capHeight * 0.66;
+  const depth = capHeight * 0.5;
   const { Ilay, Fisher } = NAME_GLYPHS.words;
   const ilayRight = Math.max(...Ilay.map((g) => g.bbox[2]));
   const fisherOffset = ilayRight + WORD_GAP_EM - Fisher[0]!.bbox[0];
