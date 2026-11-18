@@ -67,7 +67,8 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     return { stop: () => {} };
   }
 
-  const fine = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches;
+  const fine =
+    typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches;
   let lookS: SpringState = { x: indexToLook(first, o.count, o.neutral), v: 0 };
   let pitchS: SpringState = { x: 0, v: 0 };
   let px = 0;
@@ -123,7 +124,9 @@ export function startAvatar(o: AvatarEngineOptions): { stop: () => void } {
     } else if (!fine && tapLook !== null && t < tapUntil) {
       targetLook = tapLook;
     } else {
-      const base = fine ? 0 : scrollToLook((window.innerHeight - rect.top) / (window.innerHeight + rect.height));
+      const base = fine
+        ? 0
+        : scrollToLook((window.innerHeight - rect.top) / (window.innerHeight + rect.height));
       targetLook = Math.max(-1, Math.min(1, base + (idleStep.look ?? 0)));
     }
 

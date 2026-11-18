@@ -104,7 +104,11 @@ export function stepIdle(
   if (now >= s.until) {
     if (s.phase === 'wait') {
       const sign = rng() < 0.5 ? -1 : 1;
-      state = { phase: 'look', until: now + 1100 + rng() * 1200, target: sign * (0.45 + rng() * 0.5) };
+      state = {
+        phase: 'look',
+        until: now + 1100 + rng() * 1200,
+        target: sign * (0.45 + rng() * 0.5),
+      };
     } else if (s.phase === 'look') {
       state = { phase: 'return', until: now + 700, target: 0 };
     } else {
