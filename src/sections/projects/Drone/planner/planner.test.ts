@@ -14,7 +14,8 @@ function toGrid(r: RefGrid): Grid {
   return g;
 }
 
-const close = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+const close = (a: number, b: number) =>
+  Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 describe('octile heuristic', () => {
   it('is the diagonal-then-straight distance', () => {
@@ -27,7 +28,12 @@ describe('octile heuristic', () => {
   it('never overestimates the true cost on an open grid', () => {
     const g = new Grid(12, 12);
     const a = new AStar(g);
-    for (const [gx, gy] of [[11, 11], [11, 0], [3, 9], [0, 7]] as const) {
+    for (const [gx, gy] of [
+      [11, 11],
+      [11, 0],
+      [3, 9],
+      [0, 7],
+    ] as const) {
       const r = a.plan(0, 0, gx, gy);
       expect(r.cost).toBeGreaterThanOrEqual(octile(0, 0, gx, gy) - 1e-9);
     }
@@ -217,8 +223,12 @@ describe('D* Lite matches A* after changes', () => {
         expect(dr.found, `seed ${seed} step ${step} D*`).toBe(ref !== Infinity);
         if (ref !== Infinity) {
           reachablePlans++;
-          expect(close(ar.cost, ref), `seed ${seed} step ${step} A* ${ar.cost} vs ${ref}`).toBe(true);
-          expect(close(dr.cost, ref), `seed ${seed} step ${step} D* ${dr.cost} vs ${ref}`).toBe(true);
+          expect(close(ar.cost, ref), `seed ${seed} step ${step} A* ${ar.cost} vs ${ref}`).toBe(
+            true,
+          );
+          expect(close(dr.cost, ref), `seed ${seed} step ${step} D* ${dr.cost} vs ${ref}`).toBe(
+            true,
+          );
           const c = validatePath(r, dr.path, sy * w + sx, gy * w + gx);
           expect(close(c, ref), `seed ${seed} step ${step} D* path`).toBe(true);
           // The drone moves: sometimes advance the start along the path, sometimes move the goal.
@@ -289,5 +299,26 @@ describe('D* Lite matches A* after changes', () => {
     const a = new AStar(g);
     expect(d.plan(0, 0, 11, 11).cost).toBeCloseTo(a.plan(0, 0, 11, 11).cost, 9);
     expect(d.plan(0, 0, 3, 8).cost).toBeCloseTo(a.plan(0, 0, 3, 8).cost, 9);
+  });
+});
+
+describe('expansion order', () => {
+  it('lists each expanded cell once, search root first (D* Lite searches backward, from the goal), matching the visit counts', () => {
+    const grid = toGrid(randomGrid(5, 20, 14, 0.15, 0.05));
+    grid.set(0, 0, FREE);
+    grid.set(19, 13, FREE);
+    const a = new AStar(grid);
+    const d = new DStarLite(grid);
+    for (const p of [a, d]) {
+      const r = p.plan(0, 0, 19, 13);
+      if (!r.found) continue;
+      expect(p.order[0]).toBe(p === a ? 0 : 13 * 20 + 19);
+      const seen = new Set<number>();
+      for (let i = 0; i < p.orderLength; i++) seen.add(p.order[i] as number);
+      expect(seen.size).toBe(p.orderLength);
+      let visited = 0;
+      for (const v of p.visits) if (v > 0) visited++;
+      expect(p.orderLength).toBe(visited);
+    }
   });
 });

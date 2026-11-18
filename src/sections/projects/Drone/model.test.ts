@@ -263,3 +263,53 @@ describe('planner agreement inside the model', () => {
     expect(m.lastPlan?.cost).toBeCloseTo(r.cost, 9);
   });
 });
+
+describe('DroneModel animation facts', () => {
+  it('exposes the expansion order of both planners and bumps planSerial per real plan', () => {
+    const m = make(3);
+    const serial = m.planSerial;
+    for (const algo of ['astar', 'dstar'] as const) {
+      const e = m.expansion(algo);
+      expect(e.length).toBeGreaterThan(0);
+      expect(e.length).toBeLessThanOrEqual(40 * 24);
+    }
+    m.setAlgo('dstar');
+    expect(m.planSerial).toBe(serial);
+    fly(m, 0.5);
+    m.dropObstacleOnRoute();
+    expect(m.planSerial).toBe(serial + 1);
+  });
+
+  it('records the old route, a scan pulse and the dropped cell when the route is blocked', () => {
+    const m = make(3);
+    fly(m, 0.5);
+    const before = m.pathAhead().length;
+    const t = m.simTime;
+    m.dropObstacleOnRoute();
+    expect(m.prevPath.length).toBe(before);
+    expect(m.scan.at).toBe(t);
+    const dropped = [...m.cellFx.values()].filter((f) => f.to === 1 && f.from === 0);
+    expect(dropped.length).toBeGreaterThan(0);
+    expect(dropped[0]?.t0).toBe(t);
+  });
+
+  it('records a lift when an obstacle is erased', () => {
+    const m = make(3);
+    m.paint(20, 3, 'obstacle', false);
+    m.cellFx.clear();
+    m.paint(20, 3, 'obstacle', true);
+    const fx = m.cellFx.get(3 * 40 + 20);
+    expect(fx?.from).toBe(1);
+    expect(fx?.to).toBe(0);
+  });
+
+  it('kicks the drone back only when the cut is right in front of it', () => {
+    const m = make(3);
+    fly(m, 0.5);
+    const ahead = m.routeAhead();
+    const near = ahead[2] as number;
+    m.paint(near % 40, Math.floor(near / 40), 'obstacle', false);
+    m.flush();
+    expect(m.recoil.at).toBe(m.simTime);
+  });
+});

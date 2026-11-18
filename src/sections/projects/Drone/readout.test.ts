@@ -24,18 +24,24 @@ describe('formatters', () => {
 describe('describeOutcome', () => {
   const ok = { found: true, ms: 0.4, expanded: 212, cost: 41.2 };
   it('words a blocked route in the form the live region announces', () => {
-    expect(describeOutcome('obstacle', ok)).toBe('Route blocked. Re-planned in 0.40 ms, 212 nodes.');
+    expect(describeOutcome('obstacle', ok)).toBe(
+      'Route blocked. Re-planned in 0.40 ms, 212 nodes.',
+    );
   });
   it('words wind, goal and recovery', () => {
-    expect(describeOutcome('wind', ok)).toBe('Wind zone on the route. Re-planned in 0.40 ms, 212 nodes.');
+    expect(describeOutcome('wind', ok)).toBe(
+      'Wind zone on the route. Re-planned in 0.40 ms, 212 nodes.',
+    );
     expect(describeOutcome('goal', ok)).toBe('New goal. Planned in 0.40 ms, 212 nodes.');
     expect(describeOutcome('recovered', ok)).toBe(
       'Route found again. Re-planned in 0.40 ms, 212 nodes.',
     );
-    expect(describeOutcome('algorithm', ok)).toBe('Switched algorithm. Planned in 0.40 ms, 212 nodes.');
+    expect(describeOutcome('algorithm', ok)).toBe(
+      'Switched algorithm. Planned in 0.40 ms, 212 nodes.',
+    );
   });
   it('says plainly when there is no route and the drone holds', () => {
-    expect(describeOutcome('obstacle', { ...ok, found: false, cost: -1 })).toBe(
+    expect(describeOutcome('obstacle', { ...ok, found: false })).toBe(
       'No route to the goal. The drone holds position.',
     );
   });
