@@ -1,4 +1,4 @@
-/* global document, window, CustomEvent, requestAnimationFrame, scrollY */
+/* global document, window, CustomEvent, requestAnimationFrame, scrollY, process */
 // Evidence capture (not a test): node e2e/safesurf.capture.mjs with the dev server on :5183.
 import { chromium } from '@playwright/test';
 import { renameSync, rmSync } from 'node:fs';
@@ -10,16 +10,21 @@ const ARGS = [
 ];
 const BASE = 'http://localhost:5183/';
 const browser = await chromium.launch({ args: ARGS });
+// The machine is shared and software GL is slow: give every wait generous room.
+const SLOW = 180000;
 
 async function shots(tag, viewport) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
-  await page.goto(`${BASE}?safesurfDelay=10000&safesurfManual=1`);
+  page.setDefaultTimeout(SLOW);
+  await page.goto(`${BASE}?safesurfDelay=40000&safesurfManual=1`);
   const demo = page.getByTestId('safesurf-demo');
   await demo.scrollIntoViewIfNeeded();
   await page.waitForFunction(
     () =>
       document.querySelector('[data-testid="safesurf-demo"]')?.getAttribute('data-render') ===
       'webgl',
+    undefined,
+    { timeout: SLOW },
   );
   const step = async (ms) => {
     await page.evaluate(
@@ -69,8 +74,8 @@ async function shots(tag, viewport) {
   await snap('allowed');
   await page.close();
 }
-await shots('desktop', { width: 1440, height: 900 });
-await shots('mobile', { width: 390, height: 844 });
+if (!process.env.VIDEO_ONLY) await shots('desktop', { width: 1440, height: 900 });
+if (!process.env.VIDEO_ONLY) await shots('mobile', { width: 390, height: 844 });
 
 // Video: real clock, short delay, full flow.
 const ctx = await browser.newContext({
@@ -78,7 +83,8 @@ const ctx = await browser.newContext({
   recordVideo: { dir: '/tmp/ss-video', size: { width: 1280, height: 800 } },
 });
 const page = await ctx.newPage();
-await page.goto(`${BASE}?safesurfDelay=6000`);
+page.setDefaultTimeout(SLOW);
+await page.goto(`${BASE}?safesurfDelay=12000`);
 const demo = page.getByTestId('safesurf-demo');
 await demo.scrollIntoViewIfNeeded();
 await page.waitForTimeout(1500);
@@ -89,20 +95,24 @@ await page.mouse.move(pb.x + pb.width - 20, pb.y + pb.height - 60, { steps: 20 }
 await page.waitForTimeout(500);
 await page.getByTestId('safesurf-allow-site').click();
 await page.waitForTimeout(2000);
+// Busy: a second unlock shakes the lock, sponsor asks for the shortcut that is refused.
 await page.getByTestId('safesurf-allow-page').click({ force: true });
 await page.waitForTimeout(1500);
-await page.getByTestId('safesurf-sponsor').click();
+await page.getByTestId('safesurf-sponsor').click({ force: true });
 await page.waitForTimeout(2500);
+// Wait out the compressed hour, watch the burn, then lock it back.
+await page.getByTestId('safesurf-block').waitFor({ state: 'visible', timeout: 60000 });
+await page.waitForTimeout(3500);
 await page.getByTestId('safesurf-block').click();
-await page.waitForTimeout(3000);
-const bypass = page.locator('[data-testid^="safesurf-bypass"]');
-for (const b of await bypass.all()) {
+await page.waitForTimeout(3500);
+for (const b of await page.locator('button[data-testid^="safesurf-bypass-"]').all()) {
   await b.click();
   await page.waitForTimeout(900);
 }
 await page.getByTestId('safesurf-allow-page').click();
-await page.waitForTimeout(7500);
-await page.waitForTimeout(1000);
+await page.waitForTimeout(2500);
+await page.getByTestId('safesurf-block').waitFor({ state: 'visible', timeout: 60000 });
+await page.waitForTimeout(3500);
 const vid = page.video();
 await ctx.close();
 renameSync(await vid.path(), 'docs/reports/video/safesurf.webm');
