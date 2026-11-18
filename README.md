@@ -47,3 +47,14 @@ Worker agents each owned one workstream, wrote tests first, and opened one PR pe
 ## License
 
 MIT
+
+## Trademarks and attributions
+
+Logos are trademarks of their respective owners, used to indicate the technologies I work with.
+They are self-hosted (path data from [simple-icons](https://simpleicons.org), CC0-1.0) and printed
+unaltered; the full source and licence list is in `docs/reports/hero.md`.
+
+- The Android robot is reproduced or modified from work created and shared by Google and used
+  according to terms described in the Creative Commons 3.0 Attribution License.
+- The Git logo by [Jason Long](https://twitter.com/jasonlong) is licensed under the Creative Commons
+  Attribution 3.0 Unported License.
