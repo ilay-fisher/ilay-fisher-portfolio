@@ -52,10 +52,6 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
     };
-    // Where an instant jump put the page. If the page is somewhere else at the next step, something other than us
-    // (the visitor dragging the scrollbar, a script) scrolled it, and the tracker must not drag it back.
-    let lastJump: number | null = null;
-    const maxScroll = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const track = (
       id: string,
       immediate: boolean,
@@ -67,7 +63,6 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
         current: () => lenis?.scroll ?? window.scrollY,
         scrolling: () => (lenis ? lenis.isScrolling !== false : false),
         go: (y, now) => {
-          lastJump = now ? Math.min(y, maxScroll()) : null;
           if (lenis) lenis.scrollTo(y, { immediate: now });
           else window.scrollTo({ top: y, behavior: 'instant' });
         },
@@ -80,10 +75,6 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       const loop = (now: number) => {
         raf = 0;
         if (tracker !== t) return;
-        if (lastJump !== null && Math.abs(window.scrollY - lastJump) > 3) {
-          stopTracking();
-          return;
-        }
         const status = t.step(now);
         if (status === 'active') raf = requestAnimationFrame(loop);
         else {
@@ -107,14 +98,14 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       track(id, reduced);
     };
     document.addEventListener('click', onClick);
-    // The visitor taking the wheel, the screen or the keyboard always wins over a tracked scroll.
+    // The visitor taking the wheel, the screen, the mouse or the keyboard always wins over a tracked scroll.
     const cancel = () => {
       if (!tracker) return;
       stopTracking();
       // Lenis keeps animating a programmatic scroll on its own; freeze it where it is so the visitor takes over.
       if (lenis?.isScrolling) lenis.scrollTo(lenis.scroll, { immediate: true, force: true });
     };
-    const inputs = ['wheel', 'touchstart', 'keydown'] as const;
+    const inputs = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
     inputs.forEach((n) => window.addEventListener(n, cancel, { passive: true }));
 
     // Deep link: land on the hash target once content has laid out (instant jump, also under reduced motion).
