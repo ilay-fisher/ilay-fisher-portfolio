@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   DEAD_ZONE,
   IDLE_AFTER,
+  MAX_YAW_DEG,
+  VIEW_DEPTH,
   avatarPose,
+  blendFrames,
+  pointerToPitch,
+  pointerToYaw,
   indexToLook,
   initIdle,
   lookRange,
@@ -159,5 +164,72 @@ describe('idle scheduler', () => {
     expect(active.state.phase).toBe('wait');
     const later = stepIdle(active.state, 6100 + IDLE_AFTER + 50, 6050, rng);
     expect(later.look).toBe(0);
+  });
+});
+
+describe('pointerToYaw (angle from the face)', () => {
+  it('faces the visitor when the pointer is on the face, with no jump', () => {
+    expect(pointerToYaw(0, 0)).toBe(0);
+    expect(Math.abs(pointerToYaw(10, 0))).toBeLessThan(0.02);
+    let prev = 0;
+    for (let dx = 0; dx <= 600; dx += 5) {
+      const y = pointerToYaw(dx, 0);
+      expect(y).toBeGreaterThanOrEqual(prev - 1e-9); // monotonic
+      expect(y - prev).toBeLessThan(0.06); // continuous: no step between 5 px neighbours
+      prev = y;
+    }
+  });
+  it('is antisymmetric and looks toward the pointer', () => {
+    expect(pointerToYaw(-200, 30)).toBeCloseTo(-pointerToYaw(200, 30), 10);
+    expect(pointerToYaw(200)).toBeGreaterThan(0);
+    expect(pointerToYaw(-200)).toBeLessThan(0);
+  });
+  it('follows the angle, not the viewport: full turn at MAX_YAW_DEG', () => {
+    const dx = VIEW_DEPTH * Math.tan((MAX_YAW_DEG * Math.PI) / 180);
+    expect(pointerToYaw(dx, 0)).toBeCloseTo(1, 5);
+    expect(pointerToYaw(5000, 0)).toBe(1);
+    expect(pointerToYaw(dx / 2, 0)).toBeLessThan(0.7);
+  });
+  it('a pointer far above or below the face still turns him toward its side, a little less', () => {
+    expect(pointerToYaw(200, 900)).toBeGreaterThan(0);
+    expect(pointerToYaw(200, 900)).toBeLessThanOrEqual(pointerToYaw(200, 0));
+  });
+  it('is safe on NaN', () => {
+    expect(pointerToYaw(Number.NaN, Number.NaN)).toBe(0);
+  });
+});
+
+describe('pointerToPitch', () => {
+  it('is positive above, negative below, 0 level, bounded', () => {
+    expect(pointerToPitch(-200)).toBeGreaterThan(0);
+    expect(pointerToPitch(200)).toBeLessThan(0);
+    expect(pointerToPitch(0)).toBe(0);
+    expect(Math.abs(pointerToPitch(1e6))).toBe(1);
+  });
+});
+
+describe('blendFrames (fractional cross-fade selection)', () => {
+  it('whole indices draw one frame', () => {
+    expect(blendFrames(5, COUNT)).toEqual({ a: 5, b: 6, t: 0 });
+  });
+  it('picks floor and ceil with t equal to the fraction', () => {
+    const r = blendFrames(10.25, COUNT);
+    expect(r.a).toBe(10);
+    expect(r.b).toBe(11);
+    expect(r.t).toBeCloseTo(0.25, 10);
+  });
+  it('clamps at both ends and never reads past the last frame', () => {
+    expect(blendFrames(-3, COUNT)).toEqual({ a: 0, b: 1, t: 0 });
+    expect(blendFrames(COUNT + 5, COUNT)).toEqual({ a: COUNT - 1, b: COUNT - 1, t: 0 });
+    expect(blendFrames(COUNT - 1.5, COUNT).b).toBe(COUNT - 1);
+  });
+  it('t rises smoothly through every in-between value as the index advances', () => {
+    let prevT = -1;
+    for (let k = 0; k < 10; k++) {
+      const r = blendFrames(7 + k / 10, COUNT);
+      expect(r.a).toBe(7);
+      expect(r.t).toBeGreaterThan(prevT);
+      prevT = r.t;
+    }
   });
 });

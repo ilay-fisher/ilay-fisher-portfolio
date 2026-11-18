@@ -11,17 +11,17 @@ pink accent, one-shot fades. The owner called it too square, with weak motion, a
 in a sharp square ugly. v2 keeps the dark stage and the thesis (a rig you try to break) but
 changes the material: everything is a **rounded, lit, machined object**.
 
-| v1                                  | v2                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------ |
-| 0 to 2 px radii, hairline frames    | radius ladder 10 / 16 / 24 / 36 / pill, nothing is a sharp corner  |
-| flat fills, hairlines as structure  | bevel + rim light + contact shadow from one top-left light         |
-| blueprint grid                      | light pools (`.ambient`) and film grain (`.grain`), no grid        |
-| pink-red `#ff3d6e`                  | signal orange family, amber specular, ember shade                  |
-| Bricolage 800 at 75% width, Fredoka | Bricolage 700 at normal width, one display face, Fredoka removed   |
-| ease-out fades on every reveal      | two shared springs, one loud motion at a time                      |
-| tick-mark nav, hairline underline   | floating pill nav with a sliding spring indicator                  |
-| square portrait                     | portrait in a rounded lens bezel (glass, glint), monogram fallback |
-| system cursor                       | opt-in signature cursor that hugs controls (fine pointer only)     |
+| v1                                  | v2                                                                |
+| ----------------------------------- | ----------------------------------------------------------------- |
+| 0 to 2 px radii, hairline frames    | radius ladder 10 / 16 / 24 / 36 / pill, nothing is a sharp corner |
+| flat fills, hairlines as structure  | bevel + rim light + contact shadow from one top-left light        |
+| blueprint grid                      | light pools (`.ambient`) and film grain (`.grain`), no grid       |
+| pink-red `#ff3d6e`                  | signal orange family, amber specular, ember shade                 |
+| Bricolage 800 at 75% width, Fredoka | Bricolage 700 at normal width, one display face, Fredoka removed  |
+| ease-out fades on every reveal      | two shared springs, one loud motion at a time                     |
+| tick-mark nav, hairline underline   | floating pill nav with a sliding spring indicator                 |
+| square portrait                     | frameless avatar on the stage (alpha, contact pool, rim glow)     |
+| system cursor                       | opt-in signature cursor that hugs controls (fine pointer only)    |
 
 ### Migration note for feature workers
 
@@ -169,11 +169,12 @@ ring. Logic is pure and tested in `src/lib/cursor.ts`; the DOM engine is `cursor
 ## 8. Layout and components
 
 - Sections use `--section-pad` vertical rhythm, container 1280, gutter 16 / 24 / 32.
-- **About**: sticky lens portrait column (>= 960 px) beside a long story column, which removes the
+- **About**: sticky avatar column (>= 960 px) beside a long story column, which removes the
   v1 dead space. **Experience**: reading tiles, round timeline nodes, role spec-cards. **Contact**:
   one rounded stage panel with the email set large in the display face.
-- Portrait never square: `.lens` (rounded bezel) > `.lens__glass` > image, `.lens__glint` on top.
-  Fallback monogram keeps the same lens.
+- Avatar is frameless: `.avatar` > `.avatar__stage` > `img.avatar__still` + `canvas.avatar__frames`, no bezel, ring,
+  border or round crop (e2e asserts no ancestor of the canvas draws one). `.avatar__pool` is the soft contact shadow.
+  Fallback monogram sits on the same free stage.
 - Components: `Section`, `Reveal`, `Button`/`LinkButton`, `Tag`, `ProjectFrame`, `DemoPlaceholder`,
   `Nav`, `Footer`, `PageFx`. Names and props unchanged from v1.
 
@@ -195,4 +196,8 @@ or add a third spring.
 
 ## About avatar (head-turn)
 
-The About lens shows an illustrated avatar, not a photo. 44 blink-free WebP frames (512 px, about 450 kB) cover a monotonic yaw sweep; they are generated from the owner-approved video by `src/sections/About/avatar/generate_frames.py` and described by `frames.json`. The still (`still.webp`, registered into the same framing) shows first; the frames load when About is within 300 px of the viewport and the canvas takes over. The head follows the pointer anywhere on the page through the shared soft spring (`SPRING_SOFT`), with a few degrees of tilt and parallax from the vertical position. When the pointer is idle the head glances around and returns; on touch it drifts with scroll and turns toward a tap. Reduced motion draws one static frame facing the visitor. Fallbacks: frames fail, the still stays; the still fails, the IF monogram shows. `data-avatar` (`still|frames|static|monogram`) and `data-frame` on `.lens__glass` expose the state. There is deliberately no blink: the blink footage exists only at one yaw, so it could not be played without a pop.
+The About avatar stands free on the stage: no bezel, ring or round crop. Frames are WebP with true alpha chroma-keyed from green-screen footage (512 px, 63 frames, about 1.17 MB; one monotonic yaw sequence from about 65 degrees to screen right through the frontal pose to about 65 degrees to screen left, every blink and half-closed frame excluded) so the character is lit by the section light pools and the page grain like everything else. Depth comes from light only: a soft contact pool under the shoulders and a faint accent rim glow (`drop-shadow` follows the alpha silhouette). They are generated by `src/sections/About/avatar/generate_frames.py` and described by `frames.json`. The still (`still.webp`, same framing) shows first; the frames load when About is within 300 px of the viewport and the canvas takes over. The head follows the pointer anywhere on the page. Yaw is the angle of the pointer seen from the face centre (`pointerToYaw`: `atan2(dx, 260 px)`, full turn at 52 degrees, a smooth 70 px ramp over the face instead of a dead zone), driven by a critically damped spring (`LOOK_SPRING`, about 0.25 s). Fractional positions are drawn as an exact premultiplied cross-fade of the two neighbouring frames (`blendFrames`, `lighter` composite), so motion is continuous at any pointer speed. Pitch comes from the vertical angle, with a few degrees of tilt and parallax from the vertical position. When the pointer is idle the head glances around and returns; on touch it drifts with scroll and turns toward a tap. Reduced motion draws one static frame facing the visitor. Fallbacks: frames fail, the still stays; the still fails, the IF monogram shows. `data-avatar` (`still|frames|static|monogram`) and `data-frame` on `.avatar__stage` expose the state. There is deliberately no blink: the blink footage exists only at one yaw, so it could not be played without a pop.
+
+**Interim alpha (current footage).** The source video has a dark backdrop and its hair top is cropped, so a true cutout is impossible. Each frame gets a soft organic alpha: the dark backdrop is keyed by colour distance, the head interior is filled, and a wide feather follows the head-and-shoulders silhouette loosely (no circle) and fades the cropped top and the bottom, so no edge or shape shows at any yaw on any section mood.
+
+**Green-screen mode (true alpha).** The frames come from two green-screen clips in the `_assets` folder (`$AVATAR_ASSETS`): `avatar-turn-green-a.mp4` (clean frontal to right-profile turn, source frames 97..150) and `avatar-turn-green-b.mp4` (clean turn from three-quarter right through frontal to left profile, frames 13..125). One command, `python3 src/sections/About/avatar/generate_frames.py`, builds everything: clip A reversed (right profile down to the seam), then clip B, with B registered onto A (scale and shift measured by ECC on the keyed subject) and the seam at the frontal pose (A frame 90, B frame 49, where gaze, pose and scale agree best; `--seam A:B` overrides). Backdrop is keyed to alpha (greenness ratio, un-mix from the measured backdrop colour, despill, largest-component clean-up, premultiplied resize), the bottom of the crop dissolves instead of cutting the shoulders, one common square is used for every frame, `--keep` limits the yaw range to 74 percent of the way to each profile and frames are thinned to even head-motion steps. Neutral is the most mirror-symmetric frame, so the frame under the pointer looks at the visitor. The blink ranges were excluded by checking the eye region of every kept frame (`docs/reports/img/avatar-eyes-sheet.png`). With only the older single dark-backdrop video (`avatar-turn.mp4`) present the script falls back to the interim soft-alpha mode; a single `avatar-turn-green.mp4` still works too.

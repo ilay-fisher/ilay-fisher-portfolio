@@ -50,6 +50,56 @@ export function indexToLook(index: number, count: number, neutral: number): numb
   return i <= neutral ? 1 - i / neutral : -((i - neutral) / (last - neutral));
 }
 
+/** Virtual distance (px) between the visitor's eyes and the screen: sets how sharply the head follows the pointer. */
+export const VIEW_DEPTH = 260;
+/** Pointer angle (degrees) from straight ahead at which the head is fully turned. */
+export const MAX_YAW_DEG = 52;
+/** Pointer angle (degrees) above or below at which the head is fully pitched. */
+export const MAX_PITCH_DEG = 40;
+/** Half-width (px) of the soft zone over the face where the head faces the visitor (a smooth ramp, not a step). */
+export const FACE_ZONE = 70;
+
+const smooth = (a: number, b: number, x: number) => {
+  const t = clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * Where the head points for a pointer at (dx, dy) px from the face centre (positive right / down). It is the angle of
+ * the pointer as seen from the face, `atan2(dx, depth)`, so it follows the pointer's direction at any distance
+ * rather than a fraction of the viewport width. Over the face it eases to 0 with a smooth ramp: no dead zone to
+ * get stuck in, no jump at its edge.
+ */
+export function pointerToYaw(dx: number, dy = 0, depth = VIEW_DEPTH): number {
+  const x = finite(dx);
+  const raw = clamp(
+    ((Math.atan2(x, depth) * 180) / Math.PI / MAX_YAW_DEG) *
+      Math.cos(Math.atan2(Math.abs(finite(dy)), depth * 4)),
+    -1,
+    1,
+  );
+  return raw * smooth(0, FACE_ZONE, Math.abs(x)) + 0;
+}
+
+/** Pitch in [-1, 1] from the pointer's vertical angle, positive when the pointer is above the face. */
+export function pointerToPitch(dy: number, depth = VIEW_DEPTH): number {
+  return clamp(-(Math.atan2(finite(dy), depth) * 180) / Math.PI / MAX_PITCH_DEG, -1, 1) + 0;
+}
+
+/** Which two neighbouring frames to draw for a fractional index, and how much of the second (0..1). */
+export function blendFrames(index: number, count: number): { a: number; b: number; t: number } {
+  const i = clamp(finite(index), 0, count - 1);
+  const a = Math.floor(i);
+  const b = Math.min(a + 1, count - 1);
+  return { a, b, t: b === a ? 0 : i - a };
+}
+
+/** Where the face centre sits in the stage, as a fraction of its height from the top. */
+export const FACE_Y = 0.4;
+
+/** Spring for the head: critically damped, about 0.25 s, so small pointer moves answer at once and without stepping. */
+export const LOOK_SPRING = { stiffness: 240, damping: 30 };
+
 /** Frame to draw for a fractional index. */
 export function nearestIndex(index: number, count: number): number {
   return clamp(Math.round(index), 0, count - 1);

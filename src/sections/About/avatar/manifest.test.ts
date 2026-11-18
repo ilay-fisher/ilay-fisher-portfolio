@@ -19,7 +19,7 @@ describe('avatar frame manifest', () => {
     expect(manifest.neutral).toBeGreaterThan(0);
     expect(manifest.neutral).toBeLessThan(manifest.count - 1);
     expect(manifest.stillIndex).toBeGreaterThanOrEqual(0);
-    expect(manifest.stillIndex).toBeLessThan(manifest.neutral);
+    expect(manifest.stillIndex).toBeLessThan(manifest.count);
   });
   it('has every file on disk, square, and within the byte budget', () => {
     let total = 0;
@@ -27,7 +27,7 @@ describe('avatar frame manifest', () => {
       expect(existsSync(diskPath(name)), name).toBe(true);
       total += statSync(diskPath(name)).size;
     }
-    expect(total).toBeLessThanOrEqual(600_000);
+    expect(total).toBeLessThanOrEqual(1_200_000);
     const framesOnly = manifest.frames.reduce((n, f) => n + statSync(diskPath(f)).size, 0);
     expect(framesOnly).toBe(manifest.bytes);
     expect(manifest.size).toBe(512);

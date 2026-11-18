@@ -1,9 +1,9 @@
 {
   "dir": "/images/avatar/turn/",
   "size": 512,
-  "count": 44,
-  "neutral": 22,
-  "stillIndex": 12,
+  "count": 63,
+  "neutral": 25,
+  "stillIndex": 25,
   "still": "still.webp",
   "frames": [
     "f00.webp",
@@ -49,7 +49,26 @@
     "f40.webp",
     "f41.webp",
     "f42.webp",
-    "f43.webp"
+    "f43.webp",
+    "f44.webp",
+    "f45.webp",
+    "f46.webp",
+    "f47.webp",
+    "f48.webp",
+    "f49.webp",
+    "f50.webp",
+    "f51.webp",
+    "f52.webp",
+    "f53.webp",
+    "f54.webp",
+    "f55.webp",
+    "f56.webp",
+    "f57.webp",
+    "f58.webp",
+    "f59.webp",
+    "f60.webp",
+    "f61.webp",
+    "f62.webp"
   ],
-  "bytes": 447698
+  "bytes": 1167004
 }

@@ -4,13 +4,49 @@ const radius = (selector: string) =>
   `parseFloat(getComputedStyle(document.querySelector(${JSON.stringify(selector)})).borderTopLeftRadius)`;
 
 test.describe('design v2: nothing is a sharp rectangle', () => {
-  test('buttons, tags, stage and portrait all have a radius', async ({ page }) => {
+  test('buttons, tags and stage all have a radius', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.btn');
-    for (const selector of ['.btn', '.tag', '.stage', '.lens', '.lens__glass', '.nav__bar']) {
+    for (const selector of ['.btn', '.tag', '.stage', '.nav__bar']) {
       const r = await page.evaluate(radius(selector));
       expect(r, `${selector} radius`).toBeGreaterThan(0);
     }
+  });
+
+  test('the avatar is frameless: no ancestor draws a border, outline or circular clip', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.locator('#about').scrollIntoViewIfNeeded();
+    const offenders = await page.evaluate(() => {
+      const bad: string[] = [];
+      let el: Element | null = document.querySelector('#about .avatar__frames');
+      while (el && el !== document.body) {
+        const c = getComputedStyle(el);
+        const tag = `${el.tagName.toLowerCase()}.${String(el.className)}`;
+        for (const side of ['Top', 'Right', 'Bottom', 'Left'] as const) {
+          const w = parseFloat(c[`border${side}Width` as 'borderTopWidth']);
+          if (w > 0 && c[`border${side}Style` as 'borderTopStyle'] !== 'none')
+            bad.push(`${tag} border-${side}`);
+        }
+        if (c.outlineStyle !== 'none' && parseFloat(c.outlineWidth) > 0) bad.push(`${tag} outline`);
+        if (parseFloat(c.borderTopLeftRadius) > 0 && c.overflow !== 'visible')
+          bad.push(`${tag} rounded clip`);
+        for (const prop of [c.clipPath, c.maskImage, c.webkitMaskImage]) {
+          if (prop && prop !== 'none' && /circle|ellipse|50%/.test(prop))
+            bad.push(`${tag} ${prop}`);
+        }
+        if (
+          /inset|ring/.test(c.boxShadow) &&
+          c.boxShadow !== 'none' &&
+          el.className.toString().includes('avatar')
+        )
+          bad.push(`${tag} box-shadow`);
+        el = el.parentElement;
+      }
+      return bad;
+    });
+    expect(offenders).toEqual([]);
   });
 
   test('no console errors while scrolling the whole page', async ({ page }) => {

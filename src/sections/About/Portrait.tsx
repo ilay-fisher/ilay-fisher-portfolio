@@ -11,10 +11,10 @@ const log = createLogger('about');
 type Mode = 'still' | 'frames' | 'static' | 'monogram';
 
 /**
- * The illustrated avatar in the round lens bezel. It shows the still first (framed exactly like the turn frames), loads
+ * The illustrated avatar, standing free on the stage (no frame, ring or crop). It shows the still first (framed exactly like the turn frames), loads
  * the head-turn set when About is near the viewport, then crossfades to a canvas whose head follows the pointer.
  * Fallbacks: reduced motion draws one static frame facing the visitor; if the frames fail the still stays; if the
- * still fails the IF monogram shows. `data-avatar` on the glass says which, `data-frame` says which frame is drawn.
+ * still fails the IF monogram shows. `data-avatar` on the stage says which, `data-frame` says which frame is drawn.
  */
 export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader }) {
   const [stillFailed, setStillFailed] = useState(false);
@@ -23,7 +23,7 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
   const [ready, setReady] = useState(false);
   const reduced = usePrefersReducedMotion();
   const figureRef = useRef<HTMLElement>(null);
-  const glassRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -67,11 +67,11 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
   }, [near, reduced, stillFailed, loader]);
 
   useEffect(() => {
-    const glass = glassRef.current;
+    const stage = stageRef.current;
     const canvas = canvasRef.current;
-    if (!frames || !glass || !canvas) return;
+    if (!frames || !stage || !canvas) return;
     const engine = startAvatar({
-      glass,
+      stage,
       canvas,
       frames,
       count: manifest.count,
@@ -87,17 +87,18 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
   const label = `Illustrated avatar of ${profile.name}`;
   return (
     <figure className="about__portrait" ref={figureRef}>
-      <div className="lens">
-        <div className="lens__glass" ref={glassRef} data-avatar={mode}>
+      <div className="avatar">
+        <span className="avatar__pool" aria-hidden="true" />
+        <div className="avatar__stage" ref={stageRef} data-avatar={mode}>
           {stillFailed ? (
-            <div className="lens__monogram" role="img" aria-label={`${profile.name}, monogram`}>
+            <div className="avatar__monogram" role="img" aria-label={`${profile.name}, monogram`}>
               {profile.initials}
             </div>
           ) : (
             <>
               <img
                 ref={imgRef}
-                className="lens__still"
+                className="avatar__still"
                 src={STILL_URL}
                 alt={label}
                 width={manifest.size}
@@ -109,11 +110,10 @@ export function Portrait({ loader = loadAvatarFrames }: { loader?: AvatarLoader 
                   setStillFailed(true);
                 }}
               />
-              <canvas ref={canvasRef} className="lens__frames" aria-hidden="true" />
+              <canvas ref={canvasRef} className="avatar__frames" aria-hidden="true" />
             </>
           )}
         </div>
-        <span className="lens__glint" aria-hidden="true" />
       </div>
       <figcaption className="mono">
         <span>{profile.name}</span>

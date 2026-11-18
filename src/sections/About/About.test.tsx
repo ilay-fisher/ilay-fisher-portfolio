@@ -59,18 +59,19 @@ describe('About', () => {
 });
 
 describe('About portrait (v2)', () => {
-  it('sits in a bevelled lens bezel, never a plain box', () => {
+  it('stands free: no lens bezel, ring or round frame', () => {
     render(<About />);
-    const lens = document.querySelector('.lens');
-    expect(lens).not.toBeNull();
-    expect(lens?.querySelector('img')).not.toBeNull();
+    const avatar = document.querySelector('.avatar');
+    expect(avatar).not.toBeNull();
+    expect(avatar?.querySelector('img')).not.toBeNull();
+    expect(document.querySelector('.lens, .lens__glass, .lens__glint')).toBeNull();
     expect(document.querySelector('.rig.ticks')).toBeNull();
   });
 
-  it('keeps the monogram inside the lens when the photo fails', () => {
+  it('keeps the monogram on the stage when the photo fails', () => {
     render(<About />);
     fireEvent.error(screen.getByRole('img', { name: /Ilay Fisher/ }));
-    expect(document.querySelector('.lens .lens__monogram')).not.toBeNull();
+    expect(document.querySelector('.avatar .avatar__monogram')).not.toBeNull();
   });
 
   it('shows what I built as spec rows', () => {

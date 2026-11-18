@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const glass = '#about .lens__glass';
+const glass = '#about .avatar__stage';
 
 /**
  * Waits until the displayed frame index has stopped changing (the spring has settled), then returns it. The pointer
@@ -32,7 +32,7 @@ test('the head follows the pointer: sweeping left to right never raises the fram
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
   await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
-  const box = (await page.locator('#about .lens').boundingBox())!;
+  const box = (await page.locator('#about .avatar').boundingBox())!;
   const y = box.y + box.height / 2;
   const seen: number[] = [];
   for (let x = 4; x <= 1436; x += 180) {
@@ -46,7 +46,7 @@ test('the head follows the pointer: sweeping left to right never raises the fram
   expect(errors).toEqual([]);
 });
 
-test('the pointer is tracked anywhere on the page, not only over the lens', async ({ page }) => {
+test('the pointer is tracked anywhere on the page, not only over the avatar', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
@@ -80,12 +80,12 @@ test('if the frames fail the still stays; if the still fails too the monogram sh
   await page.locator('#about').scrollIntoViewIfNeeded();
   await page.waitForTimeout(1500);
   await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'still');
-  await expect(page.locator('#about .lens__glass img')).toBeVisible();
+  await expect(page.locator('#about .avatar__stage img')).toBeVisible();
   await page.route('**/images/avatar/turn/still.webp', (r) => r.abort());
   await page.reload();
   await page.locator('#about').scrollIntoViewIfNeeded();
   await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'monogram');
-  await expect(page.locator('#about .lens__monogram')).toContainText('IF');
+  await expect(page.locator('#about .avatar__monogram')).toContainText('IF');
 });
 
 test('the avatar is lazy: nothing from the turn set loads until About is near', async ({
