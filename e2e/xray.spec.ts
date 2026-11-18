@@ -4,6 +4,7 @@ async function openDemo(page: Page) {
   await page.goto('/');
   const demo = page.getByTestId('xray-demo');
   await demo.scrollIntoViewIfNeeded();
+  await page.getByTestId('xray-stage').scrollIntoViewIfNeeded();
   await expect(demo).toBeVisible();
   await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
     'data-source',
@@ -59,6 +60,7 @@ test.describe('X-Ray demo', () => {
     for (let i = 0; i < 10; i++) await slider.press('ArrowRight');
     await expect(slider).toHaveValue('10');
 
+    await page.getByTestId('xray-stage').scrollIntoViewIfNeeded();
     const box = (await page.getByTestId('xray-stage').boundingBox())!;
     await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.5);
     await page.mouse.down();
@@ -98,6 +100,8 @@ test.describe('X-Ray demo', () => {
   });
 
   test('keyboard-only run reaches a diagnosis', async ({ page }) => {
+    // Reduced motion completes the stream at once, so nothing depends on wall-clock typing time.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await openDemo(page);
     await page.getByTestId('xray-preset-ui').focus();
     await page.keyboard.press('Enter');
@@ -106,6 +110,7 @@ test.describe('X-Ray demo', () => {
     await region.focus();
     await page.keyboard.press('Space');
     await expect(page.getByTestId('xray-diagnosis')).toBeVisible();
+    await expect(page.getByTestId('xray-description')).toHaveAttribute('data-complete', 'true');
   });
 
   test('no horizontal scroll at 390 px', async ({ page }) => {
@@ -150,6 +155,43 @@ test.describe('X-Ray demo', () => {
       );
       const done = (await demo.boundingBox())!.height;
       expect(Math.abs(done - pending)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('the section never changes the page layout while it loads, computes and streams', async ({
+    page,
+  }) => {
+    const metrics = () =>
+      page.evaluate(() => ({
+        scrollHeight: document.documentElement.scrollHeight,
+        experienceTop: Math.round(
+          document.getElementById('experience')!.getBoundingClientRect().top + window.scrollY,
+        ),
+      }));
+    for (const width of [360, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      await page.evaluate(() => document.fonts.ready);
+      const loaded = await metrics();
+      await page.getByTestId('xray-demo').scrollIntoViewIfNeeded();
+      await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
+        'data-source',
+        /computed|fallback/,
+        { timeout: 20_000 },
+      );
+      const computed = await metrics();
+      await page.getByTestId('xray-stage').scrollIntoViewIfNeeded();
+      await page.getByTestId('xray-region-1').click();
+      await expect(page.getByTestId('xray-diagnosis')).toBeVisible();
+      await expect(page.getByTestId('xray-crop-pair')).toBeVisible();
+      const selected = await metrics();
+      await expect(page.getByTestId('xray-description')).toHaveAttribute('data-complete', 'true', {
+        timeout: 30_000,
+      });
+      const finished = await metrics();
+      expect({ width, computed }).toEqual({ width, computed: loaded });
+      expect({ width, selected }).toEqual({ width, selected: loaded });
+      expect({ width, finished }).toEqual({ width, finished: loaded });
     }
   });
 });
