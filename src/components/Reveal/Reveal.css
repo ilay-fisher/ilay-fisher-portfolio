@@ -1,0 +1,5 @@
+/* Hidden until the Reveal hook takes over. `html.js` is set by the inline script in
+   index.html and removed again if the app never boots, so content is never stuck hidden. */
+html.js:not(.reduce-motion) [data-reveal]:not([data-reveal-ready]) {
+  opacity: 0;
+}

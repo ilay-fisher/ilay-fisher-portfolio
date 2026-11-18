@@ -1,7 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const lenisInstances: { destroy: ReturnType<typeof vi.fn>; raf: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> }[] = [];
+const lenisInstances: {
+  destroy: ReturnType<typeof vi.fn>;
+  raf: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
+}[] = [];
 vi.mock('lenis', () => ({
   default: class {
     destroy = vi.fn();
@@ -48,7 +52,8 @@ describe('SmoothScroll', () => {
     expect(lenisInstances).toHaveLength(1);
     expect(add).toHaveBeenCalledTimes(1);
     unmount();
-    expect(remove).toHaveBeenCalledTimes(1);
+    const tick = add.mock.calls[0]![0];
+    expect(remove).toHaveBeenCalledWith(tick);
     expect(lenisInstances[0]!.destroy).toHaveBeenCalled();
   });
 
