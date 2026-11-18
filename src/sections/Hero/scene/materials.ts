@@ -95,10 +95,10 @@ export function nameMaterials(palette: Palette): {
 } {
   return {
     letters: new MeshPhysicalMaterial({
-      color: palette.paper.clone().multiplyScalar(0.95),
-      metalness: 0.55,
-      roughness: 0.34,
-      clearcoat: 0.5,
+      color: palette.paper.clone().multiplyScalar(0.9),
+      metalness: 0.8,
+      roughness: 0.26,
+      clearcoat: 0.6,
       clearcoatRoughness: 0.3,
     }),
     slab: new MeshPhysicalMaterial({

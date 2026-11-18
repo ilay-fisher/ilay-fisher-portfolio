@@ -437,7 +437,8 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
 
     const mid = { x: (bounds.minX + bounds.maxX) / 2, z: (bounds.minZ + bounds.maxZ) / 2 };
     const half = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ) / 2 + 3.5;
-    key.position.set(mid.x - 6.5, 13, mid.z + 7);
+    // One light for the whole page: top-left, so shadows fall to the lower right, toward the viewer.
+    key.position.set(mid.x - 7, 13, mid.z - 5);
     key.target.position.set(mid.x, 0, mid.z);
     const sc = key.shadow.camera;
     sc.left = -half;

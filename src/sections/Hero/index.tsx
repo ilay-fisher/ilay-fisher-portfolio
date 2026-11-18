@@ -112,7 +112,7 @@ export default function Hero() {
 
   return (
     <section ref={heroRef} id="top" aria-labelledby="top-title" className="hero">
-      <div className="hero__stage">
+      <div className="hero__stage" data-cursor="throw">
         <canvas
           ref={canvasRef}
           className={`hero__canvas${mode === 'still' ? ' hero__canvas--off' : ''}`}
