@@ -883,7 +883,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   };
 
   /** Runs physics synchronously until everything is asleep (or `maxSimMs` of simulated time passes). */
-  const presettle = (c: Content, maxSimMs = 8000): boolean => {
+  const presettle = (c: Content, maxSimMs = 10000): boolean => {
     const dt = c.world.step * 1000;
     for (let guard = Math.ceil(maxSimMs / dt); guard > 0; guard--) {
       simMs += dt;
@@ -891,7 +891,9 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       c.world.stepOnce();
       if (pending.length === 0 && c.world.allAsleep()) return true;
     }
-    return false;
+    // Out of simulated time: bodies still creeping (platform float differences) are put to rest.
+    c.world.restSlow(1.2);
+    return pending.length === 0 && c.world.allAsleep();
   };
 
   const frame = (t: number) => {

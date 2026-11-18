@@ -149,6 +149,20 @@ describe('hero physics', () => {
     }
   });
 
+  it('puts slow, nearly settled bodies to sleep on demand but never a fast one', () => {
+    const s = setup(7);
+    run(s, 9);
+    s.world.wakeAll();
+    expect(s.world.allAsleep()).toBe(false);
+    s.world.restSlow(1.2);
+    expect(s.world.allAsleep()).toBe(true);
+    const first = s.world.snapshot()[0]!.id;
+    s.world.wakeAll();
+    s.world.throwBody(first, s.world.get(first)!.pos, { x: 0, y: 0, z: -20 });
+    s.world.restSlow(1.2);
+    expect(s.world.get(first)!.asleep).toBe(false);
+  });
+
   it('gives a planned body its start velocity', () => {
     const s = setup(5);
     const p = { ...s.plans[0]!, vz: 2 };

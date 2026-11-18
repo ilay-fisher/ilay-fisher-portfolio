@@ -2,7 +2,11 @@
   position: relative;
   isolation: isolate;
   display: flex;
-  min-height: calc(100svh - var(--nav-h));
+  /*
+   * Fixed from first paint: the lazy scene, the still, fonts and the counter never change this
+   * height, so nothing below the hero moves (anchor scrolling depends on it).
+   */
+  height: max(calc(100svh - var(--nav-h)), 40rem);
   overflow: hidden;
 }
 
@@ -172,6 +176,9 @@
 
 /* Narrow: text on top, the studio underneath it. */
 @media (max-width: 899px) {
+  .hero {
+    height: max(calc(100svh - var(--nav-h)), 49rem);
+  }
   .hero__layout {
     align-items: flex-start;
   }

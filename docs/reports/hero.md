@@ -138,9 +138,13 @@ Jason Long under CC BY 3.0; both attributions are in the README with the tradema
 
 - Frame interval is vsync bound: median 16.7 ms, p95 16.8 ms, max 16.8 ms over 223 frames after
   settle and over 403 frames across a fresh drop (60 fps, no dropped frame).
-- CPU work per frame (JS plus draw-call submission): median 1.3 ms, p95 2.1 ms settled; 1.5 / 2.0 ms
+- CPU work per frame (JS plus draw-call submission): median 1.6 ms, p95 2.7 ms settled; 1.7 / 2.6 ms
   during a drop.
 - Sleeping bodies cost no solver time.
+- The hero height is fixed by CSS from first paint (`max(100svh - nav, 40rem)`, 49rem on phones), so the lazy
+  scene, still, fonts and counter never shift anything below it; an e2e test asserts `#about` does not move.
+- The pre-settle ends with `restSlow()`: bodies still creeping after 10 s of simulated time (platform
+  float differences, seen on CI) are put to sleep, so the fast path always ends fully asleep.
 - Lazy chunk 189.2 kB gzip against the 300 kB target (was 171.5 kB with 16 bodies; marks add path data).
 - CI (software GL, about 10 fps) uses `?heroSeed=N&heroFast=1`: physics is pre-stepped to rest before
   the first frame, `__hero.step(n)` advances time by hand, and `__hero.pixels()` reads the buffer right

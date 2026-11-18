@@ -78,7 +78,9 @@ test.describe('hero scene', () => {
     expect(ids.length).toBeGreaterThanOrEqual(14);
     expect(ids.length).toBeLessThanOrEqual(32);
     await expect(canvas(page)).toHaveAttribute('data-bodies', String(ids.length));
-    await expect(canvas(page)).toHaveAttribute('data-sleeping', 'true');
+    // Fast path is already at rest; `settle()` re-publishes synchronously, so this never races a frame.
+    expect(await hero(page, (h) => h.settle())).toBe(true);
+    await expect.poll(() => canvas(page).getAttribute('data-sleeping')).toBe('true');
     const bounds = await hero(page, (h) => h.bounds());
     for (const s of await snap(page)) {
       expect(s.pos.x, s.id).toBeGreaterThan(bounds.minX);
@@ -264,4 +266,32 @@ test.describe('hero fallback and layout', () => {
       await ctx.close();
     }
   });
+});
+
+test.describe('hero layout', () => {
+  test.setTimeout(60_000);
+
+  for (const [width, height] of [
+    [390, 844],
+    [1440, 900],
+  ] as const) {
+    test(`nothing below the hero moves when the scene mounts, at ${width}px`, async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext({ viewport: { width, height } });
+      const page = await ctx.newPage();
+      const top = () =>
+        page.locator('#about').evaluate((el) => el.getBoundingClientRect().top + scrollY);
+      const heroH = () => page.locator('#top').evaluate((el) => el.getBoundingClientRect().height);
+      await page.goto('/?heroSeed=11&heroFast=1', { waitUntil: 'commit' });
+      await page.locator('#about').waitFor({ state: 'attached' });
+      const early = { top: await top(), h: await heroH() };
+      await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page.getByTestId('hero-hits')).toBeVisible();
+      expect(await top(), '#about offsetTop after the scene is ready').toBe(early.top);
+      expect(await heroH(), 'hero height').toBe(early.h);
+      await ctx.close();
+    });
+  }
 });

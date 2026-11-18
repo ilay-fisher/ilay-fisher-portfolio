@@ -395,6 +395,22 @@ export class PhysicsWorld {
     return this.bodies.size > 0;
   }
 
+  /**
+   * Puts bodies that are nearly at rest to sleep now (speed under `maxSpeed`). Floating-point
+   * differences between machines can leave one body jittering just above the sleep limit; this is
+   * how a pre-settled scene is guaranteed to end fully asleep on every platform.
+   */
+  restSlow(maxSpeed: number): void {
+    for (const b of this.bodies.values()) {
+      if (b.sleepState === Body.SLEEPING) continue;
+      if (b.velocity.length() < maxSpeed && b.angularVelocity.length() < maxSpeed * 2) {
+        b.velocity.setZero();
+        b.angularVelocity.setZero();
+        b.sleep();
+      }
+    }
+  }
+
   /** Ids of all dynamic bodies. */
   ids(): string[] {
     return [...this.bodies.keys()];

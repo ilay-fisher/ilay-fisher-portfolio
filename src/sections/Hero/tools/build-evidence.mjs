@@ -41,19 +41,17 @@ const open = async (ctx, fast = false) => {
 const settle = (page) =>
   page.waitForSelector('[data-sleeping=true]', { timeout: 60000, state: 'attached' });
 
-/** Throw one resting key at the name, so the contact reads as a real hit. */
+/** Throw the highest resting body in a lob towards the name, so the arc and the hit are visible. */
 const throwAtName = (page) =>
   page.evaluate(() => {
     const h = window.__hero;
     const b = h.bounds();
-    const snap = h.snapshot().filter((s) => /key/.test(s.id) || true);
-    // The body nearest the front edge, thrown towards the back-centre where the name stands.
-    const from = snap.reduce((a, s) => (s.pos.z > a.pos.z ? s : a));
+    const from = h.snapshot().reduce((a, s) => (s.pos.y > a.pos.y ? s : a));
     const tx = (b.minX + b.maxX) / 2;
     const dx = tx - from.pos.x;
     const dz = b.minZ - from.pos.z;
     const len = Math.hypot(dx, dz) || 1;
-    h.throwBody(from.id, { x: (dx / len) * 15, y: 4, z: (dz / len) * 15 });
+    h.throwBody(from.id, { x: (dx / len) * 12, y: 9, z: (dz / len) * 12 });
   });
 
 const frames = async (page, clip, prefix, n = 8, gapMs = 100) => {

@@ -15,4 +15,10 @@ describe('play region', () => {
     expect(r.x0).toBeLessThan(-0.9);
     expect(r.y1).toBeCloseTo(1 - (2 * 330) / 788, 3);
   });
+
+  it('keeps the bottom strip of a phone free for the hint, counter and reset button', () => {
+    const r = computeRegion({ width: 390, height: 788 }, { right: 380, bottom: 330 }, true);
+    // 170 px reserved at the bottom of the canvas.
+    expect(r.y0).toBeCloseTo(-1 + (2 * 170) / 788, 3);
+  });
 });
