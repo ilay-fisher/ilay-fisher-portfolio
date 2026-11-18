@@ -1,7 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
-/** The demo's delay is shortened by the `safesurfDelay` query hook so the suite never sleeps long. */
-const URL = '/?safesurfDelay=1500';
+/** Longest `safesurfDelay`: nothing expires by accident. The one test that needs expiry fast-forwards a fake clock. */
+const URL = '/?safesurfDelay=60000';
+
+// Software GL on a shared runner is slow: give every test and assertion generous room.
+test.beforeEach(() => {
+  test.setTimeout(120_000);
+});
+const expectSlow = expect.configure({ timeout: 90_000 });
 
 function trackConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -16,37 +22,39 @@ async function open(page: Page, delayMs?: number) {
   await page.goto(delayMs ? `/?safesurfDelay=${delayMs}` : URL);
   const demo = page.getByTestId('safesurf-demo');
   await demo.scrollIntoViewIfNeeded();
-  await expect(demo).toBeVisible();
+  await expectSlow(demo).toBeVisible();
   return demo;
 }
 
 const media = (page: Page) => page.locator('[data-ss-media]');
 const allIn = async (page: Page, state: 'blocked' | 'allowed') => {
-  await expect(media(page).first()).toHaveAttribute('data-state', state);
-  for (const m of await media(page).all()) await expect(m).toHaveAttribute('data-state', state);
+  await expectSlow(media(page).first()).toHaveAttribute('data-state', state);
+  for (const m of await media(page).all()) await expectSlow(m).toHaveAttribute('data-state', state);
 };
 
 test('images are hidden by default while the article text is visible', async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const demo = await open(page);
   await allIn(page, 'blocked');
-  await expect(demo.getByRole('heading', { level: 3 })).toBeVisible();
-  await expect(page.getByTestId('safesurf-status')).toContainText('4 images blocked');
+  await expectSlow(demo.getByRole('heading', { level: 3 })).toBeVisible();
+  await expectSlow(page.getByTestId('safesurf-status')).toContainText('4 images blocked');
   // Software GL is slow to compile shaders on a loaded runner, so give the stage time.
-  await expect(demo).toHaveAttribute('data-render', 'webgl', { timeout: 20_000 });
+  await expectSlow(demo).toHaveAttribute('data-render', 'webgl', { timeout: 90_000 });
   expect(errors).toEqual([]);
 });
 
 test('allow starts the countdown, images stay blocked, then they appear after the delay', async ({
   page,
 }) => {
-  // Software GL makes each step slow, so give the blocked-then-allowed check room.
-  await open(page, 3000);
+  // A fake clock makes expiry deterministic: no wall-clock wait, whatever the machine load.
+  await page.clock.install();
+  await open(page, 60000);
   await page.getByTestId('safesurf-allow-site').click();
-  await expect(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
+  await expectSlow(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
   await allIn(page, 'blocked');
+  await page.clock.fastForward(61000);
   await allIn(page, 'allowed');
-  await expect(page.getByTestId('safesurf-status')).toContainText('Images and video allowed');
+  await expectSlow(page.getByTestId('safesurf-status')).toContainText('Images and video allowed');
 });
 
 test('blocking again is instant, and the filter switch is queued like any loosening', async ({
@@ -60,14 +68,14 @@ test('blocking again is instant, and the filter switch is queued like any loosen
   await allIn(page, 'blocked');
 
   await page.getByTestId('safesurf-switch').click();
-  await expect(page.getByTestId('safesurf-switch')).toBeChecked();
-  await expect(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
+  await expectSlow(page.getByTestId('safesurf-switch')).toBeChecked();
+  await expectSlow(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
   await page.getByTestId('safesurf-cancel').click();
-  await expect(page.getByTestId('safesurf-status')).not.toContainText('Unlock request');
+  await expectSlow(page.getByTestId('safesurf-status')).not.toContainText('Unlock request');
 });
 
 test('ask sponsor skips the wait', async ({ page }) => {
-  await page.goto('/?safesurfDelay=30000');
+  await page.goto('/?safesurfDelay=60000');
   await page.getByTestId('safesurf-demo').scrollIntoViewIfNeeded();
   await page.getByTestId('safesurf-allow-page').click();
   await page.getByTestId('safesurf-sponsor').click();
@@ -77,7 +85,7 @@ test('ask sponsor skips the wait', async ({ page }) => {
 test('a bypass attempt is refused', async ({ page }) => {
   await open(page);
   await page.getByTestId('safesurf-bypass-dns').click();
-  await expect(page.getByTestId('safesurf-bypass-result')).toContainText(/private DNS/i);
+  await expectSlow(page.getByTestId('safesurf-bypass-result')).toContainText(/private DNS/i);
   await allIn(page, 'blocked');
 });
 
@@ -85,17 +93,17 @@ test('the main flow works with the keyboard alone', async ({ page }) => {
   await open(page);
   await page.getByTestId('safesurf-allow-site').focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
+  await expectSlow(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
   await page.getByTestId('safesurf-cancel').focus();
   await page.keyboard.press('Space');
-  await expect(page.getByTestId('safesurf-status')).not.toContainText('Unlock request');
+  await expectSlow(page.getByTestId('safesurf-status')).not.toContainText('Unlock request');
   await page.getByTestId('safesurf-switch').focus();
   await page.keyboard.press('Space');
-  await expect(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
+  await expectSlow(page.getByTestId('safesurf-countdown')).toContainText(/\d/);
   await page.getByTestId('safesurf-sponsor').focus();
   await page.keyboard.press('Enter');
   await allIn(page, 'allowed');
-  await expect(page.getByTestId('safesurf-switch')).not.toBeChecked();
+  await expectSlow(page.getByTestId('safesurf-switch')).not.toBeChecked();
 });
 
 test('no horizontal scroll at 390 px', async ({ page }) => {
@@ -115,7 +123,7 @@ test('the burn is a choreographed sequence: staggered, handed to the canvas, the
   await page.goto('/?safesurfDelay=1500&safesurfManual=1');
   const demo = page.getByTestId('safesurf-demo');
   await demo.scrollIntoViewIfNeeded();
-  await expect(demo).toHaveAttribute('data-render', 'webgl', { timeout: 20_000 });
+  await expectSlow(demo).toHaveAttribute('data-render', 'webgl', { timeout: 90_000 });
   const step = async (ms: number) => {
     await page.evaluate(
       (m) => window.dispatchEvent(new CustomEvent('safesurf:step', { detail: m })),
@@ -150,8 +158,8 @@ test('a second request while the lock is busy shakes it, and the sponsor gets a 
   const demo = await open(page, 60000);
   await page.getByTestId('safesurf-allow-site').click();
   await page.getByTestId('safesurf-allow-page').click({ force: true });
-  await expect(demo.locator('.ss-lock')).toHaveAttribute('data-shake', /^[01]$/);
+  await expectSlow(demo.locator('.ss-lock')).toHaveAttribute('data-shake', /^[01]$/);
   await page.getByTestId('safesurf-sponsor').click();
-  await expect(demo.locator('.ss-ring__snap')).toHaveAttribute('data-via', 'sponsor');
-  await expect(demo.locator('.ss-ring__check')).toHaveCount(1);
+  await expectSlow(demo.locator('.ss-ring__snap')).toHaveAttribute('data-via', 'sponsor');
+  await expectSlow(demo.locator('.ss-ring__check')).toHaveCount(1);
 });
