@@ -9,6 +9,8 @@
  * minimum-area filter. The constants (floor 40 to 6, local offset 8 to 2) are the owner's.
  */
 
+import type { RampStop } from './palette';
+
 /** Axis-aligned box in pixels, top-left origin. */
 export interface Box {
   x: number;
@@ -316,15 +318,10 @@ export function percentile(a: ArrayLike<number>, p: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1) + 0.5))]!;
 }
 
-const STOPS: [number, number, number, number][] = [
-  [0, 0, 0, 4],
-  [0.14, 31, 12, 72],
-  [0.29, 85, 15, 109],
-  [0.43, 136, 34, 106],
-  [0.57, 168, 54, 85],
-  [0.71, 227, 89, 51],
-  [0.86, 249, 149, 10],
-  [1, 252, 255, 164],
+/** Neutral fallback ramp (black to white) for when the accent tokens are unavailable, such as in jsdom. */
+const GREY_RAMP: RampStop[] = [
+  [0, [0, 0, 0]],
+  [1, [255, 255, 255]],
 ];
 const smoothstep = (a: number, b: number, v: number): number => {
   const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
@@ -332,22 +329,23 @@ const smoothstep = (a: number, b: number, v: number): number => {
 };
 
 /**
- * 256-entry RGBA colour table: an inferno-like ramp (near-black, purple, red-orange, yellow) whose
- * alpha stays at zero for near-zero difference so unchanged areas show the target untouched.
+ * 256-entry RGBA colour table along `ramp` (derived from the accent tokens, see palette.ts). Alpha
+ * stays at zero for near-zero difference so unchanged areas show the base untouched.
  */
-export function buildLut(): Uint8ClampedArray {
+export function buildLut(ramp: RampStop[] | null = null): Uint8ClampedArray {
+  const stops = ramp ?? GREY_RAMP;
   const lut = new Uint8ClampedArray(256 * 4);
   for (let i = 0; i < 256; i++) {
     const v = i / 255;
     let k = 0;
-    while (k < STOPS.length - 2 && v > STOPS[k + 1]![0]) k++;
-    const [t0, r0, g0, b0] = STOPS[k]!;
-    const [t1, r1, g1, b1] = STOPS[k + 1]!;
+    while (k < stops.length - 2 && v > stops[k + 1]![0]) k++;
+    const [t0, [r0, g0, b0]] = stops[k]!;
+    const [t1, [r1, g1, b1]] = stops[k + 1]!;
     const f = (v - t0) / (t1 - t0);
     lut[i * 4] = r0 + (r1 - r0) * f;
     lut[i * 4 + 1] = g0 + (g1 - g0) * f;
     lut[i * 4 + 2] = b0 + (b1 - b0) * f;
-    lut[i * 4 + 3] = Math.round(255 * smoothstep(0.12, 0.45, v));
+    lut[i * 4 + 3] = Math.round(255 * smoothstep(0.06, 0.4, v));
   }
   return lut;
 }
@@ -359,8 +357,8 @@ export function heatToRgba(
   h: number,
   scale: number,
   gamma = 0.7,
+  lut: Uint8ClampedArray = buildLut(),
 ): Uint8ClampedArray {
-  const lut = buildLut();
   const out = new Uint8ClampedArray(w * h * 4);
   for (let i = 0; i < w * h; i++) {
     const v = Math.pow(Math.min(1, Math.max(0, heat[i]! / scale)), gamma);

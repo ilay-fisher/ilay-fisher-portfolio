@@ -46,42 +46,81 @@ Ideas and constants ported in spirit, re-implemented in TypeScript (nothing copi
   `docs/images/haiku-u2.png`; the R5 wording comes from the repo demo rule engine.
 - Benchmark numbers from the proj2 README.
 
-## Motion and finish pass
+## Design v2 pass: hardware, not widget
 
-- **Divider.** 2 px hairline, a soft flat glow band, a one-pixel pink and mint chromatic fringe either
-  side of the edge, and a 44 px round knob with a gloss highlight that shrinks slightly while pressed.
+Everything below uses the shared tokens and utility classes; `src/sections/projects/XRay/css.test.ts`
+fails the build if `XRay.css` gains a hex colour, the v1 mint (`--pass`), a local radius alias or a
+literal fallback.
+
+- **Material and light.** One light source, top left. The rig sits on the shared `.stage`; the lens
+  is seated in a `.bevel` bezel with a `--radius-card` window; the diagnosis panel is a `.tile`;
+  fields, description and the "why it matters" readout are `.well` recesses. Shadows are
+  `--shadow-contact*`, bevels `--bevel-inset*` and `--well-inset`, rim light `--rim-gradient`.
+- **Divider as hardware.** A round bevelled knob (`--body-gradient`, rim gradient, knurled edge,
+  accent lamp) rides a visible rail: an engraved groove (`.well`) with tick marks, lit in the accent
+  gradient up to the knob. The knob follows the same critically damped spring as before and presses
+  in on the snappy spring token. The line across the image is a lit accent edge, no colour fringe.
+  Dragging works anywhere on the stage or the rail (the native range covers both).
+- **Presets as keycaps.** Body gradient, bevel and contact shadow in a recessed tray; the selected
+  key is pushed in (well inset, accent legend and lamp). Press and release use `--spring-snappy`.
+- **Heat side.** The same frame, desaturated and darkened under the heat layer, with the colormap
+  glowing over it (plus a blurred screen-blended copy for bloom) and the lens shading toward its
+  rim. The colormap is derived at runtime from `--paint-deep-rgb`, `--paint-rgb` and
+  `--paint-hi-rgb` (`palette.ts`: ink, ember, signal, amber, hot core); nothing in the canvas path
+  is a literal colour. Where the tokens are not defined (jsdom) it falls back to a neutral grey ramp.
+  The precomputed fallback PNGs were regenerated from the same pipeline with the same tokens.
+- **Layout at 1440.** The stage column and the diagnosis panel now stretch to one height; the
+  caption lives inside the bezel; the readout is a full-width instrument strip under both, with the
+  bars and numbers on the left and the summary and notes on the right. No dead column. The idle
+  panel is a standby display with a faint reticle instead of a blank card.
+- **Regions.** The corner brackets are gone (forbidden). A region is a rounded target ring
+  (`--radius-control`) that locks on with `--spring-soft`, then a flash and two pulses.
+- **Cursor contract.** `data-cursor="drag"` (label "scrub") on the slider area, `data-cursor="scan"`
+  (label "inspect") on every region button. Copy stays factual.
+- **No layout shift.** Caption and measured line reserve their final line count (`lh` units), so the
+  page below no longer jumps by 22 to 40 px when the diff result lands (see CI below).
+
+## Motion (unchanged from the motion pass)
+
 - **Inertia.** The drawn divider follows the input through a critically damped spring (`springStep`,
-  no overshoot), so pointer drags trail slightly and keyboard steps glide. The input itself is the
-  native range and reports instantly. Reduced motion follows it exactly.
-- **Sweep.** `sweepPath`: eases out of 50 to the left edge, crosses to the right and eases back to 50,
-  with time dwelling over each detected region (the heat pulses are seen as the edge passes them).
-  Runs once, when the stage is first at least half in view. Any input cancels it.
-- **Lock-on.** Once the stage is first seen, each region gets four rounded corner brackets that
-  converge, a short flash, a pill label that types in, then two gentle pulse rings (finite, then
-  still). One scan line passes down the heat side once when it arrives. Nothing loops except the
-  typing caret while text is streaming.
-- **Selection.** The selected region's target crop flies from its box into the diagnosis panel
-  (480 ms, ease-out, Web Animations API), lands on the panel crop, then fields appear one after
-  another, the category types in, and the description streams with a caret. On narrow screens the
-  panel scrolls into view.
-- **Readout.** The ROI bars start at the full-frame length when the readout is first seen and settle
-  to their real share, so the saving is seen. Bars have round caps.
-- **Soft shapes.** Stage, panel, crops and readout are rounded; controls are pills. All radii go
-  through three aliases at the top of `XRay.css` (`--xr-r-lg`, `--xr-r-md`, `--xr-r-sm`) that read
-  `--radius-lg`, `--radius-md`, `--radius-sm` if the revised design system defines them and fall back
-  to literal values otherwise (see limits).
-- **Reduced motion.** No sweep, scan, lock-on, pulse, flight or typing: everything is present
-  statically, slider at 50.
+  no overshoot); keyboard steps glide. The input itself is the native range and reports instantly.
+- **Sweep.** `sweepPath`: eases from 50 to the left edge, across to the right and back to 50,
+  dwelling over each detected region. Runs once, when the stage is first at least half in view. Any
+  input cancels it.
+- **Lock-on and selection.** Each region locks on, flashes and pulses; the selected target crop
+  flies into the diagnosis panel (480 ms, Web Animations API), fields appear one by one, the category
+  types in and the description streams with a caret. One scan line crosses the heat side once.
+- **Readout.** ROI bars start at the full-frame length and settle to their real share.
+- **Reduced motion.** No sweep, scan, lock-on, pulse, flight, typing or transitions; everything is
+  present statically, slider at 50.
+
+## CI: run 44305273251
+
+The failing job was the push run of `npm run e2e`: 32 passed, 1 failed, and the one failure was not
+an X-Ray test: `e2e/about.spec.ts` "mobile nav reaches every section at 390x844", polling that the
+clicked section reaches the top within 5 s. The PR run of the same commit passed. Cause, reproduced
+locally: on mobile the X-Ray rig grew by 22 to 40 px when the diff result landed (caption and
+measurement line wrapped to more lines), shifting every section below it while the smooth scroll
+toward Experience or Contact was in flight, so the target ended up past the 120 px threshold. It
+depends on when the diff finishes relative to the scroll, hence passes on one run and fails on
+the next. This is a real (small) layout shift in this section, not a Playwright quirk. Fix:
+reserve the final line count; new e2e test "the rig does not change height when a diff result
+lands" at 390 and 1440. Full suite 5 times in a row: see the PR description for the counts.
 
 ## Evidence
 
-- `docs/reports/img/xray-frames-sweep.png`: 20 frames about 133 ms apart through the sweep.
-- `docs/reports/img/xray-frames-lockon.png`: top, 15 frames of the lock-on and first scan; below,
-  16 frames about 120 ms apart of selection, flight, field reveal and typing.
+- `docs/reports/img/xray-frames-sweep.png`: 20 frames about 133 ms apart through the sweep (heat on
+  the left of the divider, photo on the right, knob and lit rail following).
+- `docs/reports/img/xray-frames-lockon.png`: 16 frames about 133 ms apart of the lock-on, flight and
+  first field reveal.
+- `docs/reports/img/xray-frames-select.png`: 16 frames about 200 ms apart of the readout filling.
 - `docs/reports/video/xray.webm`: full flow (sweep, drag, select, readout bars, preset switch,
   second selection), recorded in Chromium with software GL.
-- Frames were cut from that video with ffmpeg, so timing is as recorded, not synthetic. Recording
-  load slowed the diff to about 100 ms in that run.
+- Frames were cut from that video with ffmpeg, so timing is as recorded, not synthetic. The machine
+  was heavily loaded during recording, so timing in the video is slower than a normal run.
+- Iterations on the frames: the first contact sheet showed the stage dropping about 12 px when a
+  result landed (the bezel centred its content while the panel grew). Fixed with top alignment; the
+  re-shot sheets show a steady stage.
 
 ## Results per preset
 
@@ -97,12 +136,12 @@ computed, not as recorded.
 
 ## Tests
 
-- Unit (Vitest, 59 in `src/sections/projects/XRay`): `diff` (grayscale, absdiff, blur, threshold,
+- Unit (Vitest, 74 in `src/sections/projects/XRay`): `diff` (grayscale, absdiff, blur, threshold,
   components, merge, LUT, percentile, end to end regions), `clip`, `stream`, `readout`, `crop`,
   `data` (README numbers and fallback boxes), `XRayDemo` (slider clip, regions as buttons, streaming,
   reduced motion, fallback on rejected `analyze`, guess first, preset switch).
 - Pure maths for the motion (`sweepPath`, `springStep`) has its own unit tests, written first.
-- E2E (Playwright, 6 in `e2e/xray.spec.ts`): images load and heatmap canvas is non-blank with no
+- E2E (Playwright, 8 in `e2e/xray.spec.ts`; includes the knob and cursor contract and a no layout shift check): images load and heatmap canvas is non-blank with no
   console errors; keyboard and drag move the slider; PCB regions found and a selected region streams
   to completion; preset switch; keyboard-only run; no horizontal scroll at 390 px.
 - Commits: `test:` commits precede the `feat:` commit.
@@ -127,12 +166,10 @@ Shared files touched: none. No new dependencies.
 
 ## Known limits
 
-- The soft design system had not landed on `origin/main` when this was rebased (`tokens.css` still has
-  only `--radius-0`, `--radius-1`, `--radius-pill`, and there is no "what changed" section in
-  `DESIGN.md`). I guessed the new token names (`--radius-lg/md/sm`) with literal fallbacks; after the
-  revision merges, the three aliases in `XRay.css` need pointing at the real names and screenshots
-  re-checked. The gloss and glow use flat translucent layers and `box-shadow`, which the current
-  DESIGN.md forbids; they follow the new direction, not the old document.
+- `.tile` is defined in `Experience.css`, not `global.css`; the panel relies on that bundle being global.
+  If it moves, the panel loses its surface.
+- The PCB heat area is small because the real diff is small; the unmistakable heat versus photo
+  reveal is clearest on Aerial and UI.
 - The surrounding `ProjectFrame` still draws its own corner ticks and hairline frame; that is shared.
 - Motion was judged from frame grabs and the recorded video, not on a real GPU or a phone. The lock-on
   brackets are small on the smallest boxes (about 20 px) so the convergence is subtle there.

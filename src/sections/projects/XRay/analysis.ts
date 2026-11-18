@@ -3,7 +3,8 @@
  * with canvas, read pixels, difference, blur, threshold, boxes, heat colour map.
  */
 import { createLogger } from '../../../lib/logger';
-import { analyzeDiff, heatScale, heatToRgba, type Box } from './diff';
+import { analyzeDiff, buildLut, heatScale, heatToRgba, type Box } from './diff';
+import { readHeatRamp } from './palette';
 import type { Preset } from './data';
 
 const log = createLogger('xray');
@@ -54,7 +55,14 @@ export const analyzePreset: AnalyzeFn = async (preset) => {
   const a = pixels(base, w, h);
   const b = pixels(target, w, h);
   const { diff, regions } = analyzeDiff(a, b, w, h);
-  const rgba = heatToRgba(diff, w, h, heatScale(diff));
+  const rgba = heatToRgba(
+    diff,
+    w,
+    h,
+    heatScale(diff),
+    undefined,
+    buildLut(readHeatRamp(document.documentElement)),
+  );
   const ms = performance.now() - t0;
   const k = preset.width / w;
   const scaled = regions.map((r) => ({

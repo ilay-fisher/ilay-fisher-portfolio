@@ -127,6 +127,7 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
     return () => window.clearTimeout(id);
   }, [readoutInView, barsOn, reduced]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const glowRef = useRef<HTMLCanvasElement | null>(null);
   const swept = useRef(false);
   const touched = useRef(false);
   const sweepId = useRef(0);
@@ -157,7 +158,10 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   }, [analyze, preset, started]);
 
   useEffect(() => {
-    if (analysis?.source === 'computed') paintHeat(canvasRef.current, analysis.heat);
+    if (analysis?.source === 'computed') {
+      paintHeat(canvasRef.current, analysis.heat);
+      paintHeat(glowRef.current, analysis.heat);
+    }
   }, [analysis]);
 
   const stopSweep = useCallback(() => {
@@ -376,120 +380,150 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
 
       <div className="xray__grid">
         <div className="xray__main">
-          <div
-            className="xray__stage"
-            ref={stageRef}
-            style={{ aspectRatio: `${preset.width} / ${preset.height}` }}
-            data-testid="xray-stage"
-          >
-            <img
-              className="xray__img"
-              src={preset.target}
-              alt={preset.alt}
-              data-testid="xray-target-image"
-              width={preset.width}
-              height={preset.height}
-            />
-            <div
-              className="xray__heat"
-              data-testid="xray-heatmap"
-              data-source={analysis?.source ?? 'pending'}
-              style={{ clipPath: sliderToClip(shown) }}
-            >
-              {analysis?.source === 'computed' && (
-                <canvas ref={canvasRef} width={analysis.heat.width} height={analysis.heat.height} />
-              )}
-              {analysis?.source === 'fallback' && <img src={preset.heatFallback} alt="" />}
-              {analysis && (seen || !canObserve) && (
-                <span key={`${presetId}-${analysis.source}`} className="xray__scan" />
-              )}
+          <div className="xray__rig bevel">
+            <div className="xray__slide" data-cursor="drag" data-cursor-label="scrub">
+              <div
+                className="xray__stage"
+                ref={stageRef}
+                style={{ aspectRatio: `${preset.width} / ${preset.height}` }}
+                data-testid="xray-stage"
+              >
+                <img
+                  className="xray__img"
+                  src={preset.target}
+                  alt={preset.alt}
+                  data-testid="xray-target-image"
+                  width={preset.width}
+                  height={preset.height}
+                />
+                <div
+                  className="xray__heat"
+                  data-testid="xray-heatmap"
+                  data-source={analysis?.source ?? 'pending'}
+                  style={{ clipPath: sliderToClip(shown) }}
+                >
+                  <img
+                    className="xray__img xray__heatbase"
+                    src={preset.target}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  {analysis?.source === 'computed' && (
+                    <>
+                      <canvas
+                        className="xray__glowmap"
+                        ref={glowRef}
+                        aria-hidden="true"
+                        width={analysis.heat.width}
+                        height={analysis.heat.height}
+                      />
+                      <canvas
+                        ref={canvasRef}
+                        width={analysis.heat.width}
+                        height={analysis.heat.height}
+                      />
+                    </>
+                  )}
+                  {analysis?.source === 'fallback' && <img src={preset.heatFallback} alt="" />}
+                  {analysis && (seen || !canObserve) && (
+                    <span key={`${presetId}-${analysis.source}`} className="xray__scan" />
+                  )}
+                </div>
+                <img
+                  className="xray__img xray__base"
+                  src={preset.baseline}
+                  alt={showBase ? 'Baseline image, before the change' : ''}
+                  aria-hidden={!showBase}
+                  data-testid="xray-baseline-image"
+                  data-shown={showBase}
+                  width={preset.width}
+                  height={preset.height}
+                />
+                {analysis && !guess && (seen || !canObserve) && (
+                  <>
+                    {regions.map((r, i) => (
+                      <button
+                        key={`${presetId}-b${i}`}
+                        type="button"
+                        className="xray__region"
+                        data-cursor="scan"
+                        data-cursor-label="inspect"
+                        ref={(el) => {
+                          regionRefs.current[i] = el;
+                        }}
+                        data-testid={`xray-region-${i + 1}`}
+                        aria-label={`Region ${i + 1} of ${total}`}
+                        aria-pressed={i === selected}
+                        aria-controls={descId}
+                        style={{
+                          left: `${(r.x / preset.width) * 100}%`,
+                          top: `${(r.y / preset.height) * 100}%`,
+                          width: `${(r.w / preset.width) * 100}%`,
+                          height: `${(r.h / preset.height) * 100}%`,
+                          ['--i' as string]: i,
+                        }}
+                        onClick={() => {
+                          log.debug('region selected', { region: i + 1 });
+                          setSelected(i);
+                        }}
+                      >
+                        <span className="xray__flash" aria-hidden="true" />
+                        <span className="xray__ring" aria-hidden="true" />
+                        <span className="xray__lock" aria-hidden="true" />
+                        <span className="xray__num mono" aria-hidden="true">
+                          Region {i + 1}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+                <div
+                  className="xray__handle"
+                  aria-hidden="true"
+                  style={{ left: handleLeft(shown) }}
+                >
+                  <span className="xray__glow" />
+                  <span className="xray__edge" />
+                </div>
+                {!analysis && <p className="xray__busy mono">Computing the diff in this browser</p>}
+              </div>
+              <div className="xray__rail" aria-hidden="true">
+                <span className="xray__groove well" />
+                <span className="xray__lit" style={{ width: handleLeft(shown) }} />
+                <span className="xray__knob" style={{ left: handleLeft(shown) }}>
+                  <span className="xray__led" />
+                </span>
+              </div>
+              <input
+                className="xray__range"
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(target)}
+                data-testid="xray-slider"
+                aria-label="Compare the diff heatmap with the plain target"
+                aria-valuetext={sliderValueText(target)}
+                onChange={(e) => onSlide(Number(e.target.value))}
+                onPointerDown={() => {
+                  stopSweep();
+                  touched.current = true;
+                }}
+              />
             </div>
-            <img
-              className="xray__img xray__base"
-              src={preset.baseline}
-              alt={showBase ? 'Baseline image, before the change' : ''}
-              aria-hidden={!showBase}
-              data-testid="xray-baseline-image"
-              data-shown={showBase}
-              width={preset.width}
-              height={preset.height}
-            />
-            {analysis && !guess && (seen || !canObserve) && (
-              <>
-                {regions.map((r, i) => (
-                  <button
-                    key={`${presetId}-b${i}`}
-                    type="button"
-                    className="xray__region"
-                    ref={(el) => {
-                      regionRefs.current[i] = el;
-                    }}
-                    data-testid={`xray-region-${i + 1}`}
-                    aria-label={`Region ${i + 1} of ${total}`}
-                    aria-pressed={i === selected}
-                    aria-controls={descId}
-                    style={{
-                      left: `${(r.x / preset.width) * 100}%`,
-                      top: `${(r.y / preset.height) * 100}%`,
-                      width: `${(r.w / preset.width) * 100}%`,
-                      height: `${(r.h / preset.height) * 100}%`,
-                      ['--i' as string]: i,
-                    }}
-                    onClick={() => {
-                      log.debug('region selected', { region: i + 1 });
-                      setSelected(i);
-                    }}
-                  >
-                    <span className="xray__flash" aria-hidden="true" />
-                    <span className="xray__ring" aria-hidden="true" />
-                    <span className="xray__corner xray__corner--tl" aria-hidden="true" />
-                    <span className="xray__corner xray__corner--tr" aria-hidden="true" />
-                    <span className="xray__corner xray__corner--bl" aria-hidden="true" />
-                    <span className="xray__corner xray__corner--br" aria-hidden="true" />
-                    <span className="xray__num mono" aria-hidden="true">
-                      Region {i + 1}
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
-            <div className="xray__handle" aria-hidden="true" style={{ left: handleLeft(shown) }}>
-              <span className="xray__fringe xray__fringe--a" />
-              <span className="xray__fringe xray__fringe--b" />
-              <span className="xray__glow" />
-              <span className="xray__edge" />
-              <span className="xray__grip" />
-            </div>
-            <input
-              className="xray__range"
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={Math.round(target)}
-              data-testid="xray-slider"
-              aria-label="Compare the diff heatmap with the plain target"
-              aria-valuetext={sliderValueText(target)}
-              onChange={(e) => onSlide(Number(e.target.value))}
-              onPointerDown={() => {
-                stopSweep();
-                touched.current = true;
-              }}
-            />
-            {!analysis && <p className="xray__busy mono">Computing the diff in this browser</p>}
+            <p className="xray__caption mono">
+              {analysis?.source === 'computed' && analysis.ms !== null
+                ? `Diff computed in this browser in ${formatMs(analysis.ms)}.`
+                : analysis?.source === 'fallback'
+                  ? 'Pixel access failed here. Showing a precomputed heatmap.'
+                  : 'Preparing the diff.'}{' '}
+              {total > 0 && !guess ? `${total} ${total === 1 ? 'region' : 'regions'} found.` : ''}
+            </p>
           </div>
-          <p className="xray__caption mono">
-            {analysis?.source === 'computed' && analysis.ms !== null
-              ? `Diff computed in this browser in ${formatMs(analysis.ms)}.`
-              : analysis?.source === 'fallback'
-                ? 'Pixel access failed here. Showing a precomputed heatmap.'
-                : 'Preparing the diff.'}{' '}
-            {total > 0 && !guess ? `${total} ${total === 1 ? 'region' : 'regions'} found.` : ''}
-          </p>
         </div>
 
         <aside
-          className="xray__panel"
+          className="xray__panel tile"
           data-testid="xray-diagnosis"
           aria-label="Diagnosis"
           ref={panelRef}
@@ -563,12 +597,13 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           )}
         </aside>
       </div>
-
-      <div className="xray__readout" data-testid="xray-readout" ref={readoutRef}>
-        <h3 className="xray__readout-title">Why it matters</h3>
-        <p className="xray__readout-lead">
-          The model never sees the whole frame, only the regions that changed.
-        </p>
+      <div className="xray__readout well" data-testid="xray-readout" ref={readoutRef}>
+        <div className="xray__head">
+          <h3 className="xray__readout-title">Why it matters</h3>
+          <p className="xray__readout-lead">
+            The model never sees the whole frame, only the regions that changed.
+          </p>
+        </div>
         <dl className="xray__bench">
           <div>
             <dt>Image tokens, full frame</dt>
@@ -617,21 +652,23 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
             </dd>
           </div>
         </dl>
-        <p className="xray__summary">
-          About 95% fewer image tokens. Cloud latency {formatPct(BENCHMARK.cloudLatencySavedPct)}{' '}
-          lower.
-        </p>
-        <p className="xray__note mono">
-          Benchmark figures from the project README, Claude Haiku 5.5. Cloud times are totals: one
-          full-frame call per preset (three) versus the four ROI calls.
-        </p>
-        <p className="xray__measured mono" data-testid="xray-measured">
-          {analysis?.source === 'computed' && analysis.ms !== null
-            ? `Diff on this device: ${formatMs(analysis.ms)}, measured here, no server involved.`
-            : analysis
-              ? 'Diff on this device: not measured, the precomputed result was used.'
-              : 'Diff on this device: measuring.'}
-        </p>
+        <div className="xray__side">
+          <p className="xray__summary">
+            About 95% fewer image tokens. Cloud latency {formatPct(BENCHMARK.cloudLatencySavedPct)}{' '}
+            lower.
+          </p>
+          <p className="xray__note mono">
+            Benchmark figures from the project README, Claude Haiku 5.5. Cloud times are totals: one
+            full-frame call per preset (three) versus the four ROI calls.
+          </p>
+          <p className="xray__measured mono" data-testid="xray-measured">
+            {analysis?.source === 'computed' && analysis.ms !== null
+              ? `Diff on this device: ${formatMs(analysis.ms)}, measured here, no server involved.`
+              : analysis
+                ? 'Diff on this device: not measured, the precomputed result was used.'
+                : 'Diff on this device: measuring.'}
+          </p>
+        </div>
       </div>
     </div>
   );
