@@ -38,7 +38,7 @@
 
   /* headline treatment: round-shouldered, normal width, heavy but not black, tight */
   --display-weight: 700;
-  --display-tracking: -0.035em;
+  --display-tracking: -0.026em;
   --display-leading: 1.02;
 
   /* fluid type scale, 360 to 1920 px */

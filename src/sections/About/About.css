@@ -96,7 +96,8 @@
   margin-top: var(--space-5);
 }
 .about__portrait figcaption span {
-  padding: 6px 14px;
+  padding: 5px 11px;
+  font-size: 0.72rem;
   border-radius: var(--radius-pill);
   background: rgb(0 0 0 / 0.28);
   box-shadow: var(--well-inset);

@@ -29,6 +29,16 @@
   gap: var(--space-2);
   margin: 0;
 }
+.bench-label .bench-label__field {
+  /* long values (a status sentence) wrap inside the pill instead of widening the page */
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  padding-block: 7px;
+  white-space: normal;
+  line-height: 1.35;
+  border-radius: 18px;
+}
 .bench-label__field dt {
   color: var(--text-faint);
 }
