@@ -20,8 +20,9 @@ exclamation marks. Short sentences. Numbers over adjectives.
 - LinkedIn: https://www.linkedin.com/in/ilay-fisher/
 - GitHub: https://github.com/ilay-fisher
 - SafeSurf: https://safesurfsite.com
-- Email: read from `profile.email` in `src/content/profile.ts`. Value is supplied by the manager; until then keep it `null` and hide the email button when null.
-- Photo: `public/images/ilay.jpg`, supplied by the manager. Until the file exists, render a designed monogram placeholder ("IF"), never a broken image.
+- Email: ilay3002@gmail.com (owner approved public display). Store it in `profile.email` in `src/content/profile.ts`; render as a `mailto:` button.
+- Photo: `public/images/ilay.jpg` (800x800 JPEG, already in the repo, owner approved). If it fails to load, show a designed "IF" monogram, never a broken image.
+- No phone number anywhere on the site.
 
 ## About (long form, edit for layout but keep the facts)
 
