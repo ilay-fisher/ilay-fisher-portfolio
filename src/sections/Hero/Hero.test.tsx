@@ -34,6 +34,26 @@ describe('Hero markup', () => {
     expect(screen.getByText(profile.availability)).toBeInTheDocument();
   });
 
+  it('keeps the h1 for assistive tech but does not show a second, small copy of the name', () => {
+    render(<Hero />);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveClass('visually-hidden');
+  });
+
+  it('shows a factual hits counter next to the approved line, with nothing extra', () => {
+    webgl.available = true;
+    render(<Hero />);
+    const hits = screen.getByTestId('hero-hits');
+    expect(hits).toHaveTextContent(/^Hits on the name: 0\. Damage: 0\.$/);
+  });
+
+  it('has a hover chip for object names that assistive tech does not read twice', () => {
+    webgl.available = true;
+    render(<Hero />);
+    const chip = screen.getByTestId('hero-chip');
+    expect(chip).toHaveAttribute('aria-hidden', 'true');
+    expect(chip).toHaveAttribute('hidden');
+  });
+
   it('links its two actions to the SafeSurf and contact sections', () => {
     render(<Hero />);
     expect(screen.getByRole('link', { name: /safesurf/i })).toHaveAttribute('href', '#safesurf');
