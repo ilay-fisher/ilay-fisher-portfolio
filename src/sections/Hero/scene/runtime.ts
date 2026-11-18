@@ -614,6 +614,8 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     return true;
   };
 
+  let pendingOpen: { id: string; pointerId: number } | null = null;
+
   const onPointerDown = (e: PointerEvent) => {
     if (!content || contextLost) return;
     idle.interact();
@@ -624,8 +626,11 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     const pairId = doublePress.second(e.clientX, e.clientY, performance.now());
     if (pairId) {
       const pair = content.items.get(pairId);
-      if (pair && openPiece(pair)) {
+      if (pair?.spec.href) {
+        // Open only after this press has ended: the page scroller cancels an anchor scroll on any pointerdown,
+        // and this very event is still bubbling to it. The first of the pair is released already.
         if (e.pointerType === 'mouse') e.preventDefault();
+        pendingOpen = { id: pairId, pointerId: e.pointerId };
         return;
       }
     }
@@ -683,7 +688,20 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     }
   };
 
+  const finishOpen = () => {
+    const p = pendingOpen;
+    pendingOpen = null;
+    if (!p) return;
+    const it = content?.items.get(p.id);
+    // Next task, after pointerup has fully dispatched.
+    if (it) setTimeout(() => openPiece(it), 0);
+  };
+
   const onPointerUp = (e: PointerEvent) => {
+    if (pendingOpen && e.pointerId === pendingOpen.pointerId) {
+      finishOpen();
+      return;
+    }
     if (!grab || e.pointerId !== grab.pointerId) return;
     const moved = Math.hypot(e.clientX - grab.startX, e.clientY - grab.startY);
     const quick = performance.now() - grab.startT < 320;
@@ -701,6 +719,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   };
 
   const onPointerCancel = (e: PointerEvent) => {
+    if (pendingOpen && e.pointerId === pendingOpen.pointerId) finishOpen();
     if (grab && e.pointerId === grab.pointerId) endGrab(false);
   };
 

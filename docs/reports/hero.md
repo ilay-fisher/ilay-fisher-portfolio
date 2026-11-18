@@ -119,8 +119,13 @@ OpenCV, GitHub, VS Code, Google Cloud, Claude. Nothing else is printed on a key 
   open its section. This is detected from the pointer (`logic/doublePress.ts`), not from the browser's
   `dblclick`, because the first tap nudges the piece and the second press then used to miss it; the second
   press starts no grab and gives no impulse. Enter on a selected piece does the same. The hover chip reads
-  "SafeSurf · double-click to open" and so on. An e2e test double-clicks each project piece with a real
-  mouse and asserts the hash and that the section scrolls to the top.
+  "SafeSurf · double-click to open" and so on. The section scroll goes through the page's shared anchor navigation (a real `<a href="#id">` click, handled by
+  the Lenis scroller and its anchor tracker), and only after the second press has ended: the scroller cancels an
+  anchor scroll on any `pointerdown`, and the old code opened the section while that very event was still
+  bubbling to it, so a late layout shift left the page far short of the target. An e2e test loads `/?hero=live`
+  with no `heroFast` and no reduced motion at 1440x900, double-clicks each project piece with a real mouse
+  while a 700 px layout shift lands above the target, and asserts the scroll stops with the section at the top.
+  It fails on the old code (776 px short) and passes now.
 
 ### Body counts per breakpoint
 

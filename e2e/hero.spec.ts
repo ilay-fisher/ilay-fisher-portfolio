@@ -237,11 +237,9 @@ test.describe('hero scene', () => {
   test('as a visitor gets it (live physics, smooth scroll), a real double-click scrolls all the way to the section', async ({
     page,
   }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
     await page.setViewportSize({ width: 1440, height: 900 });
     // No heroFast, no reduced motion: the page keeps Lenis smooth scrolling and the scene keeps simulating.
-    await page.goto('/?hero=live&heroDebug=1');
-    await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
     const projects = [
       ['logo', '#safesurf'],
       ['shield', '#safesurf'],
@@ -249,15 +247,36 @@ test.describe('hero scene', () => {
       ['lens', '#xray'],
     ] as const;
     for (const [id, hash] of projects) {
-      await page.evaluate(() => {
-        history.replaceState(null, '', location.pathname + location.search);
-        window.scrollTo({ top: 0, behavior: 'instant' });
-      });
-      await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(0);
-      await page.waitForTimeout(1500);
-      const at = await hero(page, (h, i: string) => h.project(i), id);
-      expect(at, `${id} is on screen`).not.toBeNull();
+      // A fresh visit per piece: Lenis owns the scroll position, so a clean page is the honest starting point.
+      await page.goto('/?hero=live&heroDebug=1');
+      await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+      // The piece must have stopped moving before it is pressed (live physics: the drop takes a few seconds).
+      let at: { x: number; y: number } | null = null;
+      await expect
+        .poll(
+          async () => {
+            const a = await hero(page, (h, i: string) => h.project(i), id);
+            const still = !!a && !!at && Math.hypot(a.x - at.x, a.y - at.y) < 0.5;
+            at = a;
+            return still;
+          },
+          { message: `${id} is on screen and at rest`, timeout: 40_000, intervals: [400] },
+        )
+        .toBe(true);
+      const onCanvas = await page.evaluate(
+        ([x, y]) => document.elementFromPoint(x!, y!)?.getAttribute('data-testid'),
+        [at!.x, at!.y],
+      );
+      expect(onCanvas, `${id} is not covered by other content`).toBe('hero-canvas');
       await page.mouse.dblclick(at!.x, at!.y);
+      // A late layout shift (a lazy image or section above the target) while the scroll is under way: the anchor
+      // tracker must retarget, which it does only if nothing cancelled it. This is what a visitor's page does.
+      await page.evaluate((h) => {
+        const spacer = document.createElement('div');
+        spacer.id = 'e2e-spacer';
+        spacer.style.height = '700px';
+        document.querySelector(h)?.before(spacer);
+      }, hash);
       await expect.poll(() => page.evaluate(() => location.hash), { message: id }).toBe(hash);
       // Wait for scrolling to stop, then the section must sit at the top.
       let last = -1;
@@ -278,6 +297,7 @@ test.describe('hero scene', () => {
         hash,
       );
       expect(Math.abs(top), `${id}: ${hash} ends at the top of the viewport`).toBeLessThan(160);
+      await page.evaluate(() => document.getElementById('e2e-spacer')?.remove());
     }
   });
 
