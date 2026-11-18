@@ -7,7 +7,13 @@ import { DroneRig } from './DroneRig';
 function stubContext(): CanvasRenderingContext2D {
   const target: Record<string, unknown> = {};
   return new Proxy(target, {
-    get: (t, k: string) => (k in t ? t[k] : () => undefined),
+    get: (t, k: string) => {
+      if (k in t) return t[k];
+      if (k === 'createRadialGradient' || k === 'createLinearGradient') {
+        return () => ({ addColorStop: () => undefined });
+      }
+      return () => undefined;
+    },
     set: (t, k: string, v) => {
       t[k] = v;
       return true;
@@ -55,6 +61,15 @@ afterEach(() => {
 const text = (id: string) => screen.getByTestId(id).textContent;
 
 describe('DroneRig', () => {
+  it('shows the approved invitation line and marks the stage as a draw surface', () => {
+    render(<DroneRig seed={1} autoRun={false} clock="manual" />);
+    expect(screen.getByTestId('drone-invite')).toHaveTextContent(
+      "Get in its way. It won't take it personally. It re-plans.",
+    );
+    expect(screen.getByTestId('drone-demo')).toHaveAttribute('data-clock', 'manual');
+    expect(screen.getByTestId('drone-canvas').closest('[data-cursor="draw"]')).not.toBeNull();
+  });
+
   it('renders the rig, the canvas, the tools and the readout', () => {
     render(<DroneRig seed={1} autoRun={false} />);
     expect(screen.getByTestId('drone-demo')).toBeInTheDocument();

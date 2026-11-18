@@ -14,10 +14,31 @@ interface DroneState {
   goal: { x: number; y: number };
   drone: { x: number; y: number };
   frames: number;
+  simTime: number;
+  clock: 'raf' | 'manual';
 }
+
+type Probe = {
+  state(): DroneState;
+  step(n: number, dtMs?: number): DroneState;
+  loopActive(): boolean;
+};
 
 const state = (page: Page) =>
   page.evaluate(() => (window as unknown as { __drone: { state(): DroneState } }).__drone.state());
+
+/**
+ * Advances the simulation by `n` ticks of `dtMs` simulated ms through the probe's manual clock.
+ * Nothing in these tests waits on wall-clock time or on the frame rate.
+ */
+const step = (page: Page, n: number, dtMs = 16) =>
+  page.evaluate(
+    ([c, d]) => (window as unknown as { __drone: Probe }).__drone.step(c!, d),
+    [n, dtMs],
+  );
+
+const loopActive = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __drone: Probe }).__drone.loopActive());
 
 function trackConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -134,7 +155,7 @@ test('reset restores the starting scene', async ({ page }) => {
   expect(after.replans).toBe(0);
   expect(after.obstacles).toBe(base.obstacles);
   expect(after.wind).toBe(base.wind);
-  expect(after.route.at(-1)).toBe(base.route.at(-1));
+  expect(after.route).toEqual(base.route);
   await expect(page.getByTestId('drone-readout-replans')).toHaveText('0');
 });
 
@@ -156,8 +177,7 @@ test('walling in the goal says so and the drone holds position', async ({ page }
   );
   const held = await state(page);
   expect(held.status).toBe('blocked');
-  await page.waitForTimeout(600);
-  const later = await state(page);
+  const later = await step(page, 60);
   expect(later.drone).toEqual(held.drone);
   // Remove one wall: the route comes back.
   await page.getByTestId('drone-erase').click();
@@ -206,43 +226,53 @@ test('runs itself when idle and stops as soon as the visitor interacts', async (
   const errors = trackConsoleErrors(page);
   await open(page, 'drone=test-auto');
   await expect(page.getByTestId('drone-demo')).toHaveAttribute('data-mode', 'demo');
-  await expect
-    .poll(async () => (await state(page)).replans, { timeout: 15_000 })
-    .toBeGreaterThanOrEqual(1);
+  expect((await state(page)).replans).toBe(0);
+  // 15 simulated seconds of idle run
+  const idle = await step(page, 940);
+  expect(idle.replans).toBeGreaterThanOrEqual(1);
   await page.getByTestId('drone-tool-wind').click();
   await expect(page.getByTestId('drone-demo')).toHaveAttribute('data-mode', 'manual');
   const n = (await state(page)).replans;
-  await page.waitForTimeout(5000);
-  expect((await state(page)).replans).toBe(n);
+  expect((await step(page, 500)).replans).toBe(n);
   expect(errors).toEqual([]);
 });
 
-test('the frame loop runs while visible, and pauses off screen', async ({ page }) => {
-  await open(page);
-  const f1 = (await state(page)).frames;
-  // headless runs with tracing on can render well under 60 fps, so poll for growth
-  await expect
-    .poll(async () => (await state(page)).frames, { timeout: 12_000 })
-    .toBeGreaterThan(f1 + 4);
+test('the manual clock is deterministic: same seed and steps give the same flight', async ({
+  page,
+}) => {
+  await open(page, 'drone=test-auto');
+  const a = await step(page, 400);
+  await page.reload();
+  await expect(page.getByTestId('drone-demo')).toHaveAttribute('data-ready', 'true');
+  const b = await step(page, 400);
+  expect(b.frames).toBe(400);
+  expect(b.simTime).toBeCloseTo(6400, 3);
+  expect(b.drone).toEqual(a.drone);
+  expect(b.route).toEqual(a.route);
+  expect(b.replans).toBe(a.replans);
+  expect(a.drone).not.toEqual({ x: 0, y: 0 });
+});
+
+test('the frame loop is active while visible and stops off screen', async ({ page }) => {
+  await open(page, 'drone=test-live');
+  await expect.poll(() => loopActive(page)).toBe(true);
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(500);
-  const g1 = (await state(page)).frames;
-  await page.waitForTimeout(400);
-  const g2 = (await state(page)).frames;
-  expect(g2 - g1).toBeLessThanOrEqual(2);
+  await expect.poll(() => loopActive(page)).toBe(false);
+  await page.getByTestId('drone-demo').scrollIntoViewIfNeeded();
+  await expect.poll(() => loopActive(page)).toBe(true);
 });
 
 test('reduced motion: a planned path is shown and no loop runs', async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await ctx.newPage();
-  await page.goto('/?drone=test#drone');
+  await page.goto('/?drone=test-live#drone');
   const rig = page.getByTestId('drone-demo');
   await rig.scrollIntoViewIfNeeded();
   await expect(rig).toHaveAttribute('data-motion', 'static');
   await expect(rig).toHaveAttribute('data-ready', 'true');
   const s1 = await state(page);
   expect(s1.route.length).toBeGreaterThan(2);
-  await page.waitForTimeout(600);
+  expect(await loopActive(page)).toBe(false);
   expect((await state(page)).frames).toBe(s1.frames);
   await page.getByTestId('drone-btn-drop').click();
   expect((await state(page)).replans).toBe(1);
