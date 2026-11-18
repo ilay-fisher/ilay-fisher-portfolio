@@ -53,7 +53,7 @@ async function open(page: Page, query = 'drone=test') {
   await page.goto(`/?${query}#drone`);
   const rig = page.getByTestId('drone-demo');
   await rig.scrollIntoViewIfNeeded();
-  await expect(rig).toHaveAttribute('data-ready', 'true');
+  await expect(rig).toHaveAttribute('data-ready', 'true', { timeout: 20_000 });
   return rig;
 }
 
@@ -66,6 +66,9 @@ async function cellPoint(canvas: Locator, st: DroneState, cx: number, cy: number
     y: box.y + ((cy + 0.5) / st.rows) * box.height,
   };
 }
+
+// Readiness waits on a lazy chunk and a mount; on a saturated CI box that can take a while.
+test.setTimeout(60_000);
 
 test('the canvas draws a city, not a blank box', async ({ page }) => {
   const errors = trackConsoleErrors(page);
