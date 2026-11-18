@@ -42,3 +42,9 @@
     padding: var(--space-8) var(--space-8);
   }
 }
+
+.contact__wit {
+  margin: var(--space-4) 0 0;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}

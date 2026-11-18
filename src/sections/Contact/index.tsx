@@ -54,6 +54,7 @@ export default function Contact() {
           <LinkButton href={profile.links.linkedin}>LinkedIn</LinkButton>
           <LinkButton href={profile.links.github}>GitHub</LinkButton>
         </div>
+        <p className="contact__wit">Throwing things was fun. Hiring me is more useful.</p>
         <p className="contact__status mono" role="status" aria-live="polite">
           {status}
         </p>

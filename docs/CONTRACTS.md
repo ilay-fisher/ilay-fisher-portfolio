@@ -143,6 +143,22 @@ Notes: `useInView` returns `RefObject<T | null>` (React 19 typing). `Section` ta
 
 Exact content types live in `src/content/*.ts`; copy comes from `docs/CONTENT.md`.
 
+## Cursor, magnetic and springs (design v2)
+
+Opt-in custom cursor, mounted by `PageFx`. Absent on touch, coarse pointer and reduced motion;
+the native cursor is hidden (`html.has-cursor`) only after the first real mouse move.
+It never blocks clicks (`pointer-events: none`) and leaves text selection alone.
+
+```html
+<div data-cursor="drag" data-cursor-label="toss">...</div>  <!-- verb mode, label shown -->
+<div data-cursor="hug">...</div>   <!-- reserved: hug | none | text | default -->
+<button data-magnetic>...</button> <!-- magnetic pull, primary Buttons have it by default -->
+```
+
+Links, buttons, `role=button` and checkboxes hug automatically; the nearest `data-cursor` wins.
+Springs: `SPRING_SOFT`, `SPRING_SNAPPY`, `springEase` in `src/lib/spring.ts` (CSS tokens
+`--spring-soft`, `--spring-snappy`). Token and recipe list: `docs/DESIGN.md` section 0.
+
 ## Shared files after foundation
 
 `package.json`, `package-lock.json`, `src/App.tsx`, `src/styles/**`, `src/lib/**`,
