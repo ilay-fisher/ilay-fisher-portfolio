@@ -96,7 +96,7 @@
   background:
     radial-gradient(circle at 32% 28%, var(--paint-hi), var(--paint) 55%, var(--paint-deep))
       padding-box,
-    linear-gradient(var(--light-angle), rgb(255 236 200 / 0.9), rgb(var(--paint-deep-rgb) / 0.8))
+    linear-gradient(var(--light-angle), rgb(220 250 255 / 0.9), rgb(var(--paint-deep-rgb) / 0.8))
       border-box;
   box-shadow:
     var(--bevel-inset-sm),

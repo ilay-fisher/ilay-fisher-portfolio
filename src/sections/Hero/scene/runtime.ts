@@ -213,7 +213,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   scene.environmentIntensity = 0.95;
 
   const camera = new PerspectiveCamera(26, 1, 0.5, 90);
-  const key = new DirectionalLight('#fff0dc', 2.6);
+  const key = new DirectionalLight('#f1f6ff', 2.6);
   key.castShadow = true;
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.02;
@@ -239,7 +239,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     new PlaneGeometry(1, 1),
     new MeshBasicMaterial({
       map: poolTex,
-      color: '#ffd8b4',
+      color: '#b9ecf8',
       transparent: true,
       opacity: 0.1,
       depthWrite: false,
@@ -372,7 +372,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
           w: spec.size.w,
           d: spec.size.d,
           top: hex(topTone),
-          ink: spec.accentBody ? '#fff1e4' : spec.accentLegend ? hex(palette.accent) : '#e8e3d8',
+          ink: spec.accentBody ? '#effcff' : spec.accentLegend ? hex(palette.accent) : '#e8e3d8',
           glow: !spec.accentBody && spec.accentLegend ? hex(palette.accentDeep) : null,
           fontFamily: family,
           anisotropy,

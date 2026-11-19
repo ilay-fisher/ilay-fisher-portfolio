@@ -185,7 +185,7 @@ export function materialSet(
     clearcoat: 0.4,
   });
   const brass = new MeshPhysicalMaterial({
-    color: '#c9a24a',
+    color: '#9db3c4',
     metalness: 1,
     roughness: 0.25,
     clearcoat: 0.3,

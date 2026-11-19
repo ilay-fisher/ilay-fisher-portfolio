@@ -38,8 +38,8 @@ export function readPalette(): Palette {
   return {
     stage: cssColor('--stage', '#0c1014'),
     paper: cssColor('--text', '#ece8df'),
-    accent: cssColor('--paint', '#ff5a1f'),
-    accentHi: cssColor('--paint-hi', '#ffb27a'),
-    accentDeep: cssColor('--paint-deep', '#a3300c'),
+    accent: cssColor('--paint', '#1ed0f2'),
+    accentHi: cssColor('--paint-hi', '#8cf1ff'),
+    accentDeep: cssColor('--paint-deep', '#0a6a87'),
   };
 }

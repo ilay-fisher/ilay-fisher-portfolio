@@ -76,10 +76,10 @@ export function PageFx() {
         <div className="pool pool--key">
           <span className="pool__glow" />
         </div>
-        <div className="pool pool--ember">
+        <div className="pool pool--deep">
           <span className="pool__glow" />
         </div>
-        <div className="pool pool--amber">
+        <div className="pool pool--signal">
           <span className="pool__glow" />
         </div>
       </div>

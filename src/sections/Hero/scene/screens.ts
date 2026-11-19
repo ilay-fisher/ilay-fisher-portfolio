@@ -51,14 +51,14 @@ export function makeCircuit(anisotropy: number): CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = S;
   const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#0b3a2c';
+  ctx.fillStyle = '#0b2d3a';
   ctx.fillRect(0, 0, S, S);
   const g = ctx.createRadialGradient(S * 0.4, S * 0.35, 0, S / 2, S / 2, S * 0.75);
-  g.addColorStop(0, 'rgba(120,255,190,0.28)');
+  g.addColorStop(0, 'rgba(120,220,255,0.28)');
   g.addColorStop(1, 'rgba(0,0,0,0.35)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, S, S);
-  ctx.strokeStyle = '#d9b34a';
+  ctx.strokeStyle = '#7fe3f2';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -90,7 +90,7 @@ export function makeCircuit(anisotropy: number): CanvasTexture {
   chip(0.38, 0.38, 0.26, 0.2);
   chip(0.1, 0.62, 0.14, 0.1);
   // Pads and vias.
-  ctx.fillStyle = '#d9b34a';
+  ctx.fillStyle = '#7fe3f2';
   for (const [x, y] of [
     [0.3, 0.3],
     [0.7, 0.2],
@@ -104,11 +104,11 @@ export function makeCircuit(anisotropy: number): CanvasTexture {
     ctx.beginPath();
     ctx.arc(x * S, y * S, 11, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#0b3a2c';
+    ctx.fillStyle = '#0b2d3a';
     ctx.beginPath();
     ctx.arc(x * S, y * S, 4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#d9b34a';
+    ctx.fillStyle = '#7fe3f2';
   }
   return texture(c, anisotropy);
 }

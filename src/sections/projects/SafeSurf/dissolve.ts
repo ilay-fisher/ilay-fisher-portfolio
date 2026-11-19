@@ -214,8 +214,8 @@ export interface EmberPalette {
 
 /** Fallback palettes. The stage reads the real accent from the `--paint*` tokens at runtime. */
 export const DEFAULT_EMBERS: { warm: EmberPalette; cool: EmberPalette } = {
-  warm: { hot: [1, 0.62, 0.52], mid: [1, 0.24, 0.42], char: [0.28, 0.06, 0.12] },
-  cool: { hot: [0.26, 0.74, 0.56], mid: [0.42, 0.86, 0.68], char: [0.56, 0.92, 0.76] },
+  warm: { hot: [0.92, 0.99, 1], mid: [0.12, 0.82, 0.95], char: [0.02, 0.09, 0.13] },
+  cool: { hot: [0.5, 0.78, 0.28], mid: [0.62, 0.88, 0.42], char: [0.74, 0.95, 0.58] },
 };
 
 const lerp3 = (
