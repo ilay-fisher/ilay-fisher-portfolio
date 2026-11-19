@@ -53,6 +53,17 @@ describe('Nav', () => {
     expect(NAV_ITEMS.map((i) => i.id)).not.toContain('contact');
   });
 
+  it('lists AI first, then About, SafeSurf, X-Ray, Drone and Experience', () => {
+    expect(NAV_ITEMS.map((i) => [i.id, i.label])).toEqual([
+      ['ai', 'AI'],
+      ['about', 'About'],
+      ['safesurf', 'SafeSurf'],
+      ['xray', 'X-Ray'],
+      ['drone', 'Drone'],
+      ['experience', 'Experience'],
+    ]);
+  });
+
   it('puts a Get in touch call-to-action at the right end, outside the collapsible list', () => {
     render(<Nav />);
     const cta = screen.getByRole('link', { name: 'Get in touch' });

@@ -51,11 +51,11 @@ describe('ProjectPage', () => {
     render(<ProjectPage id="safesurf" />);
     expect(screen.getByRole('link', { name: /previous project/i })).toHaveAttribute(
       'href',
-      '/work/xray',
+      '/work/drone',
     );
     expect(screen.getByRole('link', { name: /next project/i })).toHaveAttribute(
       'href',
-      '/work/drone',
+      '/work/xray',
     );
   });
 
@@ -63,7 +63,8 @@ describe('ProjectPage', () => {
     render(<ProjectPage id="xray" />);
     for (const name of ['The problem', 'What I built', 'How it works', 'Numbers', 'Stack'])
       expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument();
-    for (const s of projects[2]!.stack) expect(screen.getAllByText(s).length).toBeGreaterThan(0);
+    for (const s of projects.find((p) => p.id === 'xray')!.stack)
+      expect(screen.getAllByText(s).length).toBeGreaterThan(0);
   });
 
   it('opens outbound project links in a new tab, safely', () => {

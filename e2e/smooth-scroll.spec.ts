@@ -8,10 +8,11 @@ import { addSpacer, clickThenGrow, expectScrolledTo, landed, scrollSettled } fro
 test.setTimeout(120_000);
 
 const NAV = [
+  ['AI', 'ai'],
   ['About', 'about'],
   ['SafeSurf', 'safesurf'],
-  ['Drone', 'drone'],
   ['X-Ray', 'xray'],
+  ['Drone', 'drone'],
   ['Experience', 'experience'],
   ['Get in touch', 'contact'],
 ] as const;
