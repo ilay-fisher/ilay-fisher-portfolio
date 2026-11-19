@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Root } from './Root';
 
 describe('Root', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn();
+  });
+
   it('renders the home page at /', async () => {
     const { container } = render(<Root pathname="/" />);
     expect(container.querySelector('main#main > section#top')).not.toBeNull();

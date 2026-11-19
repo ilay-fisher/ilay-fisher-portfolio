@@ -16,9 +16,9 @@ const hosting: Hosting = JSON.parse(readFileSync('firebase.json', 'utf8')).hosti
 const matches = (glob: string, path: string): boolean => {
   const re = glob
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*/g, '\u0000')
+    .replace(/\*\*/g, '__GLOBSTAR__')
     .replace(/\*/g, '[^/]*')
-    .replace(/\u0000/g, '.*');
+    .replace(/__GLOBSTAR__/g, '.*');
   return new RegExp(`^${re}$`).test(path);
 };
 
@@ -41,7 +41,14 @@ describe('firebase.json hosting', () => {
   });
 
   it('serves HTML with no-cache for every path that is not an asset', () => {
-    for (const p of ['/', '/index.html', '/work/drone', '/work/safesurf', '/work/nope', '/anything']) {
+    for (const p of [
+      '/',
+      '/index.html',
+      '/work/drone',
+      '/work/safesurf',
+      '/work/nope',
+      '/anything',
+    ]) {
       expect(cacheControl(p), p).toBe('no-cache');
     }
   });

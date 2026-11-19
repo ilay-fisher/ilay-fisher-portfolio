@@ -78,7 +78,10 @@ test('an unknown /work slug shows a not-found page with a link home', async ({ p
 
 test('the nav on a detail page leads to the home page sections', async ({ page }) => {
   await page.goto('/work/drone');
-  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Contact' }).click();
+  await page
+    .getByRole('navigation', { name: 'Sections' })
+    .getByRole('link', { name: 'Contact' })
+    .click();
   await expect(page).toHaveURL(/\/#contact$/);
   await expect(page.locator('#contact')).toBeVisible();
 });

@@ -1,9 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { projects } from '../../content/projects';
 import { NotFound } from './NotFound';
 import { ProjectPage } from './ProjectPage';
 
+beforeEach(() => {
+  window.scrollTo = vi.fn();
+});
 afterEach(() => {
   document.title = '';
   document.head.querySelectorAll('meta[name="description"]').forEach((m) => m.remove());
