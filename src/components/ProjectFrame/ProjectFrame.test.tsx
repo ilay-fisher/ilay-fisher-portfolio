@@ -69,4 +69,11 @@ describe('ProjectFrame (v2)', () => {
       expect(screen.getByText(p).closest('li')).toHaveClass('spec-row');
     }
   });
+
+  it('has a case study key that leads to the detail page with a real href', () => {
+    render(<ProjectFrame project={safesurf} />);
+    const key = screen.getByRole('link', { name: /read the case study/i });
+    expect(key).toHaveAttribute('href', '/work/safesurf');
+    expect(key).not.toHaveAttribute('target');
+  });
 });

@@ -174,4 +174,12 @@ describe('Nav (v2)', () => {
     act(() => ioCb?.([{ target: document.getElementById('xray')!, isIntersecting: true }]));
     expect(document.querySelector('.nav__indicator')).toHaveAttribute('data-for', 'xray');
   });
+
+  it('prefixes every hash link with the base when rendered off the home page', () => {
+    render(<Nav base="/" />);
+    expect(screen.getByRole('link', { name: 'Ilay Fisher' })).toHaveAttribute('href', '/#top');
+    for (const i of NAV_ITEMS)
+      expect(screen.getByRole('link', { name: i.label })).toHaveAttribute('href', `/#${i.id}`);
+    expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute('href', '#main');
+  });
 });
