@@ -1,4 +1,4 @@
-import { Color, MeshPhysicalMaterial, type Texture } from 'three';
+import { Color, MeshBasicMaterial, MeshPhysicalMaterial, type Texture } from 'three';
 import type { ObjectSpec } from '../logic/catalogue';
 import type { MaterialSet } from './geometry';
 import type { Palette } from './css';
@@ -246,25 +246,31 @@ export function materialSet(
   };
 }
 
-/** The name's materials: brushed warm-white alloy letters on dark anodised plinths. */
+/**
+ * The name's materials: glossy paper-white ceramic letters (the same enamel family as the key
+ * tokens, not metal: grey alloy read muddy next to the dark anodised bodies) on a dark anodised
+ * plinth with a signal-lit inlay line set into its front face.
+ */
 export function nameMaterials(palette: Palette): {
   letters: MeshPhysicalMaterial;
   slab: MeshPhysicalMaterial;
+  inlay: MeshBasicMaterial;
 } {
   return {
     letters: new MeshPhysicalMaterial({
-      color: palette.paper.clone().multiplyScalar(0.9),
-      metalness: 0.8,
-      roughness: 0.26,
-      clearcoat: 0.6,
-      clearcoatRoughness: 0.3,
+      color: palette.paper.clone().lerp(new Color('#f4f8ff'), 0.45).multiplyScalar(0.8),
+      metalness: 0,
+      roughness: 0.4,
+      clearcoat: 0.85,
+      clearcoatRoughness: 0.1,
     }),
     slab: new MeshPhysicalMaterial({
-      color: '#161b21',
-      metalness: 0.7,
-      roughness: 0.4,
-      clearcoat: 0.4,
-      clearcoatRoughness: 0.25,
+      color: '#131920',
+      metalness: 0.35,
+      roughness: 0.42,
+      clearcoat: 0.5,
+      clearcoatRoughness: 0.2,
     }),
+    inlay: new MeshBasicMaterial({ color: palette.accent.clone(), toneMapped: false }),
   };
 }
