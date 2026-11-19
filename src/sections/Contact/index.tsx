@@ -4,7 +4,6 @@ import {
   GitHubIcon,
   LinkedInIcon,
   LinkKey,
-  PhoneIcon,
   WhatsAppIcon,
 } from '../../components/LinkKey/LinkKey';
 import { Section } from '../../components/Section/Section';
@@ -23,8 +22,8 @@ export interface ContactProps {
 }
 
 /**
- * Contact: one ask (stated in the summary), one primary mailto button that leans toward the pointer, LinkedIn and GitHub as
- * the shared icon keys, and a copy-email control with a polite live-region confirmation. The home page and every project
+ * Contact: one ask (stated in the summary), one primary mailto button that leans toward the pointer, WhatsApp, LinkedIn and GitHub as
+ * the icon keys (no phone number: it was too long for the keys on phones), and a copy-email control with a polite live-region confirmation. The home page and every project
  * page render this same panel, so "Get in touch" looks and works the same everywhere.
  */
 export default function Contact({ wit = true, className }: ContactProps = {}) {
@@ -67,14 +66,6 @@ export default function Contact({ wit = true, className }: ContactProps = {}) {
             Email Ilay
           </LinkButton>
           <Button onClick={() => void copy()}>Copy email</Button>
-          <LinkKey
-            kind="phone"
-            href={profile.phoneHref}
-            icon={<PhoneIcon />}
-            label={`Call Ilay, ${profile.phone}`}
-          >
-            {profile.phone}
-          </LinkKey>
           <LinkKey
             kind="whatsapp"
             href={profile.whatsapp}

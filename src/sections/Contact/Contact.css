@@ -29,10 +29,13 @@
   user-select: all;
 }
 .contact__actions {
-  /* below laptop width an even 2 + 2 of equal keys, never 3 + 1; from 900 px one clean row */
+  /* below laptop width: Email gets its own row, then an even 2 + 2 of equal keys; from 900 px one clean row */
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+.contact__actions > :first-child {
+  grid-column: 1 / -1;
 }
 @media (min-width: 900px) {
   .contact__actions {
