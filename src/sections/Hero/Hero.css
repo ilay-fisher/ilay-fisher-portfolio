@@ -177,14 +177,17 @@
 /* Narrow: text on top, the studio underneath it. */
 @media (max-width: 899px) {
   .hero {
-    height: max(calc(100svh - var(--nav-h)), 49rem);
+    /* grows with the text (iOS wraps it onto more lines than Chrome), so the stage under it never shrinks */
+    height: auto;
+    min-height: max(calc(100svh - var(--nav-h)), 49rem);
   }
   .hero__layout {
     align-items: flex-start;
   }
   /* The clearance is on the wrapper, not the copy, so the copy's own box ends where the text ends. */
   .hero__layout {
-    padding-block: var(--space-5) clamp(320px, 46svh, 430px);
+    /* 420px = MOBILE_SCENE_PX in logic/region.ts: the stage kept under the text */
+    padding-block: var(--space-5) max(420px, 46svh);
   }
   .hero__copy {
     max-width: none;

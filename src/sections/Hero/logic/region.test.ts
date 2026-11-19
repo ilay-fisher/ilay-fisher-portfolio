@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { breakpointFor, computeRegion } from './region';
+import { breakpointFor, computeRegion, MOBILE_TEXT_GAP_PX } from './region';
 
 describe('play region', () => {
   it('uses the right-hand area beside the text column on wide screens', () => {
@@ -9,11 +9,11 @@ describe('play region', () => {
     expect(r.x1).toBeGreaterThan(0.9);
     expect(r.y0).toBeLessThan(-0.8);
   });
-  it('uses the area under the text on phones', () => {
+  it('uses the area under the text on phones, with clear air between', () => {
     expect(breakpointFor(390)).toBe('mobile');
     const r = computeRegion({ width: 390, height: 788 }, { right: 380, bottom: 330 }, true);
     expect(r.x0).toBeLessThan(-0.9);
-    expect(r.y1).toBeCloseTo(1 - (2 * 330) / 788, 3);
+    expect(r.y1).toBeCloseTo(1 - (2 * (330 + MOBILE_TEXT_GAP_PX)) / 788, 3);
   });
 
   it('keeps the bottom strip of a phone free for the hint, counter and reset button', () => {
