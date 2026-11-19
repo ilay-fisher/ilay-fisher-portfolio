@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, LinkButton } from '../../components/Button/Button';
-import { GitHubIcon, LinkedInIcon, LinkKey } from '../../components/LinkKey/LinkKey';
+import {
+  GitHubIcon,
+  LinkedInIcon,
+  LinkKey,
+  PhoneIcon,
+  WhatsAppIcon,
+} from '../../components/LinkKey/LinkKey';
 import { Section } from '../../components/Section/Section';
 import { profile } from '../../content/profile';
 import { createLogger } from '../../lib/logger';
@@ -52,6 +58,23 @@ export default function Contact() {
             Email Ilay
           </LinkButton>
           <Button onClick={() => void copy()}>Copy email</Button>
+          <LinkKey
+            kind="phone"
+            href={profile.phoneHref}
+            icon={<PhoneIcon />}
+            label={`Call Ilay, ${profile.phone}`}
+          >
+            {profile.phone}
+          </LinkKey>
+          <LinkKey
+            kind="whatsapp"
+            href={profile.whatsapp}
+            icon={<WhatsAppIcon />}
+            label="Message Ilay on WhatsApp"
+            external
+          >
+            WhatsApp
+          </LinkKey>
           <LinkKey kind="linkedin" href={profile.links.linkedin} icon={<LinkedInIcon />} external>
             LinkedIn
           </LinkKey>

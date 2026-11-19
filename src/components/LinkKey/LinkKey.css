@@ -137,3 +137,8 @@
     padding-right: var(--space-4);
   }
 }
+
+/* the WhatsApp glyph alone carries the brand green; the key stays the shared anodised pill */
+.link-key[data-key='whatsapp'] .link-key__ico svg {
+  color: #25d366;
+}

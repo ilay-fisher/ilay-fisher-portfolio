@@ -15,10 +15,12 @@ exclamation marks. Short sentences. Numbers over adjectives.
 ## Identity
 
 - Name: Ilay Fisher
-- Headline (hero, `profile.thesis`): "I run a live Android app and its backend. 50+ active users."
-- Role line: Student backend developer. Android and systems. B.Sc. Computer Science, graduating July 2027.
-- Availability: Open to a student role (3 days a week) or a full-time junior role in Backend, Android or Systems.
-  (Student CV: 3 days a week. Junior CV: full-time. Both are shown.)
+- Headline (hero, `profile.thesis`): "Hi, I'm Ilay. I study computer science and build Android apps and backends."
+- Role line: "B.Sc. at Ruppin Academic Center, graduating July 2027. For the past year I've built and run SafeSurf and SafeGuard: Kotlin Android apps with a Firebase backend."
+- The 50+ active users proof lives in About and the case pages, not in the hero (owner, 2026-11-19).
+- Never write "alone", "solo" or "solo-built" (owner, 2026-11-19). Another contributor worked on SafeGuard.
+- Availability: Open to a student role or a full-time junior role in Backend, Android or Systems.
+  (Student CV and junior CV differ on hours; the owner chose not to state hours. 2026-11-19.)
 - Location: Sde Yaakov, Israel
 - Page title: "Ilay Fisher — Student Backend and Android Developer"
 - Meta description: "Ilay Fisher: CS student (B.Sc., July 2027) seeking a student or junior Backend, Android or Systems role. Runs SafeSurf, a live Android product with 50+ users."
@@ -31,7 +33,8 @@ exclamation marks. Short sentences. Numbers over adjectives.
 - SafeSurf: https://safesurfsite.com
 - Email: ilay3002@gmail.com (owner approved public display). Store it in `profile.email` in `src/content/profile.ts`; render as a `mailto:` button.
 - Photo: `public/images/ilay.jpg` (800x800 JPEG, already in the repo, owner approved). If it fails to load, show a designed "IF" monogram, never a broken image.
-- No phone number anywhere on the site.
+- Phone 058-779-3124 approved by the owner for the Contact section, 2026-11-19. Rendered as a key linking `tel:+972587793124`. Not in the hero, nav, meta tags, structured data, README or og tags.
+- WhatsApp: https://wa.me/972587793124 (owner approved, 2026-11-19). Key labelled "WhatsApp", accessible name "Message Ilay on WhatsApp", opens in a new tab. Contact section only.
 
 ## About
 
@@ -115,7 +118,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 
 - Repo: https://github.com/ilay-fisher/drone-obstacle-sandbox
 - Live demo: https://ilay-fisher.github.io/drone-obstacle-sandbox/
-- What: solo project. A browser sandbox where a drone plans and re-plans its route through a city grid in
+- What: a browser sandbox where a drone plans and re-plans its route through a city grid in
   real time. Pathfinding engine in C++17 (A* and incremental D* Lite) compiled to
   WebAssembly; React + TypeScript + Canvas renders at 60 FPS; Fastify + PostgreSQL stores
   scenarios and telemetry.
@@ -127,7 +130,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 ### 3. Multi-Modal Visual QA & Anomaly X-Ray Lens
 
 - Repo: https://github.com/ilay-fisher/multimodal-visual-qa-xray-lens
-- What: solo project. Hybrid classical CV + vision-language model inspection. OpenCV finds where
+- What: hybrid classical CV + vision-language model inspection. OpenCV finds where
   something changed between a baseline and a target image in about 10 ms; a VLM is asked
   what changed, only on the cropped regions.
 - Numbers (from the README benchmark and the CVs): about 95% fewer image bytes and tokens (2,460 tokens

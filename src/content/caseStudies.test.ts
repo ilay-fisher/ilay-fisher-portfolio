@@ -30,8 +30,8 @@ describe('case studies', () => {
     expect(find('xray').numbers?.map((n) => n.value)).toEqual(['~95%', '43.7%', '4/4']);
   });
 
-  it('does not say the SafeSurf case was built alone', () => {
-    expect(JSON.stringify(caseStudies.find((c) => c.id === 'safesurf'))).not.toMatch(/\balone\b/);
+  it('never says alone or solo', () => {
+    expect(JSON.stringify(caseStudies)).not.toMatch(/\b(alone|solo)\b/i);
   });
 
   it('every image is a webp under public/', () => {

@@ -65,7 +65,7 @@ export const projects: Project[] = [
     status: 'Live demo',
     challenge: "Block the drone's route.",
     summary:
-      'Solo project. A browser sandbox where a drone plans and re-plans its route through a city grid in real time. The pathfinding engine is C++17 compiled to WebAssembly.',
+      'A browser sandbox where a drone plans and re-plans its route through a city grid in real time. The pathfinding engine is C++17 compiled to WebAssembly.',
     points: [
       'A* searches from scratch on every replan. D* Lite keeps its values and repairs only what changed.',
       '8-connected grid, octile heuristic, no corner cutting. Wind zones cost 4x.',
@@ -98,7 +98,7 @@ export const projects: Project[] = [
     status: 'Benchmarked',
     challenge: 'Find what changed.',
     summary:
-      'Solo project. Hybrid classical CV and vision-language model inspection. OpenCV finds where something changed between a baseline and a target image in about 10 ms; a VLM is asked what changed, only on the cropped regions.',
+      'Hybrid classical CV and vision-language model inspection. OpenCV finds where something changed between a baseline and a target image in about 10 ms; a VLM is asked what changed, only on the cropped regions.',
     points: [
       'Deterministic localization, probabilistic interpretation. Do the cheap thing first.',
       'The model only sees the regions that changed, not the whole frame.',

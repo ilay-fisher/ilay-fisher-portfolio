@@ -90,7 +90,7 @@ export const caseStudies: CaseStudy[] = [
   {
     id: 'drone',
     metaDescription:
-      'Drone sandbox: C++17 A* and D* Lite compiled to WebAssembly, replanning a route in real time. Solo project with React, Fastify and PostgreSQL.',
+      'Drone sandbox: C++17 A* and D* Lite compiled to WebAssembly, replanning a route in real time. React, Fastify and PostgreSQL.',
     problem: [
       'A drone has a route through a city grid. Then an obstacle lands on it.',
       'The planner has to answer again, fast, every time something changes, while the page keeps drawing at 60 FPS.',
@@ -137,7 +137,7 @@ export const caseStudies: CaseStudy[] = [
   {
     id: 'xray',
     metaDescription:
-      'X-Ray Lens: Python, OpenCV and FastAPI. Sending only the changed regions to a vision model cut image tokens by about 95%. Solo project.',
+      'X-Ray Lens: Python, OpenCV and FastAPI. Sending only the changed regions to a vision model cut image tokens by about 95%.',
     problem: [
       'Asking a vision model about a whole image is slow and costly, and most of the image has not changed.',
       'I wanted to find what changed between a baseline and a target image, then have a model say what it is.',

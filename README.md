@@ -1,6 +1,6 @@
 # Ilay Fisher — Portfolio
 
-> I run a live Android app and its backend. 50+ active users.
+> Hi, I'm Ilay. I study computer science and build Android apps and backends.
 
 An interactive, single-page portfolio. Instead of describing the projects, the page lets
 the visitor play with a small, working piece of each one:

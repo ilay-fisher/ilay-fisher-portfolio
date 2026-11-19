@@ -30,10 +30,16 @@ export interface Profile {
   /** Short role line under the name. */
   role: string;
   location: string;
-  /** The hero headline: what he runs today, with a number. */
+  /** The hero headline: a calm introduction. */
   thesis: string;
   availability: string;
   email: string;
+  /** Owner-approved (2026-11-19) for the Contact section only. */
+  phone: string;
+  /** `tel:` link for the phone. */
+  phoneHref: string;
+  /** WhatsApp chat link. */
+  whatsapp: string;
   /** Path under `public/` to the portrait. */
   photo: string;
   /** Initials for the monogram fallback when the photo fails. */
@@ -48,12 +54,14 @@ export interface Profile {
 /** Ilay Fisher's profile, transcribed from docs/CONTENT.md. */
 export const profile: Profile = {
   name: 'Ilay Fisher',
-  role: 'Student backend developer. Android and systems. B.Sc. Computer Science, graduating July 2027.',
+  role: "B.Sc. at Ruppin Academic Center, graduating July 2027. For the past year I've built and run SafeSurf and SafeGuard: Kotlin Android apps with a Firebase backend.",
   location: 'Sde Yaakov, Israel',
-  thesis: 'I run a live Android app and its backend. 50+ active users.',
-  availability:
-    'Open to a student role (3 days a week) or a full-time junior role in Backend, Android or Systems.',
+  thesis: "Hi, I'm Ilay. I study computer science and build Android apps and backends.",
+  availability: 'Open to a student role or a full-time junior role in Backend, Android or Systems.',
   email: 'ilay3002@gmail.com',
+  phone: '058-779-3124',
+  phoneHref: 'tel:+972587793124',
+  whatsapp: 'https://wa.me/972587793124',
   photo: '/images/ilay.jpg',
   initials: 'IF',
   links: {

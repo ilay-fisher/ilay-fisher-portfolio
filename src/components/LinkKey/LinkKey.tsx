@@ -1,7 +1,7 @@
 import type { PointerEvent, ReactNode } from 'react';
 import './LinkKey.css';
 
-export { GitHubIcon, LinkedInIcon, MailIcon } from './icons';
+export { GitHubIcon, LinkedInIcon, MailIcon, PhoneIcon, WhatsAppIcon } from './icons';
 
 const ext = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
@@ -20,7 +20,9 @@ export interface LinkKeyProps {
   /** Decorative glyph (aria-hidden); the label is the accessible name. */
   icon: ReactNode;
   /** Picks the icon's own hover move. */
-  kind: 'linkedin' | 'github' | 'mail';
+  kind: 'linkedin' | 'github' | 'mail' | 'phone' | 'whatsapp';
+  /** Accessible name when it should say more than the visible label (it must contain it). */
+  label?: string;
   /** Opens in a new tab with `rel="noopener noreferrer"` and says so to screen readers. */
   external?: boolean;
   children: ReactNode;
@@ -32,13 +34,14 @@ export interface LinkKeyProps {
  * footer and the Contact section. It leans toward the pointer through `data-magnetic`
  * (the `translate` property), so it never fights its own hover `transform`.
  */
-export function LinkKey({ href, icon, kind, external, children }: LinkKeyProps) {
+export function LinkKey({ href, icon, kind, external, label, children }: LinkKeyProps) {
   return (
     <a
       className="link-key"
       data-key={kind}
       data-magnetic
       href={href}
+      aria-label={label}
       onPointerMove={trackPointer}
       {...(external ? ext : {})}
     >

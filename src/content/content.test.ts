@@ -7,24 +7,36 @@ const isHttps = (u: string) => u.startsWith('https://') && URL.canParse(u);
 describe('profile', () => {
   it('has the identity fields from CONTENT.md', () => {
     expect(profile.name).toBe('Ilay Fisher');
-    expect(profile.thesis).toBe('I run a live Android app and its backend. 50+ active users.');
-    expect(profile.thesis.split(/\s+/).length).toBeLessThanOrEqual(12);
+    expect(profile.thesis).toBe(
+      "Hi, I'm Ilay. I study computer science and build Android apps and backends.",
+    );
+    expect(profile.thesis.split(/\s+/).length).toBeLessThanOrEqual(13);
     expect(profile.email).toBe('ilay3002@gmail.com');
     expect(profile.location).toBe('Sde Yaakov, Israel');
     expect(profile.photo).toBe('/images/ilay.jpg');
   });
 
-  it('has https links and no phone number', () => {
+  it('has https links and only the approved phone', () => {
     expect(isHttps(profile.links.linkedin)).toBe(true);
     expect(isHttps(profile.links.github)).toBe(true);
     expect(isHttps(profile.links.safesurf)).toBe(true);
-    expect(JSON.stringify(profile)).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
+    expect(profile.phone).toBe('058-779-3124');
+    expect(profile.phoneHref).toBe('tel:+972587793124');
+    expect(profile.whatsapp).toBe('https://wa.me/972587793124');
+    // only the owner-approved number, and only in the phone field
+    const { phone: _p, phoneHref: _h, whatsapp: _w, ...rest } = profile;
+    void [_p, _h, _w];
+    expect(JSON.stringify(rest)).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
   });
 
   it('aims the role and availability at student and junior roles, from the CVs', () => {
-    expect(profile.role).toContain('Student backend developer');
-    expect(profile.role).toContain('July 2027');
-    expect(profile.availability).toContain('student role (3 days a week)');
+    expect(profile.role).toBe(
+      "B.Sc. at Ruppin Academic Center, graduating July 2027. For the past year I've built and run SafeSurf and SafeGuard: Kotlin Android apps with a Firebase backend.",
+    );
+    expect(profile.about.lead).toContain('50+ active users');
+    expect(profile.availability).toBe(
+      'Open to a student role or a full-time junior role in Backend, Android or Systems.',
+    );
     expect(profile.availability).toContain('full-time junior role');
     expect(profile.availability).toContain('Backend, Android or Systems');
   });
@@ -36,8 +48,8 @@ describe('profile', () => {
     expect(profile.about.stack).toEqual(expect.arrayContaining(['Linux', 'SQL', 'GitHub Actions']));
   });
 
-  it('does not claim to have built it alone: another contributor worked on SafeGuard', () => {
-    expect(JSON.stringify(profile)).not.toMatch(/\balone\b|Solo-built/);
+  it('never says alone or solo: another contributor worked on SafeGuard', () => {
+    expect(JSON.stringify([profile, projects])).not.toMatch(/\b(alone|solo)\b|Solo-built/i);
     expect(JSON.stringify(profile)).toContain('another contributor');
   });
 
