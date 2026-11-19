@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, LinkButton } from '../../components/Button/Button';
+import { GitHubIcon, LinkedInIcon, LinkKey } from '../../components/LinkKey/LinkKey';
 import { Section } from '../../components/Section/Section';
 import { profile } from '../../content/profile';
 import { createLogger } from '../../lib/logger';
@@ -9,7 +10,7 @@ const log = createLogger('contact');
 
 /**
  * Contact: one ask (stated in the summary), one primary mailto button that leans toward the pointer, LinkedIn and GitHub as
- * secondary links, and a copy-email control with a polite live-region confirmation.
+ * the shared icon keys, and a copy-email control with a polite live-region confirmation.
  */
 export default function Contact() {
   const [status, setStatus] = useState('');
@@ -51,8 +52,12 @@ export default function Contact() {
             Email Ilay
           </LinkButton>
           <Button onClick={() => void copy()}>Copy email</Button>
-          <LinkButton href={profile.links.linkedin}>LinkedIn</LinkButton>
-          <LinkButton href={profile.links.github}>GitHub</LinkButton>
+          <LinkKey kind="linkedin" href={profile.links.linkedin} icon={<LinkedInIcon />} external>
+            LinkedIn
+          </LinkKey>
+          <LinkKey kind="github" href={profile.links.github} icon={<GitHubIcon />} external>
+            GitHub
+          </LinkKey>
         </div>
         <p className="contact__wit">Throwing things was fun. Hiring me is more useful.</p>
         <p className="contact__status mono" role="status" aria-live="polite">

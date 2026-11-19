@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 
 /**
- * Footer key glyphs. Inline, decorative (`aria-hidden`, not focusable, no title: the link text
+ * Link key glyphs. Inline, decorative (`aria-hidden`, not focusable, no title: the link text
  * is the accessible name) and drawn in `currentColor`, so the key decides the colour.
  *
  * The LinkedIn "in" and the GitHub mark are the Simple Icons path data (CC0-1.0,
@@ -44,15 +44,15 @@ export function GitHubIcon(props: IconProps) {
 }
 
 /**
- * A filled envelope with a V flap cut into it. The flap is its own element (`.footer-key__flap`)
- * so the key can open it on hover; it is stroked in the well colour so it reads as a cut.
+ * A filled envelope with a V flap cut into it. The flap is its own element (`.link-key__flap`)
+ * as a styling hook; it is stroked in the well colour so it reads as a cut.
  */
 export function MailIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
       <rect x="2" y="4.5" width="20" height="15" rx="3.5" fill="currentColor" />
       <path
-        className="footer-key__flap"
+        className="link-key__flap"
         d="M5.2 8.4 12 13.2l6.8-4.8"
         fill="none"
         stroke="var(--key-well)"
