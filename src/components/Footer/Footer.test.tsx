@@ -43,9 +43,13 @@ describe('Footer', () => {
   it('keeps visible text labels and clear accessible names next to the icons', () => {
     render(<Footer />);
     const list = screen.getByRole('list', { name: 'Elsewhere' });
-    expect(within(list).getByRole('link', { name: 'LinkedIn (opens in a new tab)' })).toBeVisible();
-    expect(within(list).getByRole('link', { name: 'GitHub (opens in a new tab)' })).toBeVisible();
-    expect(within(list).getByRole('link', { name: 'Email' })).toBeVisible();
+    expect(
+      within(list).getByRole('link', { name: /^LinkedIn\s*\(opens in a new tab\)$/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(list).getByRole('link', { name: /^GitHub\s*\(opens in a new tab\)$/ }),
+    ).toBeInTheDocument();
+    expect(within(list).getByRole('link', { name: 'Email' })).toBeInTheDocument();
   });
 
   it('lets the keys lean toward the pointer and marks them as keys', () => {

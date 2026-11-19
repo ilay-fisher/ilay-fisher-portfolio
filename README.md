@@ -57,7 +57,7 @@ They are self-hosted (path data from [simple-icons](https://simpleicons.org), CC
 [devicon](https://github.com/devicons/devicon) repository, MIT, where the Java name and coffee cup mark remain
 trademarks of Oracle; the C hexagon from the simple-icons ISO C++ geometry without the plus signs). In the hero
 each mark is extruded unaltered into a die-cut token in the brand's own colour (or printed flat on a
-keycap); the full source and licence list is in `docs/reports/hero.md`.
+keycap); the full source and licence list is in `docs/reports/hero.md`. The footer's LinkedIn "in" and GitHub marks are simple-icons path data (CC0-1.0); LinkedIn and GitHub are trademarks of their owners.
 
 - The Android robot is reproduced or modified from work created and shared by Google and used
   according to terms described in the Creative Commons 3.0 Attribution License.
