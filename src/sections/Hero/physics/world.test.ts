@@ -170,6 +170,33 @@ describe('hero physics', () => {
     }
   });
 
+  it('rests the GitHub token and the logo badges asleep inside the walls, in every layout', () => {
+    for (const [bp, seed] of [
+      ['desktop', 7],
+      ['desktop', 11],
+      ['mobile', 7],
+      ['mobile', 11],
+    ] as const) {
+      const s = setup(seed, bp);
+      run(s, 9);
+      for (const id of ['token-github', 'linkedin', 'badge-typescript']) {
+        if (!s.specs.some((x) => x.id === id)) continue;
+        const b = s.world.get(id)!;
+        expect(b, `${bp} ${id}`).toBeDefined();
+        expect(b.asleep, `${bp} ${id} asleep`).toBe(true);
+        expect(b.pos.x).toBeGreaterThan(s.bounds.minX);
+        expect(b.pos.x).toBeLessThan(s.bounds.maxX);
+        expect(b.pos.y).toBeGreaterThan(0.02);
+        expect(b.pos.y).toBeLessThan(1.2);
+      }
+    }
+  });
+
+  it('has a badge on the floor in every layout (it exists to be asserted above)', () => {
+    for (const bp of ['desktop', 'mobile'] as const)
+      expect(setup(7, bp).specs.some((x) => x.id === 'linkedin')).toBe(true);
+  });
+
   it('puts slow, nearly settled bodies to sleep on demand but never a fast one', () => {
     const s = setup(7);
     run(s, 9);

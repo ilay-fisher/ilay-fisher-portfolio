@@ -48,7 +48,8 @@ export function vendorMarks() {
       title: 'C',
       path: cpp.slice(0, cut + 1),
       hex: '283593',
-      source: 'https://commons.wikimedia.org/wiki/File:C_Programming_Language.svg (the hexagon C mark)',
+      source:
+        'https://commons.wikimedia.org/wiki/File:C_Programming_Language.svg (the hexagon C mark)',
       guidelines: null,
       licence:
         'Geometry from simple-icons cplusplus (CC0-1.0 data) of the ISO C++ logo, plus signs removed; the Commons file of the same C logo states Public domain; the C logo is unofficial (the language has no brand owner)',
