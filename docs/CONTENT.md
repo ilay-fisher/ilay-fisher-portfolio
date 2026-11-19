@@ -15,7 +15,7 @@ exclamation marks. Short sentences. Numbers over adjectives.
 ## Identity
 
 - Name: Ilay Fisher
-- Headline (hero, `profile.thesis`): "Hi, I'm Ilay. I study computer science and build Android apps and backends."
+- Headline (hero, `profile.thesis`): "Hi, I'm Ilay. I study computer science and build Android apps, backends and AI agents."
 - Role line: "B.Sc. at Ruppin Academic Center, graduating July 2027. For the past year I've built and run SafeSurf and SafeGuard: Kotlin Android apps with a Firebase backend."
 - The 50+ active users proof lives in About and the case pages, not in the hero (owner, 2026-11-19).
 - Never write "alone", "solo" or "solo-built" (owner, 2026-11-19). Another contributor worked on SafeGuard.
@@ -80,7 +80,8 @@ Section title: "What I have shipped and taught." Readings: false-block rate 36.6
    - Directed their capstone project, a modular GIF playback engine, and guided the group through file I/O parsing
 3. **Technology Instructor, AharayTech (8200 Alumni Association)** — Apr 2024 to Oct 2026
    - Taught Python and web development (scholarship program)
-4. **Team Member, Rafael Advanced Defense Systems** — Dec 2023 to Aug 2024, shift-based manufacturing role
+4. **Team Member, Rafael Advanced Defense Systems** — Dec 2023 to Aug 2024 (name and dates only)
+   - Rafael: name and dates only, details confidential (owner, 2026-11-19)
 5. **Squad Commander, Combat Engineering Corps** — Nov 2019 to Jul 2023, military service
 
 ## Education

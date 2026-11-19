@@ -34,16 +34,18 @@ export default function Experience() {
             <span className="timeline__node" aria-hidden="true" />
             <div className="timeline__when mono">
               <span>{e.period}</span>
-              <span className="timeline__kind">{e.kind}</span>
+              {e.kind && <span className="timeline__kind">{e.kind}</span>}
             </div>
             <div className="timeline__body spec-card bevel">
               <h3>{e.role}</h3>
               <p className="timeline__org">{e.org}</p>
-              <ul className="timeline__points">
-                {e.highlights.map((h) => (
-                  <li key={h}>{h}</li>
-                ))}
-              </ul>
+              {e.highlights.length > 0 && (
+                <ul className="timeline__points">
+                  {e.highlights.map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </li>
         ))}

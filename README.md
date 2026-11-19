@@ -1,6 +1,6 @@
 # Ilay Fisher — Portfolio
 
-> Hi, I'm Ilay. I study computer science and build Android apps and backends.
+> Hi, I'm Ilay. I study computer science and build Android apps, backends and AI agents.
 
 An interactive, single-page portfolio. Instead of describing the projects, the page lets
 the visitor play with a small, working piece of each one:

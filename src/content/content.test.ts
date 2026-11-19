@@ -8,9 +8,9 @@ describe('profile', () => {
   it('has the identity fields from CONTENT.md', () => {
     expect(profile.name).toBe('Ilay Fisher');
     expect(profile.thesis).toBe(
-      "Hi, I'm Ilay. I study computer science and build Android apps and backends.",
+      "Hi, I'm Ilay. I study computer science and build Android apps, backends and AI agents.",
     );
-    expect(profile.thesis.split(/\s+/).length).toBeLessThanOrEqual(13);
+    expect(profile.thesis.split(/\s+/).length).toBeLessThanOrEqual(15);
     expect(profile.email).toBe('ilay3002@gmail.com');
     expect(profile.location).toBe('Sde Yaakov, Israel');
     expect(profile.photo).toBe('/images/ilay.jpg');
@@ -62,8 +62,13 @@ describe('profile', () => {
       'service',
     ]);
     for (const e of profile.experience) {
-      expect(e.role && e.org && e.period && e.summary.length > 0).toBeTruthy();
-      expect(e.highlights.length).toBeGreaterThan(0);
+      expect(e.role && e.org && e.period).toBeTruthy();
+      if (e.id === 'rafael') {
+        // confidential: title, org and dates only
+        expect([e.kind, e.summary, e.highlights]).toEqual(['', '', []]);
+      } else {
+        expect(e.summary.length > 0 && e.highlights.length > 0).toBe(true);
+      }
     }
     expect(profile.education.school).toBe('Ruppin Academic Center');
     expect(profile.education.average).toBe(88);
