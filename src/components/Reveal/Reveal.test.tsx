@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { gsap } from '../../lib/gsap';
 import { Reveal } from './Reveal';
 
 function stubReduced(reduced: boolean) {
@@ -75,4 +76,27 @@ describe('Reveal', () => {
     );
     expect(screen.getByText('one').getAttribute('style')).toBeNull();
   });
+
+  it.each(['fade', 'up'] as const)(
+    '%s finishes at opacity 1 even while the CSS pre-hide applies to the element at creation',
+    (variant) => {
+      stubReduced(false);
+      // The production cascade at the moment the tween is created: the element itself is pre-hidden.
+      const style = document.createElement('style');
+      style.textContent =
+        'html.js:not(.reduce-motion) [data-reveal]:not([data-reveal-ready]) { opacity: 0 }';
+      document.head.append(style);
+      document.documentElement.classList.add('js');
+      try {
+        // Production has no StrictMode double run, so render once without it.
+        render(<Reveal variant={variant}>z</Reveal>);
+        const el = screen.getByText('z');
+        for (const tween of gsap.getTweensOf(el)) tween.progress(1);
+        expect(el.style.opacity).toBe('1');
+      } finally {
+        style.remove();
+        document.documentElement.classList.remove('js');
+      }
+    },
+  );
 });
