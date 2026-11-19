@@ -137,18 +137,20 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
     const label = await el.evaluate(
       (e) => `${e.getAttribute('data-reveal')} ${e.className || e.tagName.toLowerCase()}`,
     );
-    // Scroll again on every poll: layout above the element can still shift while images and fonts load, and a reveal
-    // only plays while its trigger is actually reached.
+    // Scroll again on every poll, with a small nudge so a real scroll event fires each time: layout above the element
+    // can still shift while images and fonts load, and ScrollTrigger only evaluates its triggers on scroll.
+    let nudge = 0;
     await expect
       .poll(
         () =>
-          el.evaluate((e) => {
+          el.evaluate((e, n) => {
             e.scrollIntoView({ block: 'center', behavior: 'instant' });
+            window.scrollBy(0, n % 2 ? 4 : -4);
             const ops = [e, ...Array.from(e.children)].map((n) => getComputedStyle(n).opacity);
             return ops.every((o) => o === '1')
               ? 'ok'
               : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)} pageH ${document.documentElement.scrollHeight} ready ${e.dataset.revealReady} style [${(e.children[0] as HTMLElement | undefined)?.style.cssText}] fonts ${document.fonts.status}`;
-          }),
+          }, nudge++),
         { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
       )
       .toBe('ok');
