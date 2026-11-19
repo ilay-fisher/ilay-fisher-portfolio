@@ -116,3 +116,53 @@ test('WebGL2 is available in this browser', async ({ page }) => {
   );
   expect(ok).toBe(true);
 });
+
+/**
+ * Regression: with motion on, every `[data-reveal]` must end fully visible once scrolled in. A reveal that animates the
+ * element itself (`fade`, `up`) once recorded the CSS pre-hide (opacity 0) as its end value and stayed invisible in the
+ * production build; React StrictMode's second effect run hid it in the dev server, so only a preview-build run sees it.
+ */
+test('every reveal ends visible after scrolling in (motion on)', async ({ page }) => {
+  // One page of reveals, each given time to finish on a loaded runner (a spring tween can crawl under software GL).
+  test.setTimeout(240_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const total = await page.locator('[data-reveal]').count();
+  expect(total, 'the page has reveals').toBeGreaterThan(0);
+
+  for (let i = 0; i < total; i++) {
+    const el = page.locator('[data-reveal]').nth(i);
+    const label = await el.evaluate(
+      (e) => `${e.getAttribute('data-reveal')} ${e.className || e.tagName.toLowerCase()}`,
+    );
+    // Scroll again on every poll: a reveal only plays while its trigger is actually reached, and layout can still shift
+    // while fonts and images load.
+    await expect
+      .poll(
+        () =>
+          el.evaluate((e) => {
+            e.scrollIntoView({ block: 'center', behavior: 'instant' });
+            const ops = [e, ...Array.from(e.children)].map((n) => getComputedStyle(n).opacity);
+            return ops.every((o) => o === '1')
+              ? 'ok'
+              : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)} pageH ${document.documentElement.scrollHeight}`;
+          }),
+        { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
+      )
+      .toBe('ok');
+  }
+
+  // The thing the bug hid: the About portrait is really visible, not just rendered into an invisible wrapper.
+  const stage = page.locator('#about .avatar__stage');
+  await stage.scrollIntoViewIfNeeded();
+  await expect(stage).toBeVisible();
+  await expect
+    .poll(() =>
+      stage.evaluate(
+        (e) =>
+          e.closest<HTMLElement>('[data-reveal]') &&
+          getComputedStyle(e.closest('[data-reveal]')!).opacity,
+      ),
+    )
+    .toBe('1');
+});
