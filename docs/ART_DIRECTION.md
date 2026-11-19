@@ -45,13 +45,21 @@ not a spreadsheet.
 
 ## Colour
 
-- The pink `#FF3D6E` read as bubblegum. Replace the accent family with a hot, technical
-  signal colour in the orange-red range (international orange, drone and flight hardware),
-  with a lighter amber for speculars and a deep ember for shadowed accent surfaces. The
-  design worker picks exact values, checks AA contrast and keeps the token names.
+- The pink `#FF3D6E` read as bubblegum, and its successor, signal orange `#FF5A1F`, read as
+  "tired" to the owner, who asked for something alive in the blue-green range. The accent
+  family is now **signal cyan**: `#1ED0F2` (`--paint`), a pale `#8CF1FF` for speculars and
+  lit edges (`--paint-hi`) and a deep teal `#0A6A87` for shadowed accent surfaces
+  (`--paint-deep`). It reads as a pilot lamp or an instrument backlight on the blue-black
+  stage, not candy and not neon. Values, contrast ratios and the reasoning: `docs/DESIGN.md`,
+  section 1. Three families were compared on the real page first
+  (`docs/reports/img/palette-alive-options.png`).
+- The status green (availability dot, pass states) was retuned to a lime-leaning `#9AE06A`
+  (hue 96 against the accent's 190), so a status light and an accent light never look alike.
+- The hero name is glossy paper-white ceramic on a dark anodised plinth with a signal inlay
+  line. Brushed metal letters are retired: grey alloy read muddy beside the dark bodies.
 - Accent is for what is live or pressable: legends on keys, the armed switch, the path, the
   burn front, one word in a headline. Never large flat fills behind text.
-- Text stays warm paper on the dark stage. Green stays a status-only colour.
+- Text stays warm paper on the dark stage. Green stays a status-only colour and never shares a hue with the accent.
 
 ## Type
 
