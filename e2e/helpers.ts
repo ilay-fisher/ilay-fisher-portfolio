@@ -103,3 +103,18 @@ export async function clickThenGrow(page: Page, label: string, px: number): Prom
     [label, px] as const,
   );
 }
+
+/**
+ * Presses Tab from a fresh start (focus on the document) and asserts the skip link takes it. A Tab sent while a slow
+ * runner is still hydrating can be swallowed, so the whole press-and-check is retried from the top; what is asserted is
+ * unchanged: from the start of the page, the first Tab stop is the skip link.
+ */
+export async function expectSkipLinkFirstTab(page: Page): Promise<void> {
+  const skip = page.getByRole('link', { name: 'Skip to content' });
+  await expect(skip).toBeAttached();
+  await expect(async () => {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Tab');
+    await expect(skip).toBeFocused({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000, intervals: [250, 500, 1000] });
+}

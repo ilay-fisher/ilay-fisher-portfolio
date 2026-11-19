@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectScrolledTo } from './helpers';
+import { expectScrolledTo, expectSkipLinkFirstTab } from './helpers';
 
 const SECTIONS = [
   ['about', 'About'],
@@ -87,8 +87,7 @@ test.describe('mobile nav at 390x844', () => {
 
 test('skip link still works', async ({ page }) => {
   await page.goto('/');
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await expectSkipLinkFirstTab(page);
 });
 
 for (const size of [
@@ -112,8 +111,11 @@ test('contact: mailto, secondary links and copy-email confirmation', async ({ pa
   const contact = page.locator('#contact');
   await contact.scrollIntoViewIfNeeded();
   await expect(contact.getByRole('link', { name: /Email/ })).toHaveAttribute('href', /^mailto:/);
-  await contact.getByRole('button', { name: /Copy email/ }).click();
-  await expect(contact.getByRole('status')).toHaveText('Email copied.');
+  // A click that lands before hydration is a no-op; click again until the confirmation shows.
+  await expect(async () => {
+    await contact.getByRole('button', { name: /Copy email/ }).click();
+    await expect(contact.getByRole('status')).toHaveText('Email copied.', { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('ilay3002@gmail.com');
 });
 

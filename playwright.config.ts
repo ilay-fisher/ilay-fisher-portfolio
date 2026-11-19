@@ -35,7 +35,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: ci,
   retries: ci ? 1 : 0,
-  workers: ci ? 3 : undefined,
+  workers: ci ? 2 : undefined,
   // Software GL is slow: a generous per-test budget, assertions still fail at their own timeout.
   timeout: ci ? 90_000 : 60_000,
   expect: { timeout: ci ? 15_000 : 10_000 },

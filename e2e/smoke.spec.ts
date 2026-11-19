@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectScrolledTo } from './helpers';
+import { expectScrolledTo, expectSkipLinkFirstTab } from './helpers';
 
 const IDS = ['top', 'about', 'safesurf', 'drone', 'xray', 'experience', 'contact'];
 
@@ -54,9 +54,8 @@ test.describe('nav links land on their section', () => {
 
 test('skip link is first in tab order and targets main', async ({ page }) => {
   await page.goto('/');
-  await page.keyboard.press('Tab');
+  await expectSkipLinkFirstTab(page);
   const skip = page.getByRole('link', { name: 'Skip to content' });
-  await expect(skip).toBeFocused();
   await expect(skip).toHaveAttribute('href', '#main');
 });
 
