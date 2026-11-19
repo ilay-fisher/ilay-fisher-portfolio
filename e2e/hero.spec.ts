@@ -266,8 +266,12 @@ test.describe('hero scene @gl-heavy', () => {
       // whole drop is asleep, which takes as long as the machine's frame rate makes it (live physics, no fixed budget).
       // The first piece waits for the real drop. After a double-click the scene is awake again and, off screen, paused:
       // later pieces run it to rest by simulated time (`settle()`), which does not depend on the frame rate.
-      if (id !== projects[0][0]) expect(await hero(page, (h) => h.settle())).toBe(true);
-      await expect(canvas(page)).toHaveAttribute('data-sleeping', 'true', { timeout: 90_000 });
+      // Settling is repeated until the scene reports it: anything that wakes a body in between (a hover, a resume
+      // after the scroll) is simply run to rest again, so the wait does not depend on one lucky frame.
+      await expect(async () => {
+        if (id !== projects[0][0]) expect(await hero(page, (h) => h.settle())).toBe(true);
+        await expect(canvas(page)).toHaveAttribute('data-sleeping', 'true', { timeout: 8_000 });
+      }).toPass({ timeout: 90_000, intervals: [500, 1000, 2000] });
       let at: { x: number; y: number } | null = null;
       await expect
         .poll(
