@@ -332,6 +332,31 @@ describe('accessible names and project pieces', () => {
     for (const s of keys(buildCatalogue('desktop'))) expect(s.href).toBeNull();
   });
 
+  it('describes the SafeGuard piece as the real app icon, factually', () => {
+    const s = buildCatalogue('desktop').find((x) => x.id === 'shield')!;
+    expect(s.label).toBe('SafeGuard app icon');
+    expect(s.name).toBe('SafeGuard');
+    expect(s.description).toMatch(/launcher icon/i);
+    expect(s.description).not.toMatch(/shield for/i);
+  });
+
+  it('makes the SafeGuard icon a square tile that sits next to the SafeSurf logo without jamming it', () => {
+    for (const bp of ['desktop', 'mobile'] as const) {
+      const c = buildCatalogue(bp);
+      const icon = c.find((x) => x.id === 'shield')!;
+      const logo = c.find((x) => x.id === 'logo')!;
+      expect(icon.size.w).toBeCloseTo(icon.size.d, 9);
+      expect(icon.size.h).toBeGreaterThan(0.1);
+      // About the logo's footprint: no wider than it, and a similar collision radius.
+      expect(icon.size.w).toBeLessThanOrEqual(logo.size.w + 1e-9);
+      expect(icon.radius / logo.radius).toBeGreaterThan(0.85);
+      expect(icon.radius / logo.radius).toBeLessThan(1.25);
+      // The radius contains the rounded-square collider's corners.
+      expect(icon.radius).toBeGreaterThanOrEqual(Math.hypot(icon.size.w, icon.size.d) / 2 - 0.2);
+      expect(c.filter((x) => x.kind === 'shield')).toHaveLength(1);
+    }
+  });
+
   it('words the hover chip: the name, plus a hint on project pieces', () => {
     const all = buildCatalogue('desktop');
     expect(chipLabel(all.find((s) => s.id === 'token-kotlin')!)).toBe('Kotlin');

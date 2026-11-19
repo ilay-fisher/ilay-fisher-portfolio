@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TOKEN_SHAPES } from '../scene/tokenData';
 import { buildCatalogue, boundingRadius } from './catalogue';
-import { insideConvex, isConvex, tokenFootprint } from './token';
+import { insideConvex, isConvex, roundedSquareOutline, tokenFootprint } from './token';
 
 const tokenSpecs = buildCatalogue('desktop').filter((s) => s.kind === 'token');
 
@@ -63,6 +63,33 @@ describe('token cut lines and colliders', () => {
       expect(boundingRadius(s)).toBeGreaterThanOrEqual(f.radius * s.scale - 1e-6);
       expect(s.size.w).toBeCloseTo(f.w * s.scale, 5);
       expect(s.size.d).toBeCloseTo(f.d * s.scale, 5);
+    }
+  });
+});
+
+describe('rounded square collider (the SafeGuard app icon)', () => {
+  it('is a convex outline inside the unit square with its corners cut', () => {
+    const o = roundedSquareOutline(0.44, 3);
+    expect(o.length).toBeLessThanOrEqual(16);
+    expect(isConvex(o)).toBe(true);
+    for (const [x, z] of o) {
+      expect(Math.abs(x)).toBeLessThanOrEqual(1 + 1e-9);
+      expect(Math.abs(z)).toBeLessThanOrEqual(1 + 1e-9);
+      // No vertex sits in the sharp corner of the square.
+      expect(Math.hypot(x, z)).toBeLessThan(Math.SQRT2 - 0.1);
+    }
+    // It still reaches the flat sides.
+    expect(Math.max(...o.map(([x]) => x))).toBeCloseTo(1, 9);
+    expect(Math.min(...o.map(([, z]) => z))).toBeCloseTo(-1, 9);
+  });
+
+  it('is symmetric left to right and front to back', () => {
+    const o = roundedSquareOutline(0.44, 3);
+    const has = (x: number, z: number) =>
+      o.some(([a, b]) => Math.abs(a - x) < 1e-9 && Math.abs(b - z) < 1e-9);
+    for (const [x, z] of o) {
+      expect(has(-x, z)).toBe(true);
+      expect(has(x, -z)).toBe(true);
     }
   });
 });
