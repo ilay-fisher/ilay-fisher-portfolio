@@ -1,0 +1,212 @@
+/* Case study pages: the same rounded, lit hardware as the home page. Tokens only. */
+.case__main {
+  padding-top: var(--space-9);
+}
+.case__back {
+  margin-bottom: var(--space-5);
+}
+.case-section {
+  padding-block: var(--space-8);
+}
+.case-intro {
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-7);
+}
+.case .section__title {
+  font-size: var(--step-3);
+  max-width: 22ch;
+}
+.case-intro .section__title {
+  font-size: var(--step-4);
+  max-width: 16ch;
+}
+.case__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+/* entrance: blocks rise on the soft spring, staggered by --i. Under reduced motion they simply are there. */
+@keyframes case-rise {
+  from {
+    opacity: 0;
+    transform: translateY(44px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion) .case-enter {
+    animation: case-rise var(--spring-soft-dur) var(--spring-soft) both;
+    animation-delay: calc(var(--i, 0) * 110ms);
+  }
+}
+
+/* the stage: a screenshot or the live rig on a large rounded lit surface */
+.case-rig {
+  min-height: 260px;
+}
+.case-shot {
+  margin: var(--space-7) 0 0;
+}
+.case-intro + .case-shot,
+.case-enter > .case-shot {
+  margin-top: 0;
+}
+.case-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.case-shot figcaption {
+  padding: var(--space-4) var(--space-6);
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}
+
+.case__prose {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--measure);
+  margin-top: var(--space-6);
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.case__prose p:first-child {
+  color: var(--text);
+}
+
+/* a card: raised, rounded, lit from the top left */
+.case-card {
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(150deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.012)) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset-sm);
+  color: var(--text-dim);
+}
+.case__built,
+.case__how {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  list-style: none;
+  padding: 0;
+}
+.case__how {
+  counter-reset: idea;
+}
+.case-card--idea {
+  position: relative;
+  counter-increment: idea;
+  padding-left: calc(var(--space-5) + 56px);
+}
+.case-card--idea::before {
+  content: counter(idea, decimal-leading-zero);
+  position: absolute;
+  left: var(--space-5);
+  top: var(--space-5);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--well-inset);
+  color: var(--paint);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+.case-card--idea h3 {
+  color: var(--text);
+  font-size: var(--step-1);
+  line-height: 1.25;
+}
+.case-card--idea p {
+  margin-top: var(--space-2);
+  max-width: var(--measure);
+}
+
+.case__numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: var(--space-6) 0 0;
+}
+.case-number {
+  min-width: 0;
+  /* the figure sizes itself from the tile's width, so it never runs into its neighbour */
+  container-type: inline-size;
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  background: rgb(0 0 0 / 0.24);
+  box-shadow: var(--well-inset);
+}
+.case-number dt {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: clamp(1.4rem, 20cqi, var(--step-3));
+  letter-spacing: var(--display-tracking);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  line-height: 1;
+}
+.case-number dd {
+  margin: var(--space-3) 0 0;
+  color: var(--text-dim);
+  font-size: var(--step--1);
+}
+.case__note {
+  max-width: var(--measure);
+  margin-top: var(--space-5);
+  color: var(--text-dim);
+}
+
+.case__pager {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-7);
+}
+.case__pager .case-key:last-child {
+  justify-self: end;
+}
+.case__contact {
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+}
+.case__contact .case__links {
+  margin-top: 0;
+}
+@media (min-width: 720px) {
+  .case__pager {
+    grid-template-columns: 1fr 1fr;
+  }
+  .case__how {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* not found */
+.case__main--lost {
+  min-height: 70vh;
+}
+.case-lost {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  max-width: 34rem;
+  padding: var(--space-7) var(--space-6);
+}
+.case-lost__title {
+  font-size: var(--step-3);
+}
+.case-lost p {
+  color: var(--text-dim);
+}

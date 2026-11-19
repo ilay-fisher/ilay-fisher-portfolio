@@ -3,9 +3,9 @@ import '@fontsource-variable/instrument-sans/index.css';
 import '@fontsource-variable/martian-mono/wdth.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
 import { PageFx } from './components/PageFx/PageFx';
 import { createLogger } from './lib/logger';
+import { Root } from './Root';
 import { SmoothScroll } from './lib/smoothScroll';
 import './styles/global.css';
 
@@ -14,7 +14,7 @@ if (!root) throw new Error('Missing #root element');
 createRoot(root).render(
   <StrictMode>
     <SmoothScroll>
-      <App />
+      <Root />
       <PageFx />
     </SmoothScroll>
   </StrictMode>,
