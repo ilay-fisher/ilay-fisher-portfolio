@@ -14,11 +14,20 @@ import './Contact.css';
 
 const log = createLogger('contact');
 
+/** Props for {@link Contact}. */
+export interface ContactProps {
+  /** Show the closing wit line. It refers to the hero toys, so only the home page shows it. */
+  wit?: boolean;
+  /** Extra class on the section, so a page can set its own spacing. */
+  className?: string;
+}
+
 /**
  * Contact: one ask (stated in the summary), one primary mailto button that leans toward the pointer, LinkedIn and GitHub as
- * the shared icon keys, and a copy-email control with a polite live-region confirmation.
+ * the shared icon keys, and a copy-email control with a polite live-region confirmation. The home page and every project
+ * page render this same panel, so "Get in touch" looks and works the same everywhere.
  */
-export default function Contact() {
+export default function Contact({ wit = true, className }: ContactProps = {}) {
   const [status, setStatus] = useState('');
   const timer = useRef<number>(0);
 
@@ -47,7 +56,7 @@ export default function Contact() {
       title="Get in touch."
       accent="touch"
       summary={profile.availability}
-      className="contact"
+      className={className ? `contact ${className}` : 'contact'}
     >
       <div className="contact__panel stage">
         <p className="contact__email" data-testid="contact-email">
@@ -82,7 +91,7 @@ export default function Contact() {
             GitHub
           </LinkKey>
         </div>
-        <p className="contact__wit">Throwing things was fun. Hiring me is more useful.</p>
+        {wit && <p className="contact__wit">Throwing things was fun. Hiring me is more useful.</p>}
         <p className="contact__status mono" role="status" aria-live="polite">
           {status}
         </p>
