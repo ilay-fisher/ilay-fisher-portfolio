@@ -44,6 +44,7 @@ describe('Experience', () => {
     expect(readings).toHaveTextContent('36.6%');
     expect(readings).toHaveTextContent('14.2%');
     expect(readings).toHaveTextContent('22+');
+    expect(readings).toHaveTextContent('50+');
     expect(readings).toHaveTextContent(/false-block/i);
   });
 
@@ -61,7 +62,9 @@ describe('Experience', () => {
     render(<Experience />);
     const counts = Array.from(document.querySelectorAll<HTMLElement>('[data-count]'));
     expect(counts.length).toBeGreaterThanOrEqual(2);
-    expect(counts.map((c) => c.textContent)).toEqual(expect.arrayContaining(['14.2%', '22+']));
+    expect(counts.map((c) => c.textContent)).toEqual(
+      expect.arrayContaining(['14.2%', '22+', '50+']),
+    );
   });
 });
 

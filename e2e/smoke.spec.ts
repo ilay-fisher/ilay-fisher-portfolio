@@ -24,7 +24,10 @@ test('loads with no console errors and has all sections in order', async ({ page
 test('title and description are set', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle(/Ilay Fisher/);
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /hold up/);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    /student or junior/,
+  );
 });
 
 // Where a nav click ends up is under test here, not the smooth scroll itself (that is e2e/smooth-scroll.spec.ts, in

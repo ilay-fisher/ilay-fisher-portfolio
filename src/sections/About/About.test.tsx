@@ -4,11 +4,13 @@ import { profile } from '../../content/profile';
 import About from './index';
 
 describe('About', () => {
-  it('is the #about section with an h2 and the thesis', () => {
+  it('is the #about section with an h2 and the evidence lead', () => {
     render(<About />);
     expect(document.getElementById('about')).not.toBeNull();
-    expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
-    expect(screen.getByText(profile.thesis)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Built and run end to end/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(profile.about.lead)).toBeInTheDocument();
   });
 
   it('tells the SafeSurf origin story from the content module', () => {
@@ -19,7 +21,7 @@ describe('About', () => {
   it('lists every built item and every stack tag', () => {
     render(<About />);
     for (const b of profile.about.built) expect(screen.getByText(b)).toBeInTheDocument();
-    const stack = screen.getByRole('list', { name: 'Stack' });
+    const stack = screen.getByRole('list', { name: 'Skills' });
     for (const s of profile.about.stack) expect(stack).toHaveTextContent(s);
   });
 

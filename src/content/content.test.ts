@@ -7,9 +7,8 @@ const isHttps = (u: string) => u.startsWith('https://') && URL.canParse(u);
 describe('profile', () => {
   it('has the identity fields from CONTENT.md', () => {
     expect(profile.name).toBe('Ilay Fisher');
-    expect(profile.thesis).toBe(
-      'I build software that has to hold up when someone is actively trying to break it.',
-    );
+    expect(profile.thesis).toBe('I run a live Android app and its backend. 50+ active users.');
+    expect(profile.thesis.split(/\s+/).length).toBeLessThanOrEqual(12);
     expect(profile.email).toBe('ilay3002@gmail.com');
     expect(profile.location).toBe('Sde Yaakov, Israel');
     expect(profile.photo).toBe('/images/ilay.jpg');
@@ -22,14 +21,44 @@ describe('profile', () => {
     expect(JSON.stringify(profile)).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
   });
 
+  it('aims the role and availability at student and junior roles, from the CVs', () => {
+    expect(profile.role).toContain('Student backend developer');
+    expect(profile.role).toContain('July 2027');
+    expect(profile.availability).toContain('student role (3 days a week)');
+    expect(profile.availability).toContain('full-time junior role');
+    expect(profile.availability).toContain('Backend, Android or Systems');
+  });
+
+  it('has the CV numbers in the experience and skills', () => {
+    const text = JSON.stringify(profile);
+    for (const n of ['50+', '60+', '77.7k', '7.6 ms', '22+', '36.6%', '14.2%', 'since May 2026'])
+      expect(text, n).toContain(n);
+    expect(profile.about.stack).toEqual(expect.arrayContaining(['Linux', 'SQL', 'GitHub Actions']));
+  });
+
+  it('does not claim to have built it alone: another contributor worked on SafeGuard', () => {
+    expect(JSON.stringify(profile)).not.toMatch(/\balone\b|Solo-built/);
+    expect(JSON.stringify(profile)).toContain('another contributor');
+  });
+
   it('lists experience and education with required fields', () => {
-    expect(profile.experience).toHaveLength(3);
+    expect(profile.experience.map((e) => e.id)).toEqual([
+      'safesurf',
+      'magshimim',
+      'aharaytech',
+      'rafael',
+      'service',
+    ]);
     for (const e of profile.experience) {
       expect(e.role && e.org && e.period && e.summary.length > 0).toBeTruthy();
       expect(e.highlights.length).toBeGreaterThan(0);
     }
     expect(profile.education.school).toBe('Ruppin Academic Center');
     expect(profile.education.average).toBe(88);
+    expect(profile.education.period).toBe('2024 to July 2027 (expected)');
+    expect(profile.education.courses).toEqual(
+      expect.arrayContaining(['Operating Systems (Linux)', 'Computer Networks']),
+    );
   });
 
   it('lists the six writing topics', () => {
