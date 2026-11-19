@@ -33,9 +33,9 @@ const FALLBACK: Palette = {
   text: '#ece8df',
   textDim: '#a8b0bc',
   textFaint: '#8a93a1',
-  paint: '#ff3d6e',
-  paintHi: '#ff93ae',
-  paintDeep: '#b3174a',
+  paint: '#1ed0f2',
+  paintHi: '#8cf1ff',
+  paintDeep: '#0a6a87',
   onPaint: '#0c1014',
 };
 

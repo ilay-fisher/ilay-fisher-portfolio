@@ -11,17 +11,17 @@ pink accent, one-shot fades. The owner called it too square, with weak motion, a
 in a sharp square ugly. v2 keeps the dark stage and the thesis (a rig you try to break) but
 changes the material: everything is a **rounded, lit, machined object**.
 
-| v1                                  | v2                                                                |
-| ----------------------------------- | ----------------------------------------------------------------- |
-| 0 to 2 px radii, hairline frames    | radius ladder 10 / 16 / 24 / 36 / pill, nothing is a sharp corner |
-| flat fills, hairlines as structure  | bevel + rim light + contact shadow from one top-left light        |
-| blueprint grid                      | light pools (`.ambient`) and film grain (`.grain`), no grid       |
-| pink-red `#ff3d6e`                  | signal orange family, amber specular, ember shade                 |
-| Bricolage 800 at 75% width, Fredoka | Bricolage 700 at normal width, one display face, Fredoka removed  |
-| ease-out fades on every reveal      | two shared springs, one loud motion at a time                     |
-| tick-mark nav, hairline underline   | floating pill nav with a sliding spring indicator                 |
-| square portrait                     | frameless avatar on the stage (alpha, contact pool, rim glow)     |
-| system cursor                       | opt-in signature cursor that hugs controls (fine pointer only)    |
+| v1                                  | v2                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| 0 to 2 px radii, hairline frames    | radius ladder 10 / 16 / 24 / 36 / pill, nothing is a sharp corner     |
+| flat fills, hairlines as structure  | bevel + rim light + contact shadow from one top-left light            |
+| blueprint grid                      | light pools (`.ambient`) and film grain (`.grain`), no grid           |
+| pink-red `#ff3d6e`                  | signal cyan family (v2.1; v2.0 was orange), pale specular, teal shade |
+| Bricolage 800 at 75% width, Fredoka | Bricolage 700 at normal width, one display face, Fredoka removed      |
+| ease-out fades on every reveal      | two shared springs, one loud motion at a time                         |
+| tick-mark nav, hairline underline   | floating pill nav with a sliding spring indicator                     |
+| square portrait                     | frameless avatar on the stage (alpha, contact pool, rim glow)         |
+| system cursor                       | opt-in signature cursor that hugs controls (fine pointer only)        |
 
 ### Migration note for feature workers
 
@@ -33,7 +33,7 @@ Use these. They exist and are stable:
 - **Shadow**: `--shadow-contact-sm`, `--shadow-contact` (resting), `--shadow-lift` (held or hovered
   up). Always lower right. Never `rgba(0,0,0,.1)` grey drop shadows.
 - **Bevel**: `--bevel-inset`, `--bevel-inset-sm`, `--well-inset` (recess), `--rim-gradient` (border
-  light), `--rim-light` (ember glow on the lower right edge).
+  light), `--rim-light` (accent glow on the lower right edge).
 - **Body**: `--body-gradient` (150deg, `--body-hi` to `--body-lo`) for any raised surface.
 - **Springs**: `--spring-soft` + `--spring-soft-dur` (880 ms, about 7% overshoot) for layout and
   entrances; `--spring-snappy` + `--spring-snappy-dur` (350 ms) for press and toggles. In JS:
@@ -52,28 +52,51 @@ than the two documented exceptions (section 6), and hiding the native cursor you
 
 ## 1. Palette (and why the accent changed)
 
-| Token              | Value                 | Role                                                        |
-| ------------------ | --------------------- | ----------------------------------------------------------- |
-| `--stage`          | `#0C1014`             | page background, blue-black graphite                        |
-| `--surface`        | `#131920`             | wells, inputs                                               |
-| `--surface-raised` | `#1B232C`             | hovered panels                                              |
-| `--body-hi/lo`     | `#28323D` / `#10151B` | lit and shaded ends of anodised bodies                      |
-| `--line`           | `#2B3542`             | soft separators inside cards                                |
-| `--line-strong`    | `#4A5668`             | control borders (3:1)                                       |
-| `--text`           | `#ECE8DF`             | primary text, 15.6:1 on stage                               |
-| `--text-dim`       | `#A8B0BC`             | secondary text, 8.1:1 on surface                            |
-| `--text-faint`     | `#8A93A1`             | captions, 5.7:1 on surface                                  |
-| `--paint`          | `#FF5A1F`             | accent: pressable or live. 6.1:1 on stage, 5.7:1 on surface |
-| `--paint-hi`       | `#FFB347`             | amber specular, top of gradients                            |
-| `--paint-deep`     | `#A8300F`             | ember shade, bottom of gradients and shadows                |
-| `--on-paint`       | `#0C1014`             | text on paint, 6.1:1; on paint-hi 10.7:1                    |
+| Token              | Value                 | Role                                                                          |
+| ------------------ | --------------------- | ----------------------------------------------------------------------------- |
+| `--stage`          | `#0C1014`             | page background, blue-black graphite                                          |
+| `--surface`        | `#131920`             | wells, inputs                                                                 |
+| `--surface-raised` | `#1B232C`             | hovered panels                                                                |
+| `--body-hi/lo`     | `#28323D` / `#10151B` | lit and shaded ends of anodised bodies                                        |
+| `--line`           | `#2B3542`             | soft separators inside cards                                                  |
+| `--line-strong`    | `#4A5668`             | control borders (3:1)                                                         |
+| `--text`           | `#ECE8DF`             | primary text, 15.6:1 on stage                                                 |
+| `--text-dim`       | `#A8B0BC`             | secondary text, 8.1:1 on surface                                              |
+| `--text-faint`     | `#8A93A1`             | captions, 5.7:1 on surface                                                    |
+| `--paint`          | `#1ED0F2`             | accent: pressable or live. 10.3:1 on stage, 9.6:1 on surface, 8.6:1 on raised |
+| `--paint-hi`       | `#8CF1FF`             | pale specular, top of gradients. 14.7:1 on stage                              |
+| `--paint-deep`     | `#0A6A87`             | teal shade, bottom of gradients and shadows (fills only, 3.1:1 on stage)      |
+| `--on-paint`       | `#0C1014`             | text on paint, 10.3:1; on paint-hi 14.7:1                                     |
+| `--pass`           | `#9AE06A`             | status green only (dot, pass). 12.0:1 on stage; hue 96 vs the accent's 190    |
 
-**Why orange.** Hardware you play with (a studio knob, a shutter button, a pilot lamp) lights in
-signal orange. It carries a highlight (amber) and a shade (ember) as one family, so a gradient
-reads as a lit object instead of a flat fill. It is warm against a cold graphite stage, passes AA
-as text and as a button fill with dark text, and it is not the pink of v1, nor the acid green,
-vermilion-on-black or cream and terracotta defaults. It is used for one thing per view: what you
-can press or what is live.
+**Why signal cyan.** The owner called the orange "tired" and asked for something alive in the
+blue-green range. Hardware you play with (a pilot lamp, an instrument backlight, a status LED on a
+studio rack) also lights in cyan, and on a blue-black graphite stage a cyan reads as light being
+emitted, where orange only ever read as paint. It carries a highlight (pale cyan) and a shade
+(deep teal) as one family, so a gradient reads as a lit object instead of a flat fill, and it
+passes AA as text (10.3:1 on stage) and as a button fill with dark text. Three families were
+tried on the real page (cyan `#1ED0F2`, azure `#3D9DFF`, mint-teal `#19E3A8`; see
+`docs/reports/img/palette-alive-options.png`). Azure looked like a default link colour. Mint-teal
+sat at hue 162, too close to the status green. Cyan (hue 190) is the most electric, has the most
+contrast headroom, and is far enough from any green to stay unambiguous.
+
+**Status green.** The availability dot and pass states use `--pass`, retuned from the minty
+`#7BE0B0` (hue 151) to a lime-leaning `#9AE06A` (hue 96), 94 degrees from the accent. Both lights
+stay visible side by side, and a unit test (`src/styles/tokens.test.ts`) holds the gap at 60
+degrees or more.
+
+Contrast ratios (WCAG 2.x, computed in `src/styles/tokens.test.ts`):
+
+| Pair                            | Ratio | Use                                |
+| ------------------------------- | ----- | ---------------------------------- |
+| `--paint` on `--stage`          | 10.33 | accent text, legends               |
+| `--paint` on `--surface`        | 9.57  | accent text in wells               |
+| `--paint` on `--surface-raised` | 8.58  | accent text on hovered panels      |
+| `--on-paint` on `--paint`       | 10.33 | button label                       |
+| `--on-paint` on `--paint-hi`    | 14.68 | label on the lit end of a button   |
+| `--paint-hi` on `--stage`       | 14.68 | pale accent text                   |
+| `--paint-deep` on `--stage`     | 3.11  | fills and shadows only, never text |
+| `--pass` on `--stage`           | 12.04 | status text and dot                |
 
 ## 2. Typography
 
@@ -106,7 +129,7 @@ Light is one source, top left (`--light-angle: 135deg`), shared with the 3D hero
 
 `PageFx` mounts `.ambient` (three blurred radial `.pool`s) and `.grain` (SVG noise at low opacity,
 slowly drifting) behind and above the page. `data-mood` on `.ambient` is set from the section in
-view (top, about, cool, amber, ember) and re-tints the pools over about 1.2 s. A grid draws a
+view (hero, about, cool, signal, deep) and re-tints the pools over about 1.2 s. A grid draws a
 technical drawing; pools and grain read as light in a dark room, which suits lit objects.
 Under reduced motion the pools are static and `grain[data-moving]` is `false`.
 

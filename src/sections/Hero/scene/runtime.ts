@@ -213,7 +213,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   scene.environmentIntensity = 0.95;
 
   const camera = new PerspectiveCamera(26, 1, 0.5, 90);
-  const key = new DirectionalLight('#fff0dc', 2.6);
+  const key = new DirectionalLight('#f1f6ff', 2.6);
   key.castShadow = true;
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.02;
@@ -239,7 +239,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     new PlaneGeometry(1, 1),
     new MeshBasicMaterial({
       map: poolTex,
-      color: '#ffd8b4',
+      color: '#b9ecf8',
       transparent: true,
       opacity: 0.1,
       depthWrite: false,
@@ -328,7 +328,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     const disposables: Content['disposables'] = [];
     const nameGroup = new Group();
     const mats = nameMaterials(palette);
-    disposables.push(mats.letters, mats.slab);
+    disposables.push(mats.letters, mats.slab, mats.inlay);
     for (const g of layout.glyphs) nameGroup.add(buildLetter(g, mats.letters));
     for (const s of layout.slabs) {
       const slab = new Mesh(
@@ -339,6 +339,15 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       slab.castShadow = true;
       slab.receiveShadow = true;
       nameGroup.add(slab);
+      // The signal inlay: a thin lit line set into the plinth's front face. Visual only; the
+      // collider comes from the layout, so the name stays as immovable as before.
+      const lineH = Math.min(0.05, s.hy * 0.2);
+      const inlay = new Mesh(
+        new RoundedBoxGeometry(s.hx * 1.9, lineH, 0.03, 2, lineH * 0.45),
+        mats.inlay,
+      );
+      inlay.position.set(s.cx, s.cy, s.cz + s.hz);
+      nameGroup.add(inlay);
     }
     scene.add(nameGroup);
 
@@ -372,7 +381,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
           w: spec.size.w,
           d: spec.size.d,
           top: hex(topTone),
-          ink: spec.accentBody ? '#fff1e4' : spec.accentLegend ? hex(palette.accent) : '#e8e3d8',
+          ink: spec.accentBody ? '#effcff' : spec.accentLegend ? hex(palette.accent) : '#e8e3d8',
           glow: !spec.accentBody && spec.accentLegend ? hex(palette.accentDeep) : null,
           fontFamily: family,
           anisotropy,

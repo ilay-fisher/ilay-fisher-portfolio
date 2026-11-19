@@ -37,7 +37,7 @@
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
 }
-/* the highlight: a soft amber pool that follows the pointer, clipped to the key */
+/* the highlight: a soft accent pool that follows the pointer, clipped to the key */
 .link-key__glow {
   position: absolute;
   inset: 0;

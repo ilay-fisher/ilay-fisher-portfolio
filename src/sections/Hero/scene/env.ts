@@ -16,7 +16,7 @@ import type { Palette } from './css';
 /**
  * A procedural photo-studio: a dark room with a few emissive softboxes. Prefiltered with PMREM so
  * glossy bevels pick up long, clean highlights. No image is downloaded. The key softbox is top-left,
- * matching the page's light direction; a thin amber kicker low on the right tints edges with the accent.
+ * matching the page's light direction; a thin accent kicker low on the right tints edges with the accent.
  */
 export function buildEnvironment(renderer: WebGLRenderer, palette: Palette): Texture {
   const scene = new Scene();
@@ -45,7 +45,7 @@ export function buildEnvironment(renderer: WebGLRenderer, palette: Palette): Tex
     m.lookAt(0, 0, 0);
     scene.add(m);
   };
-  panel(22, 14, [-20, 22, 12], new Color('#fff1e0'), 9);
+  panel(22, 14, [-20, 22, 12], new Color('#eef4ff'), 9);
   panel(4, 22, [26, 10, 4], new Color('#cfe0ff'), 5);
   panel(24, 7, [0, 30, -10], new Color('#ffffff'), 2.6);
   panel(16, 3, [14, 3, 20], palette.accentHi, 0.9);

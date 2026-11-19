@@ -530,15 +530,17 @@ export function glyphShapes(d: string): Shape[] {
 
 /** One letter of the name as a heavy, bevelled extrusion, positioned in world space. */
 export function buildLetter(g: PlacedGlyph, material: Material): Mesh {
-  // Rounded bevels that stay inside the outline (negative offset), so the letterforms keep their
-  // true width and counters while the edges catch the light.
-  const bevel = 0.042;
+  // Rounded bevel, kept small (0.04 em, nearly flush with the outline). Larger bevels, or a deep
+  // negative offset, fold the offset contour over itself in the narrow joins and counters of
+  // a, y, s, e and r. The slight inset only trims the corners.
+  const bevel = 0.04;
+  const inset = 0.012;
   const depthEm = g.depth / g.scale;
   const geo = new ExtrudeGeometry(glyphShapes(g.d), {
     depth: depthEm - bevel * 2,
     bevelEnabled: true,
-    bevelSize: bevel,
-    bevelOffset: -bevel,
+    bevelSize: bevel - inset,
+    bevelOffset: -inset,
     bevelThickness: bevel,
     bevelSegments: 8,
     curveSegments: 14,

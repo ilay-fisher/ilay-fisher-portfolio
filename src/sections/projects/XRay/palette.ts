@@ -23,7 +23,7 @@ const mix = (a: Rgb, b: Rgb, t: number): Rgb => [
 ];
 
 /**
- * Builds the ramp from the accent family: ink, ember, signal, amber, then a hot white core.
+ * Builds the ramp from the accent family: ink, deep, signal, pale, then a hot white core.
  * Takes a reader so tests can supply values; null means the tokens are not defined (no stylesheet).
  */
 export function heatRamp(read: (name: string) => string): RampStop[] | null {

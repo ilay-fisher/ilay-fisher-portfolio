@@ -38,7 +38,7 @@ describe('moodFor', () => {
   it('maps each section id to a light-pool mood and defaults to the hero mood', () => {
     expect(moodFor('top')).toBe('hero');
     expect(moodFor('safesurf')).not.toBe(moodFor('drone'));
-    expect(moodFor('contact')).toBe('ember');
+    expect(moodFor('contact')).toBe('deep');
     expect(moodFor(null)).toBe('hero');
     expect(moodFor('unknown')).toBe('hero');
   });

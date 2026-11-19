@@ -129,7 +129,7 @@ void main() {
   float scorch = (1.0 - smoothstep(0.0, 2.4, ah)) * (1.0 - form) * step(0.0, d);
   float chr = (1.0 - smoothstep(0.0, 0.5, max(-t, 0.0))) * (1.0 - form);
   vec3 lum = vec3(dot(img.rgb, vec3(0.33)));
-  vec3 col = mix(img.rgb, img.rgb * vec3(0.62, 0.42, 0.3), scorch * 0.7);
+  vec3 col = mix(img.rgb, img.rgb * vec3(0.42, 0.62, 0.72), scorch * 0.7);
   col = mix(col, uChar * img.a, chr * 0.95);
   // Cooling: a re-formed edge starts bright and settles into the image over a few edge widths.
   float cool = form * step(0.0, d) * (1.0 - smoothstep(0.0, 3.0, ah));
@@ -137,12 +137,12 @@ void main() {
   col = mix(col, uMid * lum * 1.4, knit * 0.16);
   vec4 base = vec4(col, img.a) * alive;
 
-  // The fire, outward from the white-hot line: amber, accent, then a dark char band behind it.
+  // The plasma front, outward from the white-hot line: pale cyan, accent, then a dark char band behind it.
   float tt = mix(t, -t, form);
   float band = flick * (1.0 - form);
   float charBand = smoothstep(1.9, 2.6, tt) * (1.0 - smoothstep(3.4, 4.6, tt)) * band;
   float acc = (1.0 - smoothstep(0.0, 1.1, abs(tt - 1.7))) * flick;
-  float amber = (1.0 - smoothstep(0.0, 1.0, abs(tt - 0.85))) * flick;
+  float pale = (1.0 - smoothstep(0.0, 1.0, abs(tt - 0.85))) * flick;
   float core = (1.0 - smoothstep(0.0, 0.7, abs(tt - 0.1))) * flick;
   // A burn glows on both sides of the line; a re-form is a cooling lip on the formed side only.
   float side = mix(1.0, step(0.0, d), form);
@@ -151,7 +151,7 @@ void main() {
   vec4 r = base;
   r = over(vec4(uChar * charBand * 0.92, charBand * 0.92) * fade, r);
   r = over(vec4(uMid * acc * 0.9, acc * 0.9) * fade * side, r);
-  r = over(vec4(uHi * amber, amber) * fade * side, r);
+  r = over(vec4(uHi * pale, pale) * fade * side, r);
   r = over(vec4(uHot * core, core) * fade * side, r);
 
   // Glow spill: soft light thrown past the front, and past the image edge at peak heat.
@@ -226,15 +226,15 @@ function readPalettes(el: HTMLElement): { warm: Palette; cool: Palette } {
   const cs = getComputedStyle(el);
   const tok = (name: string, fb: [number, number, number]) =>
     parseColor(cs.getPropertyValue(name)) ?? fb;
-  const paint = tok('--paint', [1, 0.4, 0.2]);
-  const paintHi = tok('--paint-hi', [1, 0.62, 0.45]);
-  const paintDeep = tok('--paint-deep', [0.6, 0.1, 0.05]);
-  const pass = tok('--pass', [0.48, 0.88, 0.69]);
-  const white: [number, number, number] = [1, 0.97, 0.9];
+  const paint = tok('--paint', [0.12, 0.82, 0.95]);
+  const paintHi = tok('--paint-hi', [0.55, 0.95, 1]);
+  const paintDeep = tok('--paint-deep', [0.04, 0.42, 0.53]);
+  const pass = tok('--pass', [0.6, 0.88, 0.42]);
+  const white: [number, number, number] = [0.92, 0.99, 1];
   return {
     warm: {
       hot: white,
-      hi: mix3(paintHi, [1, 0.72, 0.18], 0.6),
+      hi: mix3(paintHi, [0.7, 0.98, 1], 0.5),
       mid: paint,
       char: mix3(paintDeep, [0, 0, 0], 0.88),
     },

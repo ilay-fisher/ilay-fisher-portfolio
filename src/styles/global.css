@@ -266,14 +266,14 @@ samp {
     transparent
   );
 }
-.pool--ember {
+.pool--deep {
   right: -34vmax;
   bottom: -40vmax;
-  --x: var(--ember-x, 0);
-  --y: var(--ember-y, 0);
-  --s: var(--ember-s, 1);
+  --x: var(--deep-x, 0);
+  --y: var(--deep-y, 0);
+  --s: var(--deep-s, 1);
 }
-.pool--ember .pool__glow {
+.pool--deep .pool__glow {
   --drift: 58s;
   animation-delay: -12s;
   background: radial-gradient(
@@ -283,63 +283,63 @@ samp {
     transparent
   );
 }
-.pool--amber {
+.pool--signal {
   right: 8vmax;
   top: 22vmax;
   width: 52vmax;
   height: 52vmax;
-  --x: var(--amber-x, 0);
-  --y: var(--amber-y, 0);
-  --s: var(--amber-s, 1);
+  --x: var(--signal-x, 0);
+  --y: var(--signal-y, 0);
+  --s: var(--signal-s, 1);
 }
-.pool--amber .pool__glow {
+.pool--signal .pool__glow {
   --drift: 70s;
   animation-delay: -30s;
   background: radial-gradient(closest-side, rgb(var(--paint-hi-rgb) / 0.075), transparent);
 }
 /* per-section moods: the pools slide and swell once as you arrive (transform only) */
 .ambient[data-mood='hero'] {
-  --amber-x: 6vw;
-  --amber-y: 4vh;
+  --signal-x: 6vw;
+  --signal-y: 4vh;
 }
 .ambient[data-mood='about'] {
   --key-x: 18vw;
   --key-y: 22vh;
   --key-s: 1.1;
-  --ember-x: -14vw;
-  --ember-y: -8vh;
-  --amber-x: -22vw;
-  --amber-y: 18vh;
+  --deep-x: -14vw;
+  --deep-y: -8vh;
+  --signal-x: -22vw;
+  --signal-y: 18vh;
 }
-.ambient[data-mood='ember'] {
+.ambient[data-mood='deep'] {
   --key-x: -6vw;
   --key-y: -4vh;
   --key-s: 0.85;
-  --ember-x: -28vw;
-  --ember-y: -26vh;
-  --ember-s: 1.3;
-  --amber-s: 0.8;
+  --deep-x: -28vw;
+  --deep-y: -26vh;
+  --deep-s: 1.3;
+  --signal-s: 0.8;
 }
 .ambient[data-mood='cool'] {
   --key-x: 24vw;
   --key-y: 30vh;
   --key-s: 1.3;
-  --ember-x: 12vw;
-  --ember-y: 10vh;
-  --ember-s: 0.7;
-  --amber-x: -30vw;
-  --amber-y: -10vh;
-  --amber-s: 0.7;
+  --deep-x: 12vw;
+  --deep-y: 10vh;
+  --deep-s: 0.7;
+  --signal-x: -30vw;
+  --signal-y: -10vh;
+  --signal-s: 0.7;
 }
-.ambient[data-mood='amber'] {
+.ambient[data-mood='signal'] {
   --key-x: 10vw;
   --key-y: 6vh;
   --key-s: 0.9;
-  --ember-x: -20vw;
-  --ember-y: -14vh;
-  --amber-x: -18vw;
-  --amber-y: 14vh;
-  --amber-s: 1.5;
+  --deep-x: -20vw;
+  --deep-y: -14vh;
+  --signal-x: -18vw;
+  --signal-y: 14vh;
+  --signal-s: 1.5;
 }
 @keyframes pool-drift {
   from {

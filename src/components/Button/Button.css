@@ -48,7 +48,7 @@
       padding-box,
     linear-gradient(
         var(--light-angle),
-        rgb(255 236 200 / 0.95),
+        rgb(220 250 255 / 0.95),
         rgb(var(--paint-hi-rgb) / 0.35) 40%,
         rgb(var(--paint-deep-rgb) / 0.8)
       )

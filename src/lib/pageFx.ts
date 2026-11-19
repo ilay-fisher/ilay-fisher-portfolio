@@ -27,16 +27,16 @@ export function fxPolicy(env: { reduced: boolean; finePointer: boolean }): FxPol
   };
 }
 
-export type Mood = 'hero' | 'about' | 'cool' | 'amber' | 'ember';
+export type Mood = 'hero' | 'about' | 'cool' | 'signal' | 'deep';
 
 const MOODS: Record<string, Mood> = {
   top: 'hero',
   about: 'about',
   safesurf: 'cool',
-  drone: 'amber',
+  drone: 'signal',
   xray: 'about',
   experience: 'cool',
-  contact: 'ember',
+  contact: 'deep',
 };
 
 /** Light-pool mood for a section id. Unknown or missing ids use the hero mood. */
