@@ -55,17 +55,16 @@ export function Reveal({
 
       /**
        * Rise on the spring. Opacity rides the same curve: the overshoot past 1 is clamped by the
-       * browser, so it simply arrives a touch early while the movement settles.
+       * browser, so it simply arrives a touch early while the movement settles. The end state is
+       * explicit (`fromTo`): `gsap.from` would read it from the computed style, and while the CSS
+       * pre-hide still applies to the element itself that is opacity 0 (a tween from 0 to 0).
        */
       const rise = (targets: gsap.TweenTarget, from: gsap.TweenVars, stagger = 0) =>
-        gsap.from(targets, {
-          ...from,
-          opacity: 0,
-          duration: SETTLE,
-          ease: SPRING,
-          stagger,
-          scrollTrigger,
-        });
+        gsap.fromTo(
+          targets,
+          { ...from, opacity: 0 },
+          { y: 0, opacity: 1, duration: SETTLE, ease: SPRING, stagger, scrollTrigger },
+        );
 
       if (variant === 'lines' || variant === 'words') {
         const fonts = typeof document !== 'undefined' ? document.fonts?.ready : undefined;
@@ -109,7 +108,11 @@ export function Reveal({
       }
 
       if (variant === 'fade') {
-        gsap.from(el, { opacity: 0, duration: 0.7, ease: 'power2.out', scrollTrigger });
+        gsap.fromTo(
+          el,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.7, ease: 'power2.out', scrollTrigger },
+        );
       } else {
         rise(el, { y: 40 });
       }
