@@ -129,31 +129,24 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
   await page.goto('/');
   const total = await page.locator('[data-reveal]').count();
   expect(total, 'the page has reveals').toBeGreaterThan(0);
-  const heightAtLoad = await page.evaluate(() => document.documentElement.scrollHeight);
-  test.info().annotations.push({ type: 'pageH at load', description: String(heightAtLoad) });
 
   for (let i = 0; i < total; i++) {
     const el = page.locator('[data-reveal]').nth(i);
     const label = await el.evaluate(
       (e) => `${e.getAttribute('data-reveal')} ${e.className || e.tagName.toLowerCase()}`,
     );
-    // Scroll again on every poll, with a small nudge so a real scroll event fires each time: layout above the element
-    // can still shift while images and fonts load, and ScrollTrigger only evaluates its triggers on scroll.
-    let nudge = 0;
+    // Scroll again on every poll: a reveal only plays while its trigger is actually reached, and layout can still shift
+    // while fonts and images load.
     await expect
       .poll(
         () =>
-          el.evaluate((e, n) => {
+          el.evaluate((e) => {
             e.scrollIntoView({ block: 'center', behavior: 'instant' });
-            window.scrollBy(0, n % 2 ? 4 : -4);
-            if (n === 12) window.dispatchEvent(new Event('resize')); // DIAGNOSTIC: do stale triggers recover on refresh?
             const ops = [e, ...Array.from(e.children)].map((n) => getComputedStyle(n).opacity);
             return ops.every((o) => o === '1')
-              ? n > 12
-                ? `ok-after-resize-poll-${n}`
-                : 'ok'
-              : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)} pageH ${document.documentElement.scrollHeight} ready ${e.dataset.revealReady} style [${(e.children[0] as HTMLElement | undefined)?.style.cssText}] fonts ${document.fonts.status}`;
-          }, nudge++),
+              ? 'ok'
+              : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)} pageH ${document.documentElement.scrollHeight}`;
+          }),
         { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
       )
       .toBe('ok');

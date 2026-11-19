@@ -1,6 +1,6 @@
 import { useGSAP } from '@gsap/react';
 import { useRef, type ElementType, type HTMLAttributes, type ReactNode } from 'react';
-import { gsap, SplitText } from '../../lib/gsap';
+import { gsap, ScrollTrigger, SplitText } from '../../lib/gsap';
 import { usePrefersReducedMotion } from '../../lib/motion';
 import { SPRING_SOFT, settleTime, springEase } from '../../lib/spring';
 import './Reveal.css';
@@ -28,6 +28,24 @@ export interface RevealProps extends Omit<HTMLAttributes<HTMLElement>, 'children
 const SPRING = springEase(SPRING_SOFT);
 const SETTLE = settleTime(SPRING_SOFT);
 
+let watching = false;
+
+/**
+ * Re-measures every reveal trigger whenever the page height changes (late fonts, images, canvases, counters). ScrollTrigger
+ * only measures on creation, on `load` and on window resize, so a layout shift after that left a trigger further down
+ * than where its element really sits and the reveal never played (seen on CI: a lone bench-label stuck at opacity 0
+ * until a resize). One shared observer, debounced, started by the first reveal.
+ */
+function watchLayout() {
+  if (watching || typeof ResizeObserver === 'undefined') return;
+  watching = true;
+  let timer = 0;
+  new ResizeObserver(() => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => ScrollTrigger.refresh(), 150);
+  }).observe(document.body);
+}
+
 /**
  * The shared scroll-in reveal. Plays once when the element reaches 85% of the viewport, with the
  * soft spring (see `src/lib/spring.ts`). Under reduced motion (or without JS) the content is simply
@@ -51,6 +69,7 @@ export function Reveal({
         el.dataset.revealReady = 'true';
         return;
       }
+      watchLayout();
       const scrollTrigger = { trigger: el, start: 'top 88%', once: true };
 
       /**
