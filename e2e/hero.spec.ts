@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { profile } from '../src/content/profile';
-import { scrollSettled } from './helpers';
+import { afterFrames, scrollSettled } from './helpers';
 
 /**
  * The hero exposes `window.__hero` only with ?heroSeed. `heroFast=1` settles the physics before the
@@ -293,6 +293,8 @@ test.describe('hero scene @gl-heavy', () => {
       await expect
         .poll(
           async () => {
+            // Compare positions a few drawn frames apart, not a few milliseconds: a starved page does not move in between.
+            await afterFrames(page, 3);
             const a = await hero(page, (h, i: string) => h.project(i), id);
             const still = !!a && !!at && Math.hypot(a.x - at.x, a.y - at.y) < 0.5;
             at = a;
