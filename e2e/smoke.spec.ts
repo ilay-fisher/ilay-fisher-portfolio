@@ -156,7 +156,7 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
           }, nudge++),
         { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
       )
-      .toMatch(/^ok/);
+      .toBe('ok');
   }
 
   // The thing the bug hid: the About portrait is really visible, not just rendered into an invisible wrapper.
