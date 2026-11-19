@@ -73,7 +73,8 @@ test.describe('mobile nav at 390x844', () => {
       await expect(link).toBeVisible();
       await link.click();
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-      const id = label === 'X-Ray' ? 'xray' : label === 'Get in touch' ? 'contact' : label.toLowerCase();
+      const id =
+        label === 'X-Ray' ? 'xray' : label === 'Get in touch' ? 'contact' : label.toLowerCase();
       await expectScrolledTo(page, id);
     }
     await toggle.focus();

@@ -67,14 +67,12 @@ for (const [name, size] of [
     await page.goto('/');
     const actions = page.locator('#contact .contact__actions');
     await actions.scrollIntoViewIfNeeded();
-    const boxes = await actions
-      .locator('> *')
-      .evaluateAll((els) =>
-        els.map((e) => {
-          const r = e.getBoundingClientRect();
-          return { top: Math.round(r.top), left: r.left, right: r.right };
-        }),
-      );
+    const boxes = await actions.locator('> *').evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return { top: Math.round(r.top), left: r.left, right: r.right };
+      }),
+    );
     expect(boxes).toHaveLength(4);
     const rows = [...new Set(boxes.map((b) => b.top))];
     const perRow = rows.map((t) => boxes.filter((b) => Math.abs(b.top - t) <= 2).length);
