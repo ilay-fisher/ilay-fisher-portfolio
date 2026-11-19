@@ -40,9 +40,14 @@ function watchLayout() {
   if (watching || typeof ResizeObserver === 'undefined') return;
   watching = true;
   let timer = 0;
+  /** A refresh re-seats the scroll position, so it never runs while a scroll (smooth scroller, anchor jump) is in flight. */
+  const refresh = () => {
+    if (ScrollTrigger.isScrolling()) timer = window.setTimeout(refresh, 150);
+    else ScrollTrigger.refresh();
+  };
   new ResizeObserver(() => {
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => ScrollTrigger.refresh(), 150);
+    timer = window.setTimeout(refresh, 150);
   }).observe(document.body);
 }
 
