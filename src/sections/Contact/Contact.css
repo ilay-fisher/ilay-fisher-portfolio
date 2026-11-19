@@ -33,6 +33,10 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+/* the keys match the buttons' height so the whole row reads as one family */
+.contact__actions .link-key {
+  min-height: 46px;
+}
 .contact__status {
   min-height: 1.5em;
   color: var(--pass);

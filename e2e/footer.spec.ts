@@ -104,3 +104,20 @@ test('footer keys: keyboard focus shows a visible ring', async ({ page }) => {
   expect(ring.style).not.toBe('none');
   expect(ring.width).toBeGreaterThanOrEqual(2);
 });
+
+test('footer email key: the envelope keeps its flap while hovered (no flap flip)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const { links } = await keys(page);
+  const key = links.nth(2);
+  await key.hover();
+  await expect
+    .poll(() => key.evaluate((a) => getComputedStyle(a.querySelector('svg')!).transform))
+    .not.toBe('none');
+  const flap = await key.evaluate(
+    (a) => getComputedStyle(a.querySelector('.link-key__flap')!).transform,
+  );
+  expect(flap).toBe('none');
+});

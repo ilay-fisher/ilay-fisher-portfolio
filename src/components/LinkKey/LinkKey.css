@@ -1,0 +1,139 @@
+/* ------------------------------------------------------------------ the keys
+   Anodised pill, light from the top left: rim gradient, soft top highlight, tight specular on
+   the bevel, grounded shadow. The icon sits in an engraved well. Accent only when live. */
+.link-key {
+  --key-well: #0a0e12;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-5) 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background:
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-contact-sm);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  isolation: isolate;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur-base) var(--ease-out);
+}
+/* the lifted shadow rides on opacity so hover animates only transform and opacity */
+.link-key::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: var(--shadow-lift);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+/* the highlight: a soft amber pool that follows the pointer, clipped to the key */
+.link-key__glow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.link-key__glow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--paint-hi-rgb) / 0.22), transparent);
+  transform: translate(calc(var(--mx, 28px) - 60px), calc(var(--my, 14px) - 60px));
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.link-key__ico {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--key-well);
+  box-shadow: var(--well-inset);
+}
+.link-key__ico svg {
+  display: block;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.link-key__label {
+  position: relative;
+  white-space: nowrap;
+}
+
+/* live states: the accent shows what answers you (colour only here, motion below) */
+.link-key:hover,
+.link-key:focus-visible {
+  color: var(--text);
+}
+.link-key:hover .link-key__ico,
+.link-key:focus-visible .link-key__ico {
+  color: var(--paint-hi);
+}
+.link-key:active .link-key__ico {
+  color: var(--paint);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion) .link-key {
+    transition:
+      transform var(--spring-snappy-dur) var(--spring-snappy),
+      color var(--dur-base) var(--ease-out);
+  }
+  html:not(.reduce-motion) .link-key:hover,
+  html:not(.reduce-motion) .link-key:focus-visible {
+    transform: translateY(-3px) scale(1.025);
+  }
+  html:not(.reduce-motion) .link-key:hover::before,
+  html:not(.reduce-motion) .link-key:focus-visible::before {
+    opacity: 1;
+  }
+  html:not(.reduce-motion) .link-key:hover .link-key__glow::before {
+    opacity: 1;
+  }
+  /* press: squash a few percent, spring back on release */
+  html:not(.reduce-motion) .link-key:active {
+    transform: translateY(-1px) scale(0.965);
+  }
+  /* one characterful move per icon, on the soft spring so it settles with overshoot */
+  html:not(.reduce-motion) .link-key__ico svg {
+    transition: transform var(--spring-soft-dur) var(--spring-soft);
+  }
+  html:not(.reduce-motion) .link-key[data-key='linkedin']:hover svg,
+  html:not(.reduce-motion) .link-key[data-key='linkedin']:focus-visible svg {
+    transform: translateY(-1.5px) rotate(-9deg) scale(1.14);
+  }
+  html:not(.reduce-motion) .link-key[data-key='github']:hover svg,
+  html:not(.reduce-motion) .link-key[data-key='github']:focus-visible svg {
+    transform-origin: 50% 90%;
+    transform: rotate(13deg) scale(1.1);
+  }
+  /* the envelope stays whole in every frame: a small hop, a tilt, and it settles */
+  html:not(.reduce-motion) .link-key[data-key='mail']:hover svg,
+  html:not(.reduce-motion) .link-key[data-key='mail']:focus-visible svg {
+    transform: translateY(-2px) rotate(-7deg) scale(1.12);
+  }
+}
+
+@media (max-width: 480px) {
+  .link-key {
+    padding-right: var(--space-4);
+  }
+}
