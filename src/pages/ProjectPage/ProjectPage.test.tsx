@@ -92,7 +92,10 @@ describe('ProjectPage', () => {
   it('nav links on a project page point at the home page sections', () => {
     render(<ProjectPage id="drone" />);
     const nav = screen.getByRole('navigation', { name: 'Sections' });
-    expect(within(nav).getByRole('link', { name: 'Get in touch' })).toHaveAttribute('href', '/#contact');
+    expect(within(nav).getByRole('link', { name: 'Get in touch' })).toHaveAttribute(
+      'href',
+      '/#contact',
+    );
     expect(within(nav).getByRole('link', { name: 'Ilay Fisher' })).toHaveAttribute('href', '/#top');
   });
 });
