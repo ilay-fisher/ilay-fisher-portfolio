@@ -1,0 +1,78 @@
+/* A key that leads to another page: anodised pill, arrow in an engraved well, one light from the top left. */
+.case-key {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  min-height: 52px;
+  padding: 6px var(--space-2) 6px var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background:
+    var(--body-gradient) padding-box,
+    var(--rim-gradient) border-box;
+  background-origin: border-box;
+  box-shadow: var(--bevel-inset), var(--shadow-contact-sm);
+  color: var(--text);
+  text-decoration: none;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+.case-key[data-direction='back'] {
+  padding: 6px var(--space-5) 6px var(--space-2);
+}
+.case-key__text {
+  display: grid;
+  min-width: 0;
+  text-align: left;
+}
+.case-key__hint {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+.case-key__label {
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.case-key__ico {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--well-inset);
+  color: var(--paint);
+}
+.case-key:hover .case-key__ico,
+.case-key:focus-visible .case-key__ico {
+  color: var(--paint-hi);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion) .case-key {
+    transition: transform var(--spring-snappy-dur) var(--spring-snappy);
+  }
+  html:not(.reduce-motion) .case-key:hover,
+  html:not(.reduce-motion) .case-key:focus-visible {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: var(--bevel-inset), var(--shadow-lift);
+  }
+  html:not(.reduce-motion) .case-key:active {
+    transform: translateY(-1px) scale(0.965);
+  }
+  html:not(.reduce-motion) .case-key__ico svg {
+    transition: transform var(--spring-soft-dur) var(--spring-soft);
+  }
+  html:not(.reduce-motion) .case-key[data-direction='forward']:hover svg,
+  html:not(.reduce-motion) .case-key[data-direction='forward']:focus-visible svg {
+    transform: translateX(3px);
+  }
+  html:not(.reduce-motion) .case-key[data-direction='back']:hover svg,
+  html:not(.reduce-motion) .case-key[data-direction='back']:focus-visible svg {
+    transform: translateX(-3px);
+  }
+}

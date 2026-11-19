@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import type { Project } from '../../content/projects';
+import { workPath } from '../../lib/route';
 import { LinkButton } from '../Button/Button';
+import { CaseKey } from '../CaseKey/CaseKey';
 import { Section } from '../Section/Section';
 import { TagList } from '../Tag/Tag';
 import './ProjectFrame.css';
@@ -58,6 +60,7 @@ export function ProjectFrame({ project, children, demoLabel }: ProjectFrameProps
           )}
           <TagList label="Stack" items={p.stack} />
           <div className="project__links">
+            <CaseKey href={workPath(p.id)}>Read the case study</CaseKey>
             {p.links.map((l, i) => (
               <LinkButton key={l.href} href={l.href} variant={i === 0 ? 'primary' : 'secondary'}>
                 {l.label}

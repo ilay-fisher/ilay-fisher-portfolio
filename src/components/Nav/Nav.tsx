@@ -25,8 +25,9 @@ const ORDER: string[] = [...NAV_ITEMS.map((i) => i.id), 'contact'];
  * focus leaving closes) opening a rounded panel. A "Get in touch" primary pill ends the bar at every
  * width (next to Menu on phones, outside the panel) and carries `aria-current` while Contact is in view.
  * Anchors are handled by SmoothScroll.
+ * `base` prefixes every hash link (`base="/"` gives `/#about`) so the same bar works on pages other than the home page.
  */
-export function Nav() {
+export function Nav({ base = '' }: { base?: string }) {
   const [active, setActive] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -141,7 +142,7 @@ export function Nav() {
       </a>
       <nav aria-label="Sections" className="container nav__inner">
         <div className="nav__bar" ref={barRef}>
-          <a className="nav__brand" href="#top">
+          <a className="nav__brand" href={`${base}#top`}>
             Ilay Fisher
           </a>
           <button
@@ -165,7 +166,7 @@ export function Nav() {
               <li key={i.id}>
                 <a
                   ref={idx === 0 ? firstLinkRef : undefined}
-                  href={`#${i.id}`}
+                  href={`${base}#${i.id}`}
                   aria-current={active === i.id ? 'true' : undefined}
                   onClick={() => setOpen(false)}
                 >
@@ -176,7 +177,7 @@ export function Nav() {
           </ul>
           <LinkButton
             variant="primary"
-            href="#contact"
+            href={`${base}#contact`}
             className="nav__cta"
             aria-current={active === 'contact' ? 'true' : undefined}
             onClick={() => setOpen(false)}
