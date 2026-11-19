@@ -54,6 +54,15 @@ describe('Hero markup', () => {
     expect(chip).toHaveAttribute('hidden');
   });
 
+  it('leads with Get in touch as the one primary action; SafeSurf is the secondary', () => {
+    const { container } = render(<Hero />);
+    const actions = Array.from(container.querySelectorAll('.hero__actions a'));
+    expect(actions.map((a) => a.textContent)).toEqual(['Get in touch', 'See SafeSurf']);
+    expect(actions[0]).toHaveClass('btn--primary');
+    expect(actions[1]).not.toHaveClass('btn--primary');
+    expect(container.querySelectorAll('.hero__actions .btn--primary')).toHaveLength(1);
+  });
+
   it('links its two actions to the SafeSurf and contact sections', () => {
     render(<Hero />);
     expect(screen.getByRole('link', { name: /safesurf/i })).toHaveAttribute('href', '#safesurf');

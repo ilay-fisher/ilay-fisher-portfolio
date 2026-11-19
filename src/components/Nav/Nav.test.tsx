@@ -25,7 +25,7 @@ beforeEach(() => {
       }
     },
   );
-  for (const i of NAV_ITEMS) {
+  for (const i of [...NAV_ITEMS, { id: 'contact' }]) {
     const s = document.createElement('section');
     s.id = i.id;
     document.body.appendChild(s);
@@ -48,12 +48,39 @@ describe('Nav', () => {
     render(<Nav />);
     const nav = screen.getByRole('navigation', { name: 'Sections' });
     const hrefs = Array.from(nav.querySelectorAll('a')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#top', ...NAV_ITEMS.map((i) => `#${i.id}`)]);
+    // the text list ends at Experience: Contact is the call-to-action pill, last in the bar
+    expect(hrefs).toEqual(['#top', ...NAV_ITEMS.map((i) => `#${i.id}`), '#contact']);
+    expect(NAV_ITEMS.map((i) => i.id)).not.toContain('contact');
+  });
+
+  it('puts a Get in touch call-to-action at the right end, outside the collapsible list', () => {
+    render(<Nav />);
+    const cta = screen.getByRole('link', { name: 'Get in touch' });
+    expect(cta).toHaveAttribute('href', '#contact');
+    expect(cta).toHaveClass('btn--primary');
+    expect(cta).toHaveClass('nav__cta');
+    expect(cta).toHaveAttribute('data-magnetic');
+    expect(cta.closest('#nav-links')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Contact' })).toBeNull();
+    const bar = document.querySelector('.nav__bar')!;
+    const kids = Array.from(bar.children);
+    expect(kids.indexOf(cta)).toBeGreaterThan(kids.indexOf(document.getElementById('nav-links')!));
+  });
+
+  it('marks the call-to-action current while Contact is in view, and no list link', () => {
+    render(<Nav />);
+    act(() => ioCb?.([{ target: document.getElementById('contact')!, isIntersecting: true }]));
+    expect(screen.getByRole('link', { name: 'Get in touch' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(document.querySelectorAll('[aria-current]')).toHaveLength(1);
+    expect(document.querySelector('.nav__indicator')).toHaveAttribute('data-for', '');
   });
 
   it('observes every section and marks the one in view with aria-current', () => {
     render(<Nav />);
-    expect(observed.map((e) => e.id)).toEqual(NAV_ITEMS.map((i) => i.id));
+    expect(observed.map((e) => e.id)).toEqual([...NAV_ITEMS.map((i) => i.id), 'contact']);
     expect(document.querySelector('[aria-current]')).toBeNull();
     act(() => ioCb?.([{ target: document.getElementById('drone')!, isIntersecting: true }]));
     const current = document.querySelectorAll('[aria-current]');
@@ -95,6 +122,13 @@ describe('Nav', () => {
       await user.keyboard('{Escape}');
       expect(btn).toHaveAttribute('aria-expanded', 'false');
       expect(btn).toHaveFocus();
+    });
+
+    it('keeps the call-to-action visible next to the Menu button, not inside the panel', () => {
+      render(<Nav />);
+      const btn = screen.getByRole('button', { name: 'Menu' });
+      const cta = screen.getByRole('link', { name: 'Get in touch' });
+      expect(btn.parentElement).toBe(cta.parentElement);
     });
 
     it('is operable with the keyboard alone and closes after choosing a link', async () => {

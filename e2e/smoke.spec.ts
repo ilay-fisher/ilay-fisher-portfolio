@@ -37,7 +37,7 @@ test.describe('nav links land on their section', () => {
     ['Drone', 'drone'],
     ['X-Ray', 'xray'],
     ['Experience', 'experience'],
-    ['Contact', 'contact'],
+    ['Get in touch', 'contact'],
   ] as const) {
     test(`nav link "${label}" scrolls to #${id}`, async ({ page }) => {
       await page.goto('/');

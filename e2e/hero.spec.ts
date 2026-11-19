@@ -488,11 +488,12 @@ test.describe('hero fallback and layout @gl-heavy', () => {
       await page.goto(URL);
       await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
       await expect(page.getByRole('heading', { level: 1, name: 'Ilay Fisher' })).toBeAttached();
-      await expect(page.getByRole('link', { name: 'See SafeSurf' })).toHaveAttribute(
+      const actions = page.locator('.hero__actions');
+      await expect(actions.getByRole('link', { name: 'See SafeSurf' })).toHaveAttribute(
         'href',
         '#safesurf',
       );
-      await expect(page.getByRole('link', { name: 'Get in touch' })).toHaveAttribute(
+      await expect(actions.getByRole('link', { name: 'Get in touch' })).toHaveAttribute(
         'href',
         '#contact',
       );
