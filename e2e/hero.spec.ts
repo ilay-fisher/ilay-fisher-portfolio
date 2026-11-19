@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { profile } from '../src/content/profile';
-import { scrollSettled } from './helpers';
+import { afterFrames, scrollSettled } from './helpers';
 
 /**
  * The hero exposes `window.__hero` only with ?heroSeed. `heroFast=1` settles the physics before the
@@ -293,6 +293,8 @@ test.describe('hero scene @gl-heavy', () => {
       await expect
         .poll(
           async () => {
+            // Compare positions a few drawn frames apart, not a few milliseconds: a starved page does not move in between.
+            await afterFrames(page, 3);
             const a = await hero(page, (h, i: string) => h.project(i), id);
             const still = !!a && !!at && Math.hypot(a.x - at.x, a.y - at.y) < 0.5;
             at = a;
@@ -325,6 +327,28 @@ test.describe('hero scene @gl-heavy', () => {
       expect(Math.abs(top), `${id}: ${hash} ends at the top of the viewport`).toBeLessThan(160);
       await page.evaluate(() => document.getElementById('e2e-spacer')?.remove());
     }
+  });
+
+  test('a double-click still opens a piece when the page is busy between the two presses', async ({
+    page,
+  }) => {
+    await openHero(page);
+    const at = await hero(page, (h) => h.project('logo'));
+    // A heavy frame (software GL, a slow phone) can land between the press and the release. The two presses still
+    // happened a few milliseconds apart, as the events' own time stamps say; only the handlers ran late.
+    await page.evaluate(() => {
+      let stalled = false;
+      window.addEventListener('pointerdown', () => {
+        if (stalled) return;
+        stalled = true;
+        const until = performance.now() + 450;
+        while (performance.now() < until) {
+          /* busy */
+        }
+      });
+    });
+    await page.mouse.dblclick(at!.x, at!.y);
+    await expect.poll(() => page.evaluate(() => location.hash)).toBe('#safesurf');
   });
 
   test('a single click does not open a section', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DoublePress } from './doublePress';
+import { DoublePress, isQuickTap, QUICK_TAP_MS } from './doublePress';
 
 describe('DoublePress', () => {
   it('reports the piece when a second press follows a tap quickly and nearby', () => {
@@ -42,5 +42,12 @@ describe('DoublePress', () => {
 
   it('knows nothing before any tap', () => {
     expect(new DoublePress().second(0, 0, 0)).toBeNull();
+  });
+});
+
+describe('isQuickTap', () => {
+  it('is a tap when the press ends within the limit, and a hold after it', () => {
+    expect(isQuickTap(1000, 1000 + QUICK_TAP_MS - 1)).toBe(true);
+    expect(isQuickTap(1000, 1000 + QUICK_TAP_MS)).toBe(false);
   });
 });

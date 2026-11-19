@@ -29,7 +29,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { createLogger } from '../../../lib/logger';
 import type { Bounds, Rig, Vec3 } from '../logic/camera';
 import { computeStage, nameCap, type Stage } from '../logic/stage';
-import { DoublePress } from '../logic/doublePress';
+import { DoublePress, isQuickTap } from '../logic/doublePress';
 import {
   buildCatalogue,
   chipLabel,
@@ -653,7 +653,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     // Second quick press at the same spot on a project piece: open it. No grab and no nudge, and it goes by
     // where the pointer was, because the first tap may have knocked the piece away from under it.
-    const pairId = doublePress.second(e.clientX, e.clientY, performance.now());
+    const pairId = doublePress.second(e.clientX, e.clientY, e.timeStamp);
     if (pairId) {
       const pair = content.items.get(pairId);
       if (pair && isOpenable(pair.spec)) {
@@ -674,7 +674,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       planeY,
       startX: e.clientX,
       startY: e.clientY,
-      startT: performance.now(),
+      startT: e.timeStamp,
     };
     selected = Math.max(0, content.order.indexOf(hit.id));
     tracker.reset();
@@ -734,12 +734,13 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     }
     if (!grab || e.pointerId !== grab.pointerId) return;
     const moved = Math.hypot(e.clientX - grab.startX, e.clientY - grab.startY);
-    const quick = performance.now() - grab.startT < 320;
+    // The events' own time stamps, not the clock now: a heavy frame between the two presses delays the handlers.
+    const quick = isQuickTap(grab.startT, e.timeStamp);
     if (moved < 6 && quick) {
       const p = planePoint(e.clientX, e.clientY, 0.5) ?? undefined;
       const tapped = content?.items.get(grab.id);
       if (tapped && isOpenable(tapped.spec))
-        doublePress.tap(tapped.spec.id, e.clientX, e.clientY, performance.now());
+        doublePress.tap(tapped.spec.id, e.clientX, e.clientY, e.timeStamp);
       else doublePress.clear();
       endGrab(false, p);
     } else {
