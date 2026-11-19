@@ -129,6 +129,8 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
   await page.goto('/');
   const total = await page.locator('[data-reveal]').count();
   expect(total, 'the page has reveals').toBeGreaterThan(0);
+  const heightAtLoad = await page.evaluate(() => document.documentElement.scrollHeight);
+  test.info().annotations.push({ type: 'pageH at load', description: String(heightAtLoad) });
 
   for (let i = 0; i < total; i++) {
     const el = page.locator('[data-reveal]').nth(i);
@@ -145,7 +147,7 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
             const ops = [e, ...Array.from(e.children)].map((n) => getComputedStyle(n).opacity);
             return ops.every((o) => o === '1')
               ? 'ok'
-              : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)}`;
+              : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)} pageH ${document.documentElement.scrollHeight} ready ${e.dataset.revealReady} style [${(e.children[0] as HTMLElement | undefined)?.style.cssText}] fonts ${document.fonts.status}`;
           }),
         { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
       )
