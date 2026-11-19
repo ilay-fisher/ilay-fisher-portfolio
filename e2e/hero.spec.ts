@@ -134,9 +134,18 @@ test.describe('hero scene @gl-heavy', () => {
     const errors = await openHero(page);
     const nameBefore = await hero(page, (h) => h.nameSnapshot());
     const before = await snap(page);
-    const a = before.find((s) => s.id === 'token-node') ?? before[0]!;
-    const b = [...before].filter((s) => s.id !== a.id).sort((p, q) => dist(p, a) - dist(q, a))[0]!;
-    await hero(page, (h, id: string) => h.throwBody(id, { x: 0, y: 1, z: -22 }), a.id);
+    // Throw a piece that is really at rest, at its nearest resting neighbour. The seed leaves `token-node` leaning on the
+    // right wall, awake: a throw into that contact is either soaked up or carried off depending on sub-millimetre
+    // differences, which the number of frames that ran before the test (few on a slow runner, many on a fast one)
+    // decides. Which piece is thrown must not depend on that.
+    const resting = before.filter((s) => s.asleep);
+    let a = resting[0]!;
+    let b = resting[1]!;
+    for (const p of resting)
+      for (const q of resting) if (p.id !== q.id && dist(p, q) < dist(a, b)) [a, b] = [p, q];
+    const gap = Math.hypot(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
+    const v = { x: ((b.pos.x - a.pos.x) / gap) * 22, y: 1, z: ((b.pos.z - a.pos.z) / gap) * 22 };
+    await hero(page, (h, [id, vel]: [string, typeof v]) => h.throwBody(id, vel), [a.id, v]);
     await hero(page, (h) => h.step(240));
     const after = await snap(page);
     const moved = after.filter(
@@ -262,15 +271,21 @@ test.describe('hero scene @gl-heavy', () => {
         .click();
       await scrollSettled(page, { interval: 300, timeout: 60_000 });
       expect(await page.evaluate(() => window.scrollY), 'back at the top').toBeLessThan(5);
-      // The piece must have stopped moving before it is pressed. The scene reports it: `data-sleeping` is set once the
-      // whole drop is asleep, which takes as long as the machine's frame rate makes it (live physics, no fixed budget).
-      // The first piece waits for the real drop. After a double-click the scene is awake again and, off screen, paused:
-      // later pieces run it to rest by simulated time (`settle()`), which does not depend on the frame rate.
-      // Settling is repeated until the scene reports it: anything that wakes a body in between (a hover, a resume
-      // after the scroll) is simply run to rest again, so the wait does not depend on one lucky frame.
+      // The piece must have stopped moving before it is pressed. What matters is this piece being asleep, not the whole
+      // scene: in live mode the idle scheduler keeps nudging a random piece every few seconds (as it should), and on a
+      // slow runner each nudge takes longer in wall time to die down than the scene-wide `data-sleeping` flag can be
+      // caught true. The first piece waits for the real drop, which takes as long as the machine's frame rate makes it.
+      // After a double-click the scene is awake again and, off screen, paused: later pieces run it to rest by simulated
+      // time (`settle()`), which does not depend on the frame rate. Settling is repeated until the piece is asleep:
+      // anything that wakes a body in between (a hover, a nudge, a resume after the scroll) is simply run to rest again.
       await expect(async () => {
         if (id !== projects[0][0]) expect(await hero(page, (h) => h.settle())).toBe(true);
-        await expect(canvas(page)).toHaveAttribute('data-sleeping', 'true', { timeout: 8_000 });
+        await expect
+          .poll(async () => (await snap(page)).find((s) => s.id === id)?.asleep ?? false, {
+            message: `${id} is asleep`,
+            timeout: 8_000,
+          })
+          .toBe(true);
       }).toPass({ timeout: 90_000, intervals: [500, 1000, 2000] });
       let at: { x: number; y: number } | null = null;
       await expect
