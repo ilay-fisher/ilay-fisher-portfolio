@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { expectScrolledTo, expectSkipLinkFirstTab } from './helpers';
 
-const IDS = ['top', 'ai', 'about', 'safesurf', 'xray', 'drone', 'experience', 'contact'];
+const IDS = ['top', 'about', 'safesurf', 'xray', 'drone', 'experience', 'ai', 'contact'];
 
 function trackConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -35,12 +35,12 @@ test('title and description are set', async ({ page }) => {
 test.describe('nav links land on their section', () => {
   test.use({ reducedMotion: 'reduce' });
   for (const [label, id] of [
-    ['AI', 'ai'],
     ['About', 'about'],
     ['SafeSurf', 'safesurf'],
     ['X-Ray', 'xray'],
     ['Drone', 'drone'],
     ['Experience', 'experience'],
+    ['AI', 'ai'],
     ['Get in touch', 'contact'],
   ] as const) {
     test(`nav link "${label}" scrolls to #${id}`, async ({ page }) => {

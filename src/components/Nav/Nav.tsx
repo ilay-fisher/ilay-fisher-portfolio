@@ -8,12 +8,12 @@ const log = createLogger('nav');
 
 /** Anchor targets in the nav, in page order (the hero `#top` is the brand link). */
 export const NAV_ITEMS = [
-  { id: 'ai', label: 'AI' },
   { id: 'about', label: 'About' },
   { id: 'safesurf', label: 'SafeSurf' },
   { id: 'xray', label: 'X-Ray' },
   { id: 'drone', label: 'Drone' },
   { id: 'experience', label: 'Experience' },
+  { id: 'ai', label: 'AI' },
 ] as const;
 
 /** Contact is not in the text list: the "Get in touch" pill at the right end of the bar is its link. */

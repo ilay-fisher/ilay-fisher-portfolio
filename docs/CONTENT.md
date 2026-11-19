@@ -63,16 +63,14 @@ TFLite, PyTorch, ONNX, Claude API, AI agents, Multi-agent orchestration, Prompt 
 
 ## AI and agent workflows (AI section, owner brief 2026-11-19)
 
-New section `#ai` right after the hero, before About. Nav label "AI". Facts confirmed by Ilay on 2026-11-19; he built all of them.
+Section `#ai` sits after Experience, before Contact (moved down 2026-11-19: owner feedback "the ai is too on top"; it is a quiet secondary section). Nav label "AI", last in the nav. The projects are never described as AI projects or as done with AI. Facts confirmed by Ilay on 2026-11-19; he built all of them.
 Only number: the 637-line release script. No time-saved claims, user counts or links (no public repo). Source: `src/content/aiWorkflows.ts`.
 
-- Title: "AI and agent workflows" (accent: "agent workflows"). Bench pill: "focus AI agents".
-- Summary: "Four agent setups I built, from releases to content."
+- Title: "AI and agent workflows" (accent: "agent workflows"). No bench pill, no summary line.
+- Three cards (owner scope change 2026-11-19; the separate "Custom skills" and "Content plugin" cards and the summary line were removed, their content folded into card 3).
 - Release-manager agent (pill "Release"): "Cuts a SafeSurf and SafeGuard release end to end: version bump, builds and signs both Android APKs, checksums, upload to Firebase Storage and a Remote Config update. It runs on top of a 637-line release script."
-- Custom skills (pill "Skills"): "Skills I wrote for work I repeat." `diagnose`: "Find the root cause from live evidence before any code edit." `verify-avd`: "Prove an Android change works on an emulator with Maestro, screenshots and logcat." "Also": `add-safeguard-setting`, `release`, `job-career-scan`.
-- Manager and subagent orchestration (pill "Orchestration"): "A manager agent dispatches Sonnet subagents, one per task, each in its own git worktree. Subagents take no outward actions, and every fix needs on-device verification."
-- Content plugin (pill "Content"): "A writer agent and three reviewer agents (hook, body, call to action) debate a draft until they agree."
-- Closing line: "More AI work in the projects below: X-Ray Lens and the on-device image model in SafeSurf." (links to `#xray` and `#safesurf`).
+- Manager and subagent orchestration (pill "Orchestration"): "A manager agent splits the work into tasks and hands each one to its own subagent. Every subagent works in its own git worktree and branch, runs its own tests and opens a pull request. CI runs checks and end-to-end tests on every PR. The manager reviews the diff, screenshots and CI results, checks a production build, then squash-merges and deploys. This site is built this way."
+- Skills, plugins and scheduled tasks (pill "Skills"): "I write my own skills, plugins and scheduled tasks for repeated work. Examples: finding a bug's root cause from live evidence before any code edit, verifying Android changes on an emulator, cutting app releases, scanning job listings, and drafting posts with a writer agent and reviewer agents that argue until they agree."
 - Project order is now SafeSurf (CASE-01), X-Ray Lens (CASE-02), Drone (CASE-03). SafeSurf also shows 14.2% (false blocks from the on-device image model, down from 36.6%) and 7.6 ms median on arm64 beside its demo.
 
 ## Experience
@@ -129,7 +127,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 - Stack: Kotlin, Java, GeckoView, Android device-owner APIs, TFLite, React, Firebase
 - Do not show prices.
 
-### 3. Autonomous Drone & Obstacle-Avoidance Sandbox (order changed 2026-11-19: AI projects first)
+### 3. Autonomous Drone & Obstacle-Avoidance Sandbox (order changed 2026-11-19)
 
 - Repo: https://github.com/ilay-fisher/drone-obstacle-sandbox
 - Live demo: https://ilay-fisher.github.io/drone-obstacle-sandbox/
