@@ -46,7 +46,7 @@ test.describe('nav clicks while the layout above the target changes (instant scr
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
     await addSpacer(page, 'experience');
-    await clickThenGrow(page, 'Contact', 900);
+    await clickThenGrow(page, 'Get in touch', 900);
     await landed(page, 'contact');
   });
 
@@ -65,7 +65,7 @@ test('a nav click leaves the address on the section hash', async ({ page }) => {
   await page.goto('/');
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Contact' })
+    .getByRole('link', { name: 'Get in touch' })
     .click();
   await landed(page, 'contact');
   expect(await page.evaluate(() => location.hash)).toBe('#contact');

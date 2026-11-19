@@ -13,7 +13,7 @@ const NAV = [
   ['Drone', 'drone'],
   ['X-Ray', 'xray'],
   ['Experience', 'experience'],
-  ['Contact', 'contact'],
+  ['Get in touch', 'contact'],
 ] as const;
 
 test.describe('smooth nav click lands on the section @gl-heavy', () => {
@@ -51,7 +51,7 @@ test.describe('nav clicks while the layout above the target changes mid-scroll @
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
     await addSpacer(page, 'experience');
-    await clickThenGrow(page, 'Contact', 900);
+    await clickThenGrow(page, 'Get in touch', 900);
     await landed(page, 'contact');
   });
 
@@ -70,7 +70,7 @@ test('any wheel input cancels a tracked scroll (the visitor wins) @gl-heavy', as
   await page.goto('/');
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Contact' })
+    .getByRole('link', { name: 'Get in touch' })
     .click();
   // Wait for the scroll to be under way (not for a fixed time), then take the wheel.
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);

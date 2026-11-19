@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { LinkButton } from '../Button/Button';
 import { createLogger } from '../../lib/logger';
 import { pickActive, scrollProgress } from './navLogic';
 import './Nav.css';
@@ -12,16 +13,18 @@ export const NAV_ITEMS = [
   { id: 'drone', label: 'Drone' },
   { id: 'xray', label: 'X-Ray' },
   { id: 'experience', label: 'Experience' },
-  { id: 'contact', label: 'Contact' },
 ] as const;
 
-const ORDER = NAV_ITEMS.map((i) => i.id);
+/** Contact is not in the text list: the "Get in touch" pill at the right end of the bar is its link. */
+const ORDER: string[] = [...NAV_ITEMS.map((i) => i.id), 'contact'];
 
 /**
  * Floating rounded top bar: skip link, brand, section links with an IntersectionObserver-driven
  * `aria-current` and a pill indicator that slides to the active link, a scroll-progress line
  * inside the bar, and below 900 px a Menu button (aria-expanded, focus moves in on open, Escape or
- * focus leaving closes) opening a rounded panel. Anchors are handled by SmoothScroll.
+ * focus leaving closes) opening a rounded panel. A "Get in touch" primary pill ends the bar at every
+ * width (next to Menu on phones, outside the panel) and carries `aria-current` while Contact is in view.
+ * Anchors are handled by SmoothScroll.
  */
 export function Nav() {
   const [active, setActive] = useState<string | null>(null);
@@ -153,7 +156,11 @@ export function Nav() {
             Menu
           </button>
           <ul className="nav__links" id="nav-links" data-open={open} ref={linksRef}>
-            <li className="nav__indicator" aria-hidden="true" data-for={active ?? ''} />
+            <li
+              className="nav__indicator"
+              aria-hidden="true"
+              data-for={active && active !== 'contact' ? active : ''}
+            />
             {NAV_ITEMS.map((i, idx) => (
               <li key={i.id}>
                 <a
@@ -167,6 +174,15 @@ export function Nav() {
               </li>
             ))}
           </ul>
+          <LinkButton
+            variant="primary"
+            href="#contact"
+            className="nav__cta"
+            aria-current={active === 'contact' ? 'true' : undefined}
+            onClick={() => setOpen(false)}
+          >
+            Get in touch
+          </LinkButton>
           <div className="nav__progress" ref={progressRef} aria-hidden="true" />
         </div>
       </nav>

@@ -188,10 +188,10 @@ export default function Hero() {
             {profile.availability}
           </p>
           <div className="hero__actions">
-            <LinkButton variant="primary" href="#safesurf">
-              See SafeSurf
+            <LinkButton variant="primary" href="#contact">
+              Get in touch
             </LinkButton>
-            <LinkButton href="#contact">Get in touch</LinkButton>
+            <LinkButton href="#safesurf">See SafeSurf</LinkButton>
           </div>
         </div>
       </div>

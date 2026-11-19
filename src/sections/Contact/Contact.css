@@ -29,9 +29,15 @@
   user-select: all;
 }
 .contact__actions {
-  display: flex;
-  flex-wrap: wrap;
+  /* below laptop width an even 2 + 2 of equal keys, never 3 + 1; from 900 px one clean row */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+@media (min-width: 900px) {
+  .contact__actions {
+    display: flex;
+  }
 }
 /* the keys match the buttons' height so the whole row reads as one family */
 .contact__actions .link-key {

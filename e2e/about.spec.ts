@@ -4,7 +4,7 @@ import { expectScrolledTo, expectSkipLinkFirstTab } from './helpers';
 const SECTIONS = [
   ['about', 'About'],
   ['experience', 'Experience'],
-  ['contact', 'Contact'],
+  ['contact', 'Get in touch'],
 ] as const;
 
 function trackConsoleErrors(page: Page): string[] {
@@ -63,7 +63,7 @@ test.describe('mobile nav at 390x844', () => {
     await page.goto('/');
     const toggle = page.getByRole('button', { name: 'Menu' });
     await expect(toggle).toBeVisible();
-    const items = ['About', 'SafeSurf', 'Drone', 'X-Ray', 'Experience', 'Contact'];
+    const items = ['About', 'SafeSurf', 'Drone', 'X-Ray', 'Experience', 'Get in touch'];
     for (const label of items) {
       await toggle.click();
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
@@ -73,7 +73,8 @@ test.describe('mobile nav at 390x844', () => {
       await expect(link).toBeVisible();
       await link.click();
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-      const id = label === 'X-Ray' ? 'xray' : label.toLowerCase();
+      const id =
+        label === 'X-Ray' ? 'xray' : label === 'Get in touch' ? 'contact' : label.toLowerCase();
       await expectScrolledTo(page, id);
     }
     await toggle.focus();
