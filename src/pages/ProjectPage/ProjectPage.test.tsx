@@ -90,7 +90,6 @@ describe('ProjectPage', () => {
     expect(within(contact).getByTestId('contact-email')).toHaveTextContent('ilay3002@gmail.com');
     expect(within(contact).getByRole('button', { name: /copy email/i })).toBeInTheDocument();
     expect(within(contact).getByRole('link', { name: /whatsapp/i })).toBeInTheDocument();
-    expect(within(contact).getByRole('link', { name: /call ilay/i })).toBeInTheDocument();
     expect(within(contact).queryByText(/throwing things was fun/i)).toBeNull();
   });
 

@@ -45,18 +45,14 @@ describe('Contact', () => {
   it('keeps the mailto primary and the copy button as the loud controls', () => {
     render(<Contact />);
     expect(screen.getByRole('button', { name: /Copy email/ })).toHaveClass('btn');
-    expect(document.querySelectorAll('.contact .link-key')).toHaveLength(4);
+    expect(document.querySelectorAll('.contact .link-key')).toHaveLength(3);
   });
 
-  it('shows the approved phone as a tel: key next to the email, and no other number', () => {
+  it('shows no phone number: it overflowed the keys on phones; WhatsApp covers it', () => {
     render(<Contact />);
-    const tel = screen.getByRole('link', { name: /Call Ilay/ });
-    expect(tel).toHaveAttribute('href', 'tel:+972587793124');
-    expect(tel).toHaveTextContent('058-779-3124');
-    expect(tel).toHaveClass('link-key');
-    expect(tel).not.toHaveAttribute('target');
-    const rest = (document.body.textContent ?? '').replaceAll('058-779-3124', '');
-    expect(rest).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
+    expect(screen.queryByRole('link', { name: /Call Ilay/ })).toBeNull();
+    expect(document.querySelector('a[href^="tel:"]')).toBeNull();
+    expect(document.body.textContent ?? '').not.toMatch(/\+?\d[\d\s-]{8,}\d/);
   });
 
   it('has a WhatsApp key that opens wa.me in a new tab', () => {
