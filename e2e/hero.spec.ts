@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { scrollSettled } from './helpers';
 
 /**
  * The hero exposes `window.__hero` only with ?heroSeed. `heroFast=1` settles the physics before the
@@ -67,7 +68,7 @@ async function openHero(page: Page) {
   return errors;
 }
 
-test.describe('hero scene', () => {
+test.describe('hero scene @gl-heavy', () => {
   test.setTimeout(120_000);
 
   test('the canvas is not blank right after the first rendered frame', async ({ page }) => {
@@ -93,7 +94,9 @@ test.describe('hero scene', () => {
     await expect(canvas(page)).toHaveAttribute('data-bodies', String(ids.length));
     // Fast path is already at rest; `settle()` re-publishes synchronously, so this never races a frame.
     expect(await hero(page, (h) => h.settle())).toBe(true);
-    await expect.poll(() => canvas(page).getAttribute('data-sleeping')).toBe('true');
+    await expect
+      .poll(() => canvas(page).getAttribute('data-sleeping'), { timeout: 45_000 })
+      .toBe('true');
     const bounds = await hero(page, (h) => h.bounds());
     for (const s of await snap(page)) {
       expect(s.pos.x, s.id).toBeGreaterThan(bounds.minX);
@@ -131,9 +134,18 @@ test.describe('hero scene', () => {
     const errors = await openHero(page);
     const nameBefore = await hero(page, (h) => h.nameSnapshot());
     const before = await snap(page);
-    const a = before.find((s) => s.id === 'token-node') ?? before[0]!;
-    const b = [...before].filter((s) => s.id !== a.id).sort((p, q) => dist(p, a) - dist(q, a))[0]!;
-    await hero(page, (h, id: string) => h.throwBody(id, { x: 0, y: 1, z: -22 }), a.id);
+    // Throw a piece that is really at rest, at its nearest resting neighbour. The seed leaves `token-node` leaning on the
+    // right wall, awake: a throw into that contact is either soaked up or carried off depending on sub-millimetre
+    // differences, which the number of frames that ran before the test (few on a slow runner, many on a fast one)
+    // decides. Which piece is thrown must not depend on that.
+    const resting = before.filter((s) => s.asleep);
+    let a = resting[0]!;
+    let b = resting[1]!;
+    for (const p of resting)
+      for (const q of resting) if (p.id !== q.id && dist(p, q) < dist(a, b)) [a, b] = [p, q];
+    const gap = Math.hypot(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
+    const v = { x: ((b.pos.x - a.pos.x) / gap) * 22, y: 1, z: ((b.pos.z - a.pos.z) / gap) * 22 };
+    await hero(page, (h, [id, vel]: [string, typeof v]) => h.throwBody(id, vel), [a.id, v]);
     await hero(page, (h) => h.step(240));
     const after = await snap(page);
     const moved = after.filter(
@@ -191,7 +203,9 @@ test.describe('hero scene', () => {
     await openHero(page);
     const n = (await hero(page, (h) => h.ids())).length;
     await page.getByRole('button', { name: 'Drop again' }).click();
-    await expect(canvas(page)).toHaveAttribute('data-sleeping', 'true', { timeout: 20_000 });
+    // The drop itself is real-time physics; `settle()` runs it to rest by simulated time, whatever the frame rate.
+    expect(await hero(page, (h) => h.settle()), 'the drop comes to rest').toBe(true);
+    await expect(canvas(page)).toHaveAttribute('data-sleeping', 'true', { timeout: 45_000 });
     expect(await snap(page)).toHaveLength(n);
   });
 
@@ -246,11 +260,33 @@ test.describe('hero scene', () => {
       ['drone', '#drone'],
       ['lens', '#xray'],
     ] as const;
+    // One visit: the live drop alone takes tens of seconds on software GL, so it is paid once. Between pieces the page
+    // goes back to the top the way a visitor does it, with the brand link (smooth scroll again, then stable).
+    await page.goto('/?hero=live&heroDebug=1');
+    await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
     for (const [id, hash] of projects) {
-      // A fresh visit per piece: Lenis owns the scroll position, so a clean page is the honest starting point.
-      await page.goto('/?hero=live&heroDebug=1');
-      await expect(canvas(page)).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
-      // The piece must have stopped moving before it is pressed (live physics: the drop takes a few seconds).
+      await page
+        .getByRole('link', { name: /Ilay Fisher/ })
+        .first()
+        .click();
+      await scrollSettled(page, { interval: 300, timeout: 60_000 });
+      expect(await page.evaluate(() => window.scrollY), 'back at the top').toBeLessThan(5);
+      // The piece must have stopped moving before it is pressed. What matters is this piece being asleep, not the whole
+      // scene: in live mode the idle scheduler keeps nudging a random piece every few seconds (as it should), and on a
+      // slow runner each nudge takes longer in wall time to die down than the scene-wide `data-sleeping` flag can be
+      // caught true. The first piece waits for the real drop, which takes as long as the machine's frame rate makes it.
+      // After a double-click the scene is awake again and, off screen, paused: later pieces run it to rest by simulated
+      // time (`settle()`), which does not depend on the frame rate. Settling is repeated until the piece is asleep:
+      // anything that wakes a body in between (a hover, a nudge, a resume after the scroll) is simply run to rest again.
+      await expect(async () => {
+        if (id !== projects[0][0]) expect(await hero(page, (h) => h.settle())).toBe(true);
+        await expect
+          .poll(async () => (await snap(page)).find((s) => s.id === id)?.asleep ?? false, {
+            message: `${id} is asleep`,
+            timeout: 8_000,
+          })
+          .toBe(true);
+      }).toPass({ timeout: 90_000, intervals: [500, 1000, 2000] });
       let at: { x: number; y: number } | null = null;
       await expect
         .poll(
@@ -279,19 +315,7 @@ test.describe('hero scene', () => {
       }, hash);
       await expect.poll(() => page.evaluate(() => location.hash), { message: id }).toBe(hash);
       // Wait for scrolling to stop, then the section must sit at the top.
-      let last = -1;
-      let still = 0;
-      await expect
-        .poll(
-          async () => {
-            const y = await page.evaluate(() => Math.round(window.scrollY));
-            still = Math.abs(y - last) < 1 ? still + 1 : 0;
-            last = y;
-            return still;
-          },
-          { message: `${id}: scrolling stops`, timeout: 30_000, intervals: [300] },
-        )
-        .toBeGreaterThanOrEqual(4);
+      await scrollSettled(page, { interval: 300, timeout: 60_000 });
       const top = await page.evaluate(
         (h) => document.querySelector(h)?.getBoundingClientRect().top ?? 9999,
         hash,
@@ -325,7 +349,7 @@ test.describe('hero scene', () => {
   });
 });
 
-test.describe('hero fallback and layout', () => {
+test.describe('hero fallback and layout @gl-heavy', () => {
   test('automated browsers get the still unless the live scene is opted into', async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
@@ -379,7 +403,7 @@ test.describe('hero fallback and layout', () => {
   });
 });
 
-test.describe('hero layout', () => {
+test.describe('hero layout @gl-heavy', () => {
   test.setTimeout(120_000);
 
   for (const [width, height] of [

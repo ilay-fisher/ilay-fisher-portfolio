@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { scrollSettled } from './helpers';
 
 /** Shape of `window.__drone.state()`, exposed only with `?drone=test`. */
 interface DroneState {
@@ -54,6 +55,14 @@ async function open(page: Page, query = 'drone=test') {
   const rig = page.getByTestId('drone-demo');
   await rig.scrollIntoViewIfNeeded();
   await expect(rig).toHaveAttribute('data-ready', 'true', { timeout: 20_000 });
+  // The `#drone` deep link keeps re-aiming the page until it has been quiet for a moment (lazy content shifts layout).
+  // Measure and drag only once the page has stopped moving, or canvas coordinates go stale between read and use.
+  await scrollSettled(page, { samples: 10 });
+  // Centre the canvas so no grid cell sits under the sticky nav, whatever the viewport.
+  await page
+    .getByTestId('drone-canvas')
+    .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  await scrollSettled(page, { samples: 4 });
   return rig;
 }
 
@@ -115,21 +124,26 @@ test('dragging on the canvas paints obstacles, and the Erase toggle removes them
   const canvas = page.getByTestId('drone-canvas');
   const st = await state(page);
   const y = st.rows - 3;
-  const a = await cellPoint(canvas, st, 6, y);
-  const b = await cellPoint(canvas, st, 14, y);
-  await page.mouse.move(a.x, a.y);
-  await page.mouse.down();
-  await page.mouse.move(b.x, b.y, { steps: 12 });
-  await page.mouse.up();
+  // Cell points are read fresh for every drag: a canvas that moved between measuring and pressing would drop the stroke.
+  const drag = async (from: number, to: number) => {
+    await canvas.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const a = await cellPoint(canvas, st, from, y);
+    const b = await cellPoint(canvas, st, to, y);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 12 });
+    await page.mouse.up();
+  };
+  await expect(async () => {
+    await drag(6, 14);
+    expect((await state(page)).obstacles).toBeGreaterThanOrEqual(st.obstacles + 4);
+  }).toPass({ timeout: 20_000 });
   const painted = await state(page);
-  expect(painted.obstacles).toBeGreaterThanOrEqual(st.obstacles + 4);
   await page.getByTestId('drone-erase').click();
-  await page.mouse.move(b.x, b.y);
-  await page.mouse.down();
-  await page.mouse.move(a.x, a.y, { steps: 12 });
-  await page.mouse.up();
-  const erased = await state(page);
-  expect(erased.obstacles).toBeLessThan(painted.obstacles);
+  await expect(async () => {
+    await drag(14, 6);
+    expect((await state(page)).obstacles).toBeLessThan(painted.obstacles);
+  }).toPass({ timeout: 20_000 });
 });
 
 test('the wind tool paints wind zones', async ({ page }) => {
@@ -137,13 +151,17 @@ test('the wind tool paints wind zones', async ({ page }) => {
   const canvas = page.getByTestId('drone-canvas');
   const st = await state(page);
   await page.getByTestId('drone-tool-wind').click();
-  const a = await cellPoint(canvas, st, 5, 2);
-  const b = await cellPoint(canvas, st, 9, 2);
-  await page.mouse.move(a.x, a.y);
-  await page.mouse.down();
-  await page.mouse.move(b.x, b.y, { steps: 8 });
-  await page.mouse.up();
-  expect((await state(page)).wind).toBeGreaterThan(st.wind);
+  await expect(async () => {
+    // Centre the canvas so the top rows are clear of the sticky nav, then read the points fresh.
+    await canvas.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const a = await cellPoint(canvas, st, 5, 2);
+    const b = await cellPoint(canvas, st, 9, 2);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 8 });
+    await page.mouse.up();
+    expect((await state(page)).wind).toBeGreaterThan(st.wind);
+  }).toPass({ timeout: 20_000 });
 });
 
 test('reset restores the starting scene', async ({ page }) => {

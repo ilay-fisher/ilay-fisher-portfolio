@@ -1,12 +1,20 @@
 name: CI
 
+# Pull requests and main only (a branch push with an open PR would otherwise run everything twice).
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same PR or branch supersedes the running job.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,15 +26,55 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+
+  # e2e runs against `vite preview` of a production build. The suite is split over three runners that work at the same
+  # time: the ordinary specs in two shards (2 workers each, one worker per vCPU), and the GL-heavy and smooth-scroll
+  # specs on a runner of their own with one worker, so software WebGL never competes with anything else.
+  # See playwright.config.ts. One retry is allowed and always reported: see the e2e-report job.
+  e2e:
+    name: e2e (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: default 1/2, key: default-1, args: '--project=default --shard=1/2' }
+          - { name: default 2/2, key: default-2, args: '--project=default --shard=2/2' }
+          - { name: gl-heavy, key: gl-heavy, args: '--project=gl-heavy --workers=1' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install chromium
+      - name: e2e
+        run: npx playwright test ${{ matrix.args }}
         env:
           PORT: 5173
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-${{ matrix.key }}.json
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: e2e-${{ matrix.key }}
           path: |
-            playwright-report/
+            e2e-*.json
             test-results/
           retention-days: 7
+
+  e2e-report:
+    needs: e2e
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-*
+          path: reports
+      - name: e2e summary (every test that needed a retry is listed)
+        run: node scripts/e2e-summary.mjs reports/*/e2e-*.json

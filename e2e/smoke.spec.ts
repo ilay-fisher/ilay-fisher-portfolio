@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { expectScrolledTo, expectSkipLinkFirstTab } from './helpers';
 
 const IDS = ['top', 'about', 'safesurf', 'drone', 'xray', 'experience', 'contact'];
 
@@ -26,41 +27,35 @@ test('title and description are set', async ({ page }) => {
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /hold up/);
 });
 
-for (const [label, id] of [
-  ['About', 'about'],
-  ['SafeSurf', 'safesurf'],
-  ['Drone', 'drone'],
-  ['X-Ray', 'xray'],
-  ['Experience', 'experience'],
-  ['Contact', 'contact'],
-] as const) {
-  test(`nav link "${label}" scrolls to #${id}`, async ({ page }) => {
-    await page.goto('/');
-    await page
-      .getByRole('navigation', { name: 'Sections' })
-      .getByRole('link', { name: label })
-      .click();
-    // The last section may be unable to reach the top of the viewport; then the page is at its end.
-    await expect
-      .poll(
-        async () =>
-          page.locator(`#${id}`).evaluate((el) => {
-            const top = Math.round(el.getBoundingClientRect().top);
-            const atEnd =
-              window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-            return top < 120 || atEnd;
-          }),
-        { timeout: 8000 },
-      )
-      .toBe(true);
-  });
-}
+// Where a nav click ends up is under test here, not the smooth scroll itself (that is e2e/smooth-scroll.spec.ts, in
+// the serial project): under reduced motion the page jumps, so the end state is the same on any machine.
+test.describe('nav links land on their section', () => {
+  test.use({ reducedMotion: 'reduce' });
+  for (const [label, id] of [
+    ['About', 'about'],
+    ['SafeSurf', 'safesurf'],
+    ['Drone', 'drone'],
+    ['X-Ray', 'xray'],
+    ['Experience', 'experience'],
+    ['Contact', 'contact'],
+  ] as const) {
+    test(`nav link "${label}" scrolls to #${id}`, async ({ page }) => {
+      await page.goto('/');
+      await page
+        .getByRole('navigation', { name: 'Sections' })
+        .getByRole('link', { name: label })
+        .click();
+      // The last section may be unable to reach the top of the viewport; then the page is at its end.
+      await expectScrolledTo(page, id);
+      await expect(page).toHaveURL(new RegExp(`#${id}$`));
+    });
+  }
+});
 
 test('skip link is first in tab order and targets main', async ({ page }) => {
   await page.goto('/');
-  await page.keyboard.press('Tab');
+  await expectSkipLinkFirstTab(page);
   const skip = page.getByRole('link', { name: 'Skip to content' });
-  await expect(skip).toBeFocused();
   await expect(skip).toHaveAttribute('href', '#main');
 });
 

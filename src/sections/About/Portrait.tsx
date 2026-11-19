@@ -106,6 +106,7 @@ export function Portrait({
       stillIndex: manifest.stillIndex,
       reduced,
       blinks,
+      blinkManual: new URLSearchParams(window.location.search).get('avatarBlink') === 'manual',
       onReady: () => setReady(true),
     });
     return () => engine.stop();

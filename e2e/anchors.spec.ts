@@ -1,40 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { addSpacer, clickThenGrow, landed } from './helpers';
 
-// The page runs a software-GL scene, so scrolling and layout are slow.
+// Where anchor scrolls END UP is under test here, in the parallel project, so the scroll itself is instant (reduced
+// motion) wherever it is not the subject. The real smooth scroll, layout shifts in the middle of it and the visitor
+// taking the wheel are in e2e/smooth-scroll.spec.ts, which runs alone.
 test.setTimeout(90_000);
-
-/** How far the section's top is from where the sticky nav leaves it, or 0 when the page simply cannot scroll further. */
-async function miss(page: Page, id: string): Promise<number> {
-  return page.evaluate((sid) => {
-    const el = document.getElementById(sid)!;
-    const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
-    const off = el.getBoundingClientRect().top - pad;
-    const atEnd = window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 2;
-    return atEnd && off > 0 ? 0 : off;
-  }, id);
-}
-
-/** Click the nav link, then (150 ms later, mid-scroll) grow the spacer above the target: layout shift under a tracked scroll. */
-async function clickThenGrow(page: Page, label: string, px: number) {
-  await page.evaluate(
-    ([name, h]) => {
-      const nav = document.querySelector('nav[aria-label="Sections"]')!;
-      const link = [...nav.querySelectorAll('a')].find((a) => a.textContent?.trim() === name);
-      (link as HTMLElement).click();
-      setTimeout(() => (document.getElementById('test-spacer')!.style.height = `${h}px`), 150);
-    },
-    [label, px] as const,
-  );
-}
-
-async function landed(page: Page, id: string) {
-  await expect
-    .poll(async () => Math.abs(await miss(page, id)), { timeout: 15_000 })
-    .toBeLessThan(6);
-  // and it stays there: nothing drifts after it settled
-  await page.waitForTimeout(900);
-  expect(Math.abs(await miss(page, id))).toBeLessThan(6);
-}
 
 for (const [w, h] of [
   [390, 844],
@@ -69,17 +39,13 @@ test('a deep link to #experience survives a layout shift after load', async ({ p
   await landed(page, 'experience');
 });
 
-test.describe('nav clicks while the layout above the target changes mid-scroll', () => {
+test.describe('nav clicks while the layout above the target changes (instant scroll)', () => {
+  test.use({ reducedMotion: 'reduce' });
+
   test('at 1440 (desktop nav)', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
-    await page.evaluate(() => {
-      const s = document.createElement('div');
-      s.id = 'test-spacer';
-      s.style.height = '0px';
-      document.getElementById('experience')?.before(s);
-    });
-    // click and grow the layout from inside the page, so a slow runner cannot stretch the gap between the two
+    await addSpacer(page, 'experience');
     await clickThenGrow(page, 'Contact', 900);
     await landed(page, 'contact');
   });
@@ -87,32 +53,20 @@ test.describe('nav clicks while the layout above the target changes mid-scroll',
   test('at 390 (menu)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    await page.evaluate(() => {
-      const s = document.createElement('div');
-      s.id = 'test-spacer';
-      s.style.height = '0px';
-      document.getElementById('experience')?.before(s);
-    });
+    await addSpacer(page, 'experience');
     await page.getByRole('button', { name: 'Menu' }).click();
     await clickThenGrow(page, 'Experience', 700);
     await landed(page, 'experience');
   });
 });
 
-test('any wheel input cancels a tracked scroll (the visitor wins)', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+test('a nav click leaves the address on the section hash', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await page
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Contact' })
     .click();
-  await page.waitForTimeout(250);
-  await page.mouse.wheel(0, -50);
-  await page.waitForTimeout(600);
-  const a = await page.evaluate(() => window.scrollY);
-  await page.waitForTimeout(1500);
-  const b = await page.evaluate(() => window.scrollY);
-  const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
-  expect(Math.abs(b - a)).toBeLessThan(8); // it stopped
-  expect(b).toBeLessThan(max - 300); // and it did not carry on to the target
+  await landed(page, 'contact');
+  expect(await page.evaluate(() => location.hash)).toBe('#contact');
 });
