@@ -133,17 +133,21 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
     const label = await el.evaluate(
       (e) => `${e.getAttribute('data-reveal')} ${e.className || e.tagName.toLowerCase()}`,
     );
-    await el.evaluate((e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    // Scroll again on every poll: layout above the element can still shift while images and fonts load, and a reveal
+    // only plays while its trigger is actually reached.
     await expect
       .poll(
         () =>
           el.evaluate((e) => {
-            const op = (n: Element) => parseFloat(getComputedStyle(n).opacity);
-            return [e, ...Array.from(e.children)].map(op).every((o) => o === 1);
+            e.scrollIntoView({ block: 'center', behavior: 'instant' });
+            const ops = [e, ...Array.from(e.children)].map((n) => getComputedStyle(n).opacity);
+            return ops.every((o) => o === '1')
+              ? 'ok'
+              : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)}`;
           }),
         { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 10_000 },
       )
-      .toBe(true);
+      .toBe('ok');
   }
 
   // The thing the bug hid: the About portrait is really visible, not just rendered into an invisible wrapper.
