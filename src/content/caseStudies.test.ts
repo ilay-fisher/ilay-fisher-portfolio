@@ -30,6 +30,25 @@ describe('case studies', () => {
     expect(find('xray').numbers?.map((n) => n.value)).toEqual(['~95%', '43.7%', '4/4']);
   });
 
+  it('keeps the case studies in project order: SafeSurf, X-Ray, Drone', () => {
+    expect(caseStudies.map((c) => c.id)).toEqual(['safesurf', 'xray', 'drone']);
+  });
+
+  it('shows the X-Ray token and latency numbers in full', () => {
+    const labels = caseStudies.find((c) => c.id === 'xray')!.numbers!.map((n) => n.label);
+    expect(labels[0]).toMatch(/2,460 tokens.*117-121/);
+    expect(labels[1]).toMatch(/17,838 ms to 10,034 ms/);
+  });
+
+  it('names the on-device image model with its false-block rate and speed', () => {
+    const n = caseStudies
+      .find((c) => c.id === 'safesurf')!
+      .numbers!.find((x) => x.value === '14.2%')!;
+    expect(n.label).toMatch(/on-device image model/);
+    expect(n.label).toMatch(/36\.6%/);
+    expect(n.label).toMatch(/7\.6 ms median on arm64/);
+  });
+
   it('never says alone or solo', () => {
     expect(JSON.stringify(caseStudies)).not.toMatch(/\b(alone|solo)\b/i);
   });

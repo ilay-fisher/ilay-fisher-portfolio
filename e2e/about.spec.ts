@@ -63,7 +63,7 @@ test.describe('mobile nav at 390x844', () => {
     await page.goto('/');
     const toggle = page.getByRole('button', { name: 'Menu' });
     await expect(toggle).toBeVisible();
-    const items = ['About', 'SafeSurf', 'Drone', 'X-Ray', 'Experience', 'Get in touch'];
+    const items = ['AI', 'About', 'SafeSurf', 'X-Ray', 'Drone', 'Experience', 'Get in touch'];
     for (const label of items) {
       await toggle.click();
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');

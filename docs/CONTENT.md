@@ -22,8 +22,8 @@ exclamation marks. Short sentences. Numbers over adjectives.
 - Availability: Open to a student role or a full-time junior role in Backend, Android or Systems.
   (Student CV and junior CV differ on hours; the owner chose not to state hours. 2026-11-19.)
 - Location: Sde Yaakov, Israel
-- Page title: "Ilay Fisher — Student Backend and Android Developer"
-- Meta description: "Ilay Fisher: CS student (B.Sc., July 2027) seeking a student or junior Backend, Android or Systems role. Runs SafeSurf, a live Android product with 50+ users."
+- Page title: "Ilay Fisher — Student Backend, Android and AI Agents Developer" (AI section, owner brief 2026-11-19; also `og:title`)
+- Meta description: "Ilay Fisher: CS student seeking a student or junior Backend, Android, Systems or LLM engineer role. Builds AI agents and runs SafeSurf, a live Android app with 50+ users." (AI section, owner brief 2026-11-19; `og:description` is the same without the name)
 - The old thesis "I build software that has to hold up when someone is actively trying to break it." is retired as the headline.
 
 ## Links (public)
@@ -59,7 +59,21 @@ What I built:
 
 Skills (section heading "Skills"): Kotlin, Java, Jetpack Compose, Coroutines, Room, Node.js, Firebase,
 PostgreSQL, SQL, REST APIs, Docker, Python, C, C++, TypeScript, React, Linux, Bash, Git, GitHub Actions,
-TFLite, PyTorch. (CV skills, ordered for Backend, Android, Systems roles.)
+TFLite, PyTorch, ONNX, Claude API, AI agents, Multi-agent orchestration, Prompt engineering. (CV skills, ordered for Backend, Android, Systems roles; the last five were added by the AI section, owner brief 2026-11-19.)
+
+## AI and agent workflows (AI section, owner brief 2026-11-19)
+
+New section `#ai` right after the hero, before About. Nav label "AI". Facts confirmed by Ilay on 2026-11-19; he built all of them.
+Only number: the 637-line release script. No time-saved claims, user counts or links (no public repo). Source: `src/content/aiWorkflows.ts`.
+
+- Title: "AI and agent workflows" (accent: "agent workflows"). Bench pill: "focus AI agents".
+- Summary: "Four agent setups I built, from releases to content."
+- Release-manager agent (pill "Release"): "Cuts a SafeSurf and SafeGuard release end to end: version bump, builds and signs both Android APKs, checksums, upload to Firebase Storage and a Remote Config update. It runs on top of a 637-line release script."
+- Custom skills (pill "Skills"): "Skills I wrote for work I repeat." `diagnose`: "Find the root cause from live evidence before any code edit." `verify-avd`: "Prove an Android change works on an emulator with Maestro, screenshots and logcat." "Also": `add-safeguard-setting`, `release`, `job-career-scan`.
+- Manager and subagent orchestration (pill "Orchestration"): "A manager agent dispatches Sonnet subagents, one per task, each in its own git worktree. Subagents take no outward actions, and every fix needs on-device verification."
+- Content plugin (pill "Content"): "A writer agent and three reviewer agents (hook, body, call to action) debate a draft until they agree."
+- Closing line: "More AI work in the projects below: X-Ray Lens and the on-device image model in SafeSurf." (links to `#xray` and `#safesurf`).
+- Project order is now SafeSurf (CASE-01), X-Ray Lens (CASE-02), Drone (CASE-03). SafeSurf also shows 14.2% (false blocks from the on-device image model, down from 36.6%) and 7.6 ms median on arm64 beside its demo.
 
 ## Experience
 
@@ -115,7 +129,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 - Stack: Kotlin, Java, GeckoView, Android device-owner APIs, TFLite, React, Firebase
 - Do not show prices.
 
-### 2. Autonomous Drone & Obstacle-Avoidance Sandbox
+### 3. Autonomous Drone & Obstacle-Avoidance Sandbox (order changed 2026-11-19: AI projects first)
 
 - Repo: https://github.com/ilay-fisher/drone-obstacle-sandbox
 - Live demo: https://ilay-fisher.github.io/drone-obstacle-sandbox/
@@ -128,7 +142,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 - Stack: C++17, Emscripten, WebAssembly, React, TypeScript, Canvas, Fastify, PostgreSQL, Docker
 - Local source for reference and screenshot: `/Users/ilayfisher/Documents/proj1` (`docs/screenshot.png`)
 
-### 3. Multi-Modal Visual QA & Anomaly X-Ray Lens
+### 2. Multi-Modal Visual QA & Anomaly X-Ray Lens
 
 - Repo: https://github.com/ilay-fisher/multimodal-visual-qa-xray-lens
 - What: hybrid classical CV + vision-language model inspection. OpenCV finds where

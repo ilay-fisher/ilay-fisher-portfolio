@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { projects } from '../../content/projects';
 import { ProjectFrame } from './ProjectFrame';
 
-const safesurf = projects[0]!;
+const safesurf = projects.find((p) => p.id === 'safesurf')!;
 
 describe('ProjectFrame', () => {
   it('renders the section id, challenge heading and summary from the project', () => {
@@ -46,7 +46,7 @@ describe('ProjectFrame', () => {
   });
 
   it('renders proof numbers when the project has them', () => {
-    render(<ProjectFrame project={projects[2]!} />);
+    render(<ProjectFrame project={projects.find((p) => p.id === 'xray')!} />);
     expect(screen.getByText('43.7%')).toBeInTheDocument();
   });
 });

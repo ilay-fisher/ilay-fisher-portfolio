@@ -31,7 +31,7 @@ export interface Project {
   image?: { src: string; alt: string };
 }
 
-/** The three projects, in page order. */
+/** The three projects, in page order: the AI-heavy ones first (owner brief 2026-11-19). */
 export const projects: Project[] = [
   {
     id: 'safesurf',
@@ -57,44 +57,19 @@ export const projects: Project[] = [
       'Firebase',
     ],
     links: [{ label: 'safesurfsite.com', href: 'https://safesurfsite.com' }],
-  },
-  {
-    id: 'drone',
-    title: 'Autonomous Drone & Obstacle-Avoidance Sandbox',
-    caseNo: 'CASE-02',
-    status: 'Live demo',
-    challenge: "Block the drone's route.",
-    summary:
-      'A browser sandbox where a drone plans and re-plans its route through a city grid in real time. The pathfinding engine is C++17 compiled to WebAssembly.',
-    points: [
-      'A* searches from scratch on every replan. D* Lite keeps its values and repairs only what changed.',
-      '8-connected grid, octile heuristic, no corner cutting. Wind zones cost 4x.',
-      'React, TypeScript and Canvas render at 60 FPS. Fastify and PostgreSQL store scenarios and telemetry.',
+    numbers: [
+      {
+        value: '14.2%',
+        label:
+          'false blocks from the on-device image model in the strict tier, down from 36.6%, with recall kept',
+      },
+      { value: '7.6 ms', label: 'median inference on arm64 (TFLite)' },
     ],
-    stack: [
-      'C++17',
-      'Emscripten',
-      'WebAssembly',
-      'React',
-      'TypeScript',
-      'Canvas',
-      'Fastify',
-      'PostgreSQL',
-      'Docker',
-    ],
-    links: [
-      { label: 'Live demo', href: 'https://ilay-fisher.github.io/drone-obstacle-sandbox/' },
-      { label: 'Source', href: 'https://github.com/ilay-fisher/drone-obstacle-sandbox' },
-    ],
-    image: {
-      src: '/images/projects/drone-sandbox.png',
-      alt: 'The drone sandbox: a city grid with obstacles and a planned route',
-    },
   },
   {
     id: 'xray',
     title: 'Multi-Modal Visual QA & Anomaly X-Ray Lens',
-    caseNo: 'CASE-03',
+    caseNo: 'CASE-02',
     status: 'Benchmarked',
     challenge: 'Find what changed.',
     summary:
@@ -131,6 +106,39 @@ export const projects: Project[] = [
     image: {
       src: '/images/projects/xray-benchmark.png',
       alt: 'X-Ray Lens benchmark output with flagged regions',
+    },
+  },
+  {
+    id: 'drone',
+    title: 'Autonomous Drone & Obstacle-Avoidance Sandbox',
+    caseNo: 'CASE-03',
+    status: 'Live demo',
+    challenge: "Block the drone's route.",
+    summary:
+      'A browser sandbox where a drone plans and re-plans its route through a city grid in real time. The pathfinding engine is C++17 compiled to WebAssembly.',
+    points: [
+      'A* searches from scratch on every replan. D* Lite keeps its values and repairs only what changed.',
+      '8-connected grid, octile heuristic, no corner cutting. Wind zones cost 4x.',
+      'React, TypeScript and Canvas render at 60 FPS. Fastify and PostgreSQL store scenarios and telemetry.',
+    ],
+    stack: [
+      'C++17',
+      'Emscripten',
+      'WebAssembly',
+      'React',
+      'TypeScript',
+      'Canvas',
+      'Fastify',
+      'PostgreSQL',
+      'Docker',
+    ],
+    links: [
+      { label: 'Live demo', href: 'https://ilay-fisher.github.io/drone-obstacle-sandbox/' },
+      { label: 'Source', href: 'https://github.com/ilay-fisher/drone-obstacle-sandbox' },
+    ],
+    image: {
+      src: '/images/projects/drone-sandbox.png',
+      alt: 'The drone sandbox: a city grid with obstacles and a planned route',
     },
   },
 ];

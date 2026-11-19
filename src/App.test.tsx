@@ -2,10 +2,10 @@ import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import App from './App';
 
-const ORDER = ['top', 'about', 'safesurf', 'drone', 'xray', 'experience', 'contact'];
+const ORDER = ['top', 'ai', 'about', 'safesurf', 'xray', 'drone', 'experience', 'contact'];
 
 describe('App', () => {
-  it('composes the seven sections in contract order inside main', () => {
+  it('composes the eight sections in contract order inside main', () => {
     const { container } = render(<App />);
     const main = container.querySelector('main#main');
     expect(main).not.toBeNull();

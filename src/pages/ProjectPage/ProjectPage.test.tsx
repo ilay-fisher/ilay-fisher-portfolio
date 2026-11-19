@@ -19,12 +19,12 @@ describe('ProjectPage', () => {
     expect(main).toBeInTheDocument();
     const h1 = within(main).getAllByRole('heading', { level: 1 });
     expect(h1).toHaveLength(1);
-    expect(h1[0]).toHaveTextContent(projects[1]!.title);
+    expect(h1[0]).toHaveTextContent(projects.find((p) => p.id === 'drone')!.title);
   });
 
   it('sets the document title and the meta description, creating the tag when missing', () => {
     render(<ProjectPage id="xray" />);
-    expect(document.title).toContain(projects[2]!.title);
+    expect(document.title).toContain(projects.find((p) => p.id === 'xray')!.title);
     expect(document.title).toContain('Ilay Fisher');
     const meta = document.head.querySelector('meta[name="description"]');
     expect(meta?.getAttribute('content')?.length).toBeGreaterThan(40);
@@ -51,11 +51,11 @@ describe('ProjectPage', () => {
     render(<ProjectPage id="safesurf" />);
     expect(screen.getByRole('link', { name: /previous project/i })).toHaveAttribute(
       'href',
-      '/work/xray',
+      '/work/drone',
     );
     expect(screen.getByRole('link', { name: /next project/i })).toHaveAttribute(
       'href',
-      '/work/drone',
+      '/work/xray',
     );
   });
 
@@ -63,7 +63,8 @@ describe('ProjectPage', () => {
     render(<ProjectPage id="xray" />);
     for (const name of ['The problem', 'What I built', 'How it works', 'Numbers', 'Stack'])
       expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument();
-    for (const s of projects[2]!.stack) expect(screen.getAllByText(s).length).toBeGreaterThan(0);
+    for (const s of projects.find((p) => p.id === 'xray')!.stack)
+      expect(screen.getAllByText(s).length).toBeGreaterThan(0);
   });
 
   it('opens outbound project links in a new tab, safely', () => {

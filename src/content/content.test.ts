@@ -53,6 +53,22 @@ describe('profile', () => {
     expect(JSON.stringify(profile)).toContain('another contributor');
   });
 
+  it('adds the AI skills without duplicating any entry (owner brief 2026-11-19)', () => {
+    const stack = profile.about.stack;
+    expect(stack).toEqual(
+      expect.arrayContaining([
+        'Claude API',
+        'AI agents',
+        'Multi-agent orchestration',
+        'Prompt engineering',
+        'PyTorch',
+        'TFLite',
+        'ONNX',
+      ]),
+    );
+    expect(new Set(stack.map((s) => s.toLowerCase())).size).toBe(stack.length);
+  });
+
   it('lists experience and education with required fields', () => {
     expect(profile.experience.map((e) => e.id)).toEqual([
       'safesurf',
@@ -86,7 +102,7 @@ describe('profile', () => {
 
 describe('projects', () => {
   it('has exactly the three projects in order', () => {
-    expect(projects.map((p) => p.id)).toEqual(['safesurf', 'drone', 'xray']);
+    expect(projects.map((p) => p.id)).toEqual(['safesurf', 'xray', 'drone']);
   });
 
   it('has required fields and https links on every project', () => {
@@ -104,6 +120,17 @@ describe('projects', () => {
         expect(isHttps(l.href)).toBe(true);
       }
     }
+  });
+
+  it('numbers the cases in page order', () => {
+    expect(projects.map((p) => p.caseNo)).toEqual(['CASE-01', 'CASE-02', 'CASE-03']);
+  });
+
+  it('shows the on-device image model numbers in the SafeSurf summary block', () => {
+    const text = JSON.stringify(projects.find((p) => p.id === 'safesurf')!.numbers);
+    expect(text).toContain('14.2%');
+    expect(text).toContain('36.6%');
+    expect(text).toContain('7.6 ms');
   });
 
   it('never shows prices for SafeSurf', () => {

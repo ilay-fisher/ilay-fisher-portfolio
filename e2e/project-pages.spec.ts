@@ -46,11 +46,11 @@ for (const p of PAGES) {
 test('next and previous project links walk through the three pages', async ({ page }) => {
   await page.goto('/work/safesurf');
   await page.getByRole('link', { name: /next project/i }).click();
-  await expect(page).toHaveURL(/\/work\/drone$/);
-  await page.getByRole('link', { name: /next project/i }).click();
   await expect(page).toHaveURL(/\/work\/xray$/);
-  await page.getByRole('link', { name: /previous project/i }).click();
+  await page.getByRole('link', { name: /next project/i }).click();
   await expect(page).toHaveURL(/\/work\/drone$/);
+  await page.getByRole('link', { name: /previous project/i }).click();
+  await expect(page).toHaveURL(/\/work\/xray$/);
 });
 
 test('the key is a real link: it opens in a new tab on a modified click', async ({

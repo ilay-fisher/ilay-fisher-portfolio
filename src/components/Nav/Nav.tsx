@@ -8,10 +8,11 @@ const log = createLogger('nav');
 
 /** Anchor targets in the nav, in page order (the hero `#top` is the brand link). */
 export const NAV_ITEMS = [
+  { id: 'ai', label: 'AI' },
   { id: 'about', label: 'About' },
   { id: 'safesurf', label: 'SafeSurf' },
-  { id: 'drone', label: 'Drone' },
   { id: 'xray', label: 'X-Ray' },
+  { id: 'drone', label: 'Drone' },
   { id: 'experience', label: 'Experience' },
 ] as const;
 
