@@ -150,6 +150,26 @@ describe('hero physics', () => {
     }
   });
 
+  it('rests the SafeGuard icon flat and asleep, in every layout', () => {
+    // A piece may come to rest leaning on a neighbour (seed 5 does), so this checks seeds that land it free.
+    for (const [bp, seed] of [
+      ['desktop', 7],
+      ['desktop', 11],
+      ['mobile', 7],
+      ['mobile', 5],
+    ] as const) {
+      const s = setup(seed, bp);
+      run(s, 9);
+      const b = s.world.get('shield')!;
+      expect(b.asleep, bp).toBe(true);
+      // Lying flat: its up axis still points up, and it sits about half its thickness above the floor.
+      const { x, z } = b.quat;
+      const upY = 1 - 2 * (x * x + z * z);
+      expect(upY, `${bp} flat`).toBeGreaterThan(0.98);
+      expect(b.pos.y, bp).toBeLessThan(s.specs.find((q) => q.id === 'shield')!.size.h);
+    }
+  });
+
   it('puts slow, nearly settled bodies to sleep on demand but never a fast one', () => {
     const s = setup(7);
     run(s, 9);

@@ -17,6 +17,9 @@ const luminance = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 /** Cream enamel of a token plate: reads on the dark stage and carries any brand colour. */
 const TOKEN_ENAMEL = '#ecebe5';
 
+/** Ceramic of the SafeGuard icon's face. The artwork is #FFFFFF; lit by the scene it needs headroom. */
+const ICON_FACE_WHITE = '#f3f2ee';
+
 /** The brand's own colour for the raised mark; only darkened when it would vanish on cream enamel. */
 export function markColor(hex: string): Color {
   const c = new Color(`#${hex.replace('#', '')}`);
@@ -38,12 +41,13 @@ export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMa
     });
   }
   if (spec.kind === 'shield') {
+    // The icon's white face, as glazed ceramic: a touch off pure white so the key light does not clip it.
     return new MeshPhysicalMaterial({
-      color: '#1d4fd8',
-      roughness: 0.26,
-      metalness: 0.04,
-      clearcoat: 1,
-      clearcoatRoughness: 0.08,
+      color: ICON_FACE_WHITE,
+      roughness: 0.34,
+      metalness: 0,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.18,
     });
   }
   if (spec.kind === 'logo') {
@@ -169,6 +173,23 @@ export function materialSet(
     emissiveIntensity: 0.28,
     alphaTest: 0.5,
   });
+  // The icon's raised art takes its exact colours per vertex (gradients), so the material itself is white.
+  const iconBlue = new MeshPhysicalMaterial({
+    color: '#ffffff',
+    vertexColors: true,
+    roughness: 0.3,
+    metalness: 0,
+    clearcoat: 1,
+    clearcoatRoughness: 0.1,
+  });
+  const iconGold = new MeshPhysicalMaterial({
+    color: '#ffffff',
+    vertexColors: true,
+    roughness: 0.26,
+    metalness: 0.15,
+    clearcoat: 1,
+    clearcoatRoughness: 0.08,
+  });
   const circuit = new MeshPhysicalMaterial({
     color: '#0c2a26',
     roughness: 0.1,
@@ -179,7 +200,21 @@ export function materialSet(
     emissiveMap: extras.circuit ?? null,
     emissiveIntensity: 0.35,
   });
-  return { body, top, metal, polished, accent, glass, rim, ink, brass, logo, circuit };
+  return {
+    body,
+    top,
+    metal,
+    polished,
+    accent,
+    glass,
+    rim,
+    ink,
+    brass,
+    logo,
+    iconBlue,
+    iconGold,
+    circuit,
+  };
 }
 
 /** The name's materials: brushed warm-white alloy letters on dark anodised plinths. */

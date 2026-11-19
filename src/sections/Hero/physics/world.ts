@@ -14,7 +14,8 @@ import {
 import type { Bounds, Vec3 } from '../logic/camera';
 import type { ObjectSpec } from '../logic/catalogue';
 import { clampVec, springAccel } from '../logic/drag';
-import { regularPolygon, SHIELD_OUTLINE, tokenFootprint } from '../logic/token';
+import { ICON_FACE_CORNER } from '../logic/safeguardIcon';
+import { regularPolygon, roundedSquareOutline, tokenFootprint } from '../logic/token';
 import type { Box as BoxDef } from '../logic/nameLayout';
 import type { SpawnPlan } from '../logic/spawn';
 
@@ -172,7 +173,10 @@ export class PhysicsWorld {
         break;
       }
       case 'shield':
-        prism(SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2), z * (d / 2)]));
+        // The app icon's rounded-square tile: a convex slab that lands flat and stays there.
+        prism(
+          roundedSquareOutline(ICON_FACE_CORNER, 3).map(([x, z]) => [x * (w / 2), z * (d / 2)]),
+        );
         break;
       case 'logo':
         // A round token: a regular polygon prism that rolls a little and settles flat.

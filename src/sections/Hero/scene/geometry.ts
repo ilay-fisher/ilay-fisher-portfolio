@@ -1,6 +1,8 @@
 import {
+  BufferAttribute,
   BufferGeometry,
   CircleGeometry,
+  Color,
   CylinderGeometry,
   ExtrudeGeometry,
   Group,
@@ -18,7 +20,21 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { ObjectSpec } from '../logic/catalogue';
 import type { PlacedGlyph } from '../logic/nameLayout';
-import { SHIELD_OUTLINE, tokenFootprint } from '../logic/token';
+import {
+  GOLD_STOPS,
+  ICON_FACE_CORNER,
+  ICON_SHIELD,
+  ICON_TILES,
+  ICON_TILE_RADIUS,
+  ICON_TILE_SIZE,
+  ICON_VIEW,
+  TILE_STOPS,
+  faceToIcon,
+  goldAt,
+  iconToFace,
+  tileAt,
+} from '../logic/safeguardIcon';
+import { roundedSquareOutline, tokenFootprint } from '../logic/token';
 import { MARKS } from './marks';
 import { TOKEN_SHAPES } from './tokenData';
 
@@ -40,6 +56,10 @@ export interface MaterialSet {
   brass?: MeshPhysicalMaterial;
   /** The SafeSurf logo printed on both faces of its token. */
   logo?: MeshPhysicalMaterial;
+  /** Raised blue tiles of the SafeGuard icon (per-vertex gradient colour). */
+  iconBlue?: MeshPhysicalMaterial;
+  /** Raised gold shield of the SafeGuard icon (per-vertex gradient colour). */
+  iconGold?: MeshPhysicalMaterial;
   /** Magnifier glass showing a tiny circuit. */
   circuit?: MeshPhysicalMaterial;
 }
@@ -173,51 +193,105 @@ function buildToken(spec: ObjectSpec, m: MaterialSet): Group {
   return group;
 }
 
-/** Shield: a die-cut shield in SafeSurf blue with a raised check, the SafeGuard promise. */
+/** Rounded rectangle on the floor plane as an extrudable shape (y of the shape is -z), corners as arcs. */
+function roundedRectShape(cx: number, cz: number, hw: number, hd: number, r: number): Shape {
+  const s = new Shape();
+  const x0 = cx - hw;
+  const x1 = cx + hw;
+  const y0 = -(cz + hd);
+  const y1 = -(cz - hd);
+  s.moveTo(x0 + r, y0);
+  s.lineTo(x1 - r, y0);
+  s.absarc(x1 - r, y0 + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x1, y1 - r);
+  s.absarc(x1 - r, y1 - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x0 + r, y1);
+  s.absarc(x0 + r, y1 - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x0, y0 + r);
+  s.absarc(x0 + r, y0 + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+
+/** Paints a geometry's vertices with a two-stop gradient chosen by position on the face (linear sRGB blend). */
+function paintGradient(
+  g: BufferGeometry,
+  stops: readonly [string, string],
+  at: (x: number, z: number) => number,
+) {
+  const a = new Color(stops[0]);
+  const b = new Color(stops[1]);
+  const pos = g.getAttribute('position');
+  const colors = new Float32Array(pos.count * 3);
+  const c = new Color();
+  for (let i = 0; i < pos.count; i++) {
+    c.copy(a).lerp(b, at(pos.getX(i), pos.getZ(i)));
+    colors.set([c.r, c.g, c.b], i * 3);
+  }
+  g.setAttribute('color', new BufferAttribute(colors, 3));
+}
+
+/**
+ * SafeGuard piece: the app's real launcher icon ("Guarded Grid") as hardware. A bevelled ceramic tile with a
+ * metal rim carries the three blue tiles and the gold shield as raised, bevelled inlays in the icon's exact
+ * colours and proportions, on both faces. Not a decal: the art is geometry, so it catches the one light.
+ */
 function buildShield(spec: ObjectSpec, m: MaterialSet): Group {
-  const { w, h, d } = spec.size;
+  const { w, h } = spec.size;
+  const half = w / 2;
+  // World units per artwork unit; the face is ICON_VIEW artwork units across.
+  const k = w / ICON_VIEW;
   const group = new Group();
-  const loop = chaikin(
-    SHIELD_OUTLINE.map(([x, z]) => [x * (w / 2) * 0.97, z * (d / 2) * 0.97] as [number, number]),
-    3,
+  const loop = roundedSquareOutline(ICON_FACE_CORNER, 9).map(
+    ([x, z]) => [x * half, z * half] as [number, number],
   );
-  group.add(mesh(plateGeometry([loop], h, h * 0.3), [m.body, m.rim ?? m.metal]));
-  // Raised inner shield rim and a check mark.
-  const inner = chaikin(
-    SHIELD_OUTLINE.map(
-      ([x, z]) => [x * (w / 2) * 0.66, z * (d / 2) * 0.66 + d * 0.01] as [number, number],
-    ),
-    3,
-  );
-  const innerShape = new Shape(inner.map(([x, z]) => new Vector2(x, -z)));
-  const hole = new Path(
-    chaikin(
-      SHIELD_OUTLINE.map(
-        ([x, z]) => [x * (w / 2) * 0.56, z * (d / 2) * 0.56 + d * 0.01] as [number, number],
-      ),
-      3,
-    )
-      .reverse()
-      .map(([x, z]) => new Vector2(x, -z)),
-  );
-  innerShape.holes = [hole];
-  const k = Math.min(w, d) / 2;
-  const tick = new Shape(
-    (
-      [
-        [-0.42, 0.02],
-        [-0.26, -0.14],
-        [-0.08, 0.06],
-        [0.3, -0.38],
-        [0.46, -0.22],
-        [-0.08, 0.4],
-      ] as const
-    ).map(([x, z]) => new Vector2(x * k * 0.95, -(z * k * 0.95 + d * 0.02))),
-  );
-  const raise = h * 0.18;
-  const inlay = mesh(inlayGeometry([innerShape, tick], raise, raise * 0.3), m.ink ?? m.polished);
-  inlay.position.y = h / 2 - 0.002;
-  group.add(inlay);
+  group.add(mesh(plateGeometry([loop], h, h * 0.2), [m.body, m.rim ?? m.metal]));
+
+  const raise = Math.min(0.034, h * 0.16);
+  const bevel = raise * 0.38;
+  const tileShapes = ICON_TILES.map((t) => {
+    const c = iconToFace(t.x + ICON_TILE_SIZE / 2, t.y + ICON_TILE_SIZE / 2);
+    const hw = (ICON_TILE_SIZE / 2) * (iconToFace(1, 0).x - iconToFace(0, 0).x) * k;
+    return roundedRectShape(
+      c.x * k,
+      c.z * k,
+      hw,
+      hw,
+      ICON_TILE_RADIUS * (iconToFace(1, 0).x - iconToFace(0, 0).x) * k,
+    );
+  });
+  const tiles = inlayGeometry(tileShapes, raise, bevel);
+  paintGradient(tiles, TILE_STOPS, (x, z) => {
+    const p = faceToIcon(x / k, z / k);
+    return tileAt(p.u, p.v);
+  });
+
+  const sh = new Shape();
+  for (const seg of ICON_SHIELD.path) {
+    const p = (q: [number, number]) => {
+      const f = iconToFace(q[0], q[1]);
+      return new Vector2(f.x * k, -f.z * k);
+    };
+    if (seg.op === 'C') {
+      const [c1, c2, to] = [p(seg.c1), p(seg.c2), p(seg.to)];
+      sh.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+    } else {
+      const to = p(seg.to);
+      if (seg.op === 'M') sh.moveTo(to.x, to.y);
+      else sh.lineTo(to.x, to.y);
+    }
+  }
+  const shield = inlayGeometry([sh], raise * 1.15, bevel);
+  paintGradient(shield, GOLD_STOPS, (x, z) => goldAt(faceToIcon(x / k, z / k).v));
+
+  const front = new Group();
+  front.add(mesh(tiles, m.iconBlue ?? m.accent), mesh(shield, m.iconGold ?? m.brass ?? m.accent));
+  front.position.y = h / 2 - 0.002;
+  group.add(front);
+  // Double sided, like the logo piece: the same art on the back, so it never lands as a blank tile.
+  const back = front.clone();
+  back.position.y = -(h / 2 - 0.002);
+  back.rotation.x = Math.PI;
+  group.add(back);
   return group;
 }
 
@@ -342,9 +416,18 @@ export function buildObject(spec: ObjectSpec, m: MaterialSet): BuiltObject {
             : spec.kind === 'drone'
               ? buildDrone(spec, m)
               : buildLens(spec, m);
-  const hoverMaterials = [m.body, m.top, m.metal, m.polished, m.brass, m.ink, m.rim, m.logo].filter(
-    (x): x is MeshPhysicalMaterial => Boolean(x),
-  );
+  const hoverMaterials = [
+    m.body,
+    m.top,
+    m.metal,
+    m.polished,
+    m.brass,
+    m.ink,
+    m.rim,
+    m.logo,
+    m.iconBlue,
+    m.iconGold,
+  ].filter((x): x is MeshPhysicalMaterial => Boolean(x));
   return { group, hoverMaterials };
 }
 

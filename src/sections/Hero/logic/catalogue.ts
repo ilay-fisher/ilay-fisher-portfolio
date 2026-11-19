@@ -199,13 +199,14 @@ const JUMP = ' Double-click or press Enter to jump to its section.';
 const PROJECTS: Record<ProjectKind, ProjectDef> = {
   shield: {
     kind: 'shield',
-    label: 'SafeGuard shield',
+    label: 'SafeGuard app icon',
     name: 'SafeGuard',
-    about: 'A shield for SafeGuard, the device-owner app that locks the device around SafeSurf.',
+    about:
+      'The launcher icon of SafeGuard, the device-owner app that locks the device around SafeSurf: three blue tiles and a gold shield.',
     href: '#safesurf',
-    size: { w: 1.5, h: 0.5, d: 1.7 },
-    radius: 1.12,
-    fill: 0.7,
+    size: { w: 1.7, h: 0.42, d: 1.7 },
+    radius: 1.05,
+    fill: 0.9,
     finish: 'ceramic',
     shade: 0.45,
   },
