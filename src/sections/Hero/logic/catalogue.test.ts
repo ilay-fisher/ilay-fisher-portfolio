@@ -157,7 +157,8 @@ describe('piece sizes per breakpoint', () => {
 
   it('makes tokens and keycaps shrink by tier: A larger than B larger than C', () => {
     const c = buildCatalogue('desktop');
-    for (const group of [keycaps(c), tokens(c)]) {
+    // GitHub is a filled disc sized to the LinkedIn tile on purpose, so it is outside the tier ladder.
+    for (const group of [keycaps(c), tokens(c).filter((s) => s.mark !== 'github')]) {
       // A keycap's size is its depth (a wide legend only stretches the width); a token's is its longest side.
       const dim = (s: ObjectSpec) => (s.kind === 'key' ? s.size.d : Math.max(s.size.w, s.size.d));
       const by = (t: string) => group.filter((s) => s.tier === t).map(dim);
@@ -167,6 +168,16 @@ describe('piece sizes per breakpoint', () => {
       if (by('B').length) expect(min(by('B'))).toBeGreaterThan(max(by('C')) - 1e-9);
       expect(min(by('A'))).toBeGreaterThan(max(by('C')));
     }
+  });
+
+  it('sizes the GitHub disc to the LinkedIn tile: plate diameter equals its side, collider follows', () => {
+    const c = buildCatalogue('desktop');
+    const gh = c.find((s) => s.id === 'token-github')!;
+    const li = c.find((s) => s.id === 'linkedin')!;
+    // The plate is 25.9 mark units of a collider that spans 27.2.
+    const plate = Math.max(gh.size.w, gh.size.d) * (25.9 / 27.2);
+    expect(plate).toBeCloseTo(li.size.w, 2);
+    expect(gh.radius).toBeGreaterThanOrEqual(plate / 2);
   });
 
   it('keeps the logo, drone, lens and shield big enough to read at a glance (at least a tier B token)', () => {

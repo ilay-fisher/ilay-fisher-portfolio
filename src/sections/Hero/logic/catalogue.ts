@@ -1,7 +1,13 @@
 /** The set of physical objects in the hero: what they are, how big, how heavy. DOM-free. */
 
 import { profile } from '../../../content/profile';
-import { BADGE_CORNER, roundedSquareOutline, tokenFootprint } from './token';
+import {
+  BADGE_CORNER,
+  DISC_PLATE_RADIUS,
+  FILLED_TOKENS,
+  roundedSquareOutline,
+  tokenFootprint,
+} from './token';
 
 /** Importance tier: A is the owner's top skills (largest, accent), B the next three, C everything else. */
 export type Tier = 'A' | 'B' | 'C';
@@ -199,8 +205,14 @@ const skillPiece = (s: Skill, rank: number, scale: number): ObjectSpec => {
       accentBody: false,
     };
   }
-  const f = tokenFootprint(s.mark!, t.side * scale);
-  const h = t.h * TOKEN_THICK * scale;
+  // A filled disc (GitHub) is sized by its plate diameter to match the LinkedIn tile's side (tier B).
+  const tb = FILLED_TOKENS.has(s.mark!) ? TIER_SIZE.B : t;
+  const unit1 = tokenFootprint(s.mark!, 1).unit;
+  const maxDim = FILLED_TOKENS.has(s.mark!)
+    ? (tb.side * scale) / (2 * DISC_PLATE_RADIUS * unit1)
+    : t.side * scale;
+  const f = tokenFootprint(s.mark!, maxDim);
+  const h = tb.h * TOKEN_THICK * scale;
   return {
     ...common,
     id: `token-${s.id}`,

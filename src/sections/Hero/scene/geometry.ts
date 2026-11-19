@@ -34,7 +34,13 @@ import {
   iconToFace,
   tileAt,
 } from '../logic/safeguardIcon';
-import { BADGE_CORNER, roundedSquareOutline, tokenFootprint } from '../logic/token';
+import {
+  BADGE_CORNER,
+  DISC_PLATE_RADIUS,
+  FILLED_TOKENS,
+  roundedSquareOutline,
+  tokenFootprint,
+} from '../logic/token';
 import { MARKS } from './marks';
 import { TOKEN_SHAPES } from './tokenData';
 
@@ -129,6 +135,8 @@ function inlayGeometry(shapes: Shape[], height: number, bevel: number) {
 
 /** The official mark as shapes in plate coordinates: centred on the plate, scaled, y down becomes +z. */
 function markShapes(slug: string, unit: number): Shape[] {
+  // Finer curve sampling on the filled disc: the octocat's ears and tail are what the piece is recognised by.
+  const divisions = FILLED_TOKENS.has(slug) ? 20 : 6;
   const mark = MARKS[slug];
   const t = TOKEN_SHAPES[slug];
   if (!mark || !t) return [];
@@ -139,7 +147,7 @@ function markShapes(slug: string, unit: number): Shape[] {
   const tx = (v: Vector2) => new Vector2((v.x - t.cx) * unit, -(v.y - t.cy) * unit);
   for (const p of data.paths)
     for (const sh of SVGLoader.createShapes(p)) {
-      const { shape, holes } = sh.extractPoints(6);
+      const { shape, holes } = sh.extractPoints(divisions);
       const s = new Shape(shape.map(tx));
       s.holes = holes.map((hole) => new Path(hole.map(tx)));
       out.push(s);
@@ -214,13 +222,6 @@ function buildKey(spec: ObjectSpec, m: MaterialSet): Group {
   return group;
 }
 
-/**
- * Tokens whose mark has an inner cut-out that opens onto its outer edge (the octocat's tail meets the GitHub disc's
- * rim), so the die-cut silhouette would be a C with the cut-out showing the floor. They sit on a full disc instead,
- * the mark's own outline, so the cut-out reads as the light plate behind the dark mark, as in the logo.
- */
-const FILLED_TOKENS: ReadonlySet<string> = new Set(['github']);
-
 /** A circle of radius `r` on the floor plane as a plate outline. */
 function discLoop(r: number): Array<[number, number]> {
   const n = 72;
@@ -240,7 +241,7 @@ function buildToken(spec: ObjectSpec, m: MaterialSet): Group {
   const t = TOKEN_SHAPES[slug]!;
   const unit = tokenFootprint(slug, Math.max(spec.size.w, spec.size.d)).unit;
   const loops = FILLED_TOKENS.has(slug)
-    ? [discLoop((t.w / 2) * unit)]
+    ? [discLoop(DISC_PLATE_RADIUS * unit)]
     : t.cut.map((flat) => {
         const pts: Array<[number, number]> = [];
         for (let i = 0; i < flat.length; i += 2) pts.push([flat[i]! * unit, flat[i + 1]! * unit]);
@@ -249,7 +250,8 @@ function buildToken(spec: ObjectSpec, m: MaterialSet): Group {
   const group = new Group();
   const plate = mesh(plateGeometry(loops, h, h * 0.3), [m.body, m.rim ?? m.metal]);
   group.add(plate);
-  const raise = h * 0.2;
+  // A filled disc is raised higher: the cut-out is a real recess whose wall throws a shadow line.
+  const raise = h * (FILLED_TOKENS.has(slug) ? 0.4 : 0.2);
   const mk = mesh(inlayGeometry(markShapes(slug, unit), raise, raise * 0.35), m.ink ?? m.polished);
   mk.position.y = h / 2 - 0.002;
   group.add(mk);

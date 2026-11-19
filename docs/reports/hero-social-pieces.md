@@ -5,10 +5,12 @@ piece to the hero.
 
 ## What changed
 
-- **GitHub** (`token-github`): a die-cut token now, no keycap. The octocat's tail meets the disc's rim, so a pure
-  die-cut silhouette would be a C with the cat showing the floor. The plate is therefore the mark's own full disc
-  (cream enamel) with the raised GitHub-black disc on top and the cat showing the enamel, as in the logo
-  (`FILLED_TOKENS` in `scene/geometry.ts`).
+- **GitHub** (`token-github`): die-cut disc token, no keycap, no box. It uses GitHub's own white mark for dark
+  backgrounds: a raised near-white (#F3F2EE) glossy ceramic disc whose cut-out is the octocat, recessed down to a
+  GitHub-black (#1f2328) enamel plate, so the cat edge throws a shadow line. The octocat's tail meets the disc rim, so a
+  pure die-cut silhouette would be a C; the plate is therefore the full disc (`FILLED_TOKENS` in `logic/token.ts`).
+  The disc is sized to the LinkedIn tile (plate diameter = tile side), the collider is a 12-gon around the disc, and the
+  mark's curves are sampled at 20 divisions so the ears and tail stay crisp.
 - **LinkedIn** (`linkedin`): bevelled LinkedIn-blue (#0A66C2) ceramic tile with raised white "in" on both faces,
   same family as the SafeSurf and SafeGuard pieces, kind `badge`. Letters are the holes of the official path, read,
   not altered. The path is the CC0 simple-icons **12.0.0** file (current simple-icons no longer ships LinkedIn),
@@ -48,6 +50,5 @@ new piece asleep in four seeds and all layouts.
 
 ## Honest notes
 
-- The GitHub token is the weakest read: black mark on a dark stage. The cat is recognisable up close and at 1440; at
-  390 the piece is small. Not iterated further.
+- The cat is clear in the 1440 shot and the close crop; at 390 it is small but identifiable.
 - Hover and touch behaviour was verified by e2e and unit tests, not on a physical phone.

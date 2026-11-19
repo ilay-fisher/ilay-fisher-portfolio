@@ -21,10 +21,12 @@ const TOKEN_ENAMEL = '#ecebe5';
 const ICON_FACE_WHITE = '#f3f2ee';
 
 /**
- * GitHub: the mark is GitHub black (#1f2328) by nature, so the raised disc is a glossy near-black ceramic on the cream
- * enamel of the other tokens. The cat is the enamel showing through the mark's own cut-out: light on dark, as in the logo.
+ * GitHub: GitHub's mark for dark backgrounds is white. The raised disc is white ceramic (a touch off pure white so
+ * the key light does not clip) and the octocat is its cut-out, a recess down to a GitHub-black enamel plate.
  */
 const GITHUB_BLACK = '#1f2328';
+/** The white of the GitHub disc, the same off-white family as the SafeGuard tile and the badge letters. */
+const GITHUB_WHITE = '#f3f2ee';
 /** The white of a badge's raised letters (TypeScript, LinkedIn); a touch off pure white so the key light does not clip. */
 const BADGE_WHITE = '#f4f4f0';
 
@@ -51,7 +53,7 @@ export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMa
   }
   if (spec.kind === 'token' && spec.mark && MARKS[spec.mark]) {
     return new MeshPhysicalMaterial({
-      color: TOKEN_ENAMEL,
+      color: spec.mark === 'github' ? GITHUB_BLACK : TOKEN_ENAMEL,
       roughness: 0.26,
       metalness: 0.04,
       clearcoat: 1,
@@ -163,8 +165,8 @@ export function materialSet(
   const ink =
     spec.mark === 'github' && spec.kind === 'token'
       ? new MeshPhysicalMaterial({
-          color: GITHUB_BLACK,
-          roughness: 0.28,
+          color: GITHUB_WHITE,
+          roughness: 0.3,
           metalness: 0.1,
           clearcoat: 0.9,
           clearcoatRoughness: 0.1,
