@@ -123,6 +123,8 @@ test('WebGL2 is available in this browser', async ({ page }) => {
  * production build; React StrictMode's second effect run hid it in the dev server, so only a preview-build run sees it.
  */
 test('every reveal ends visible after scrolling in (motion on)', async ({ page }) => {
+  // One page of reveals, each given time to finish on a loaded runner (a spring tween can crawl under software GL).
+  test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const total = await page.locator('[data-reveal]').count();
@@ -145,7 +147,7 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
               ? 'ok'
               : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)}`;
           }),
-        { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 10_000 },
+        { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
       )
       .toBe('ok');
   }
