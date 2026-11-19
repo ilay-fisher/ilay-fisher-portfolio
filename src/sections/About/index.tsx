@@ -7,10 +7,18 @@ import { Portrait } from './Portrait';
 import './About.css';
 
 /** Short bench label for each "what I built" line, in the same order as `profile.about.built`. */
-const BUILT_LABELS = ['Browser', 'Enforcement', 'Models', 'Dashboard', 'Backend', 'Extension'];
+const BUILT_LABELS = [
+  'Android app',
+  'Enforcement',
+  'On-device ML',
+  'Dashboard',
+  'Backend',
+  'Extension',
+  'CI and tests',
+];
 
 /**
- * About: the thesis, the SafeSurf origin story, a spec list of what I built, the stack,
+ * About: the evidence lead, the SafeSurf origin story, a spec list of what I built, the skills,
  * availability and a pointer to the LinkedIn writing. Calm and typographic on purpose.
  */
 export default function About() {
@@ -18,9 +26,9 @@ export default function About() {
   return (
     <Section
       id="about"
-      title="Built alone, end to end."
+      title="Built and run end to end."
       accent="end to end"
-      summary={profile.thesis}
+      summary={about.lead}
       className="about"
       bench={[{ label: 'status', value: <span className="about__open">Open to roles</span> }]}
     >
@@ -53,8 +61,8 @@ export default function About() {
           </div>
 
           <div className="about__stack">
-            <h3>Stack</h3>
-            <TagList label="Stack" items={about.stack} />
+            <h3>Skills</h3>
+            <TagList label="Skills" items={about.stack} />
           </div>
 
           <Reveal className="about__writing stage">

@@ -157,6 +157,10 @@
   .spec {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  /* an odd last card spans the row, so none sits alone */
+  .about__built .spec-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 @media (min-width: 960px) {
   .about__grid {

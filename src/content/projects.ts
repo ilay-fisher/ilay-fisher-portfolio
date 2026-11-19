@@ -37,7 +37,7 @@ export const projects: Project[] = [
     id: 'safesurf',
     title: 'SafeSurf + SafeGuard',
     caseNo: 'CASE-01',
-    status: 'In production, paying users',
+    status: 'Live since May 2026, 50+ active users',
     challenge: 'Try to switch the filter off.',
     summary:
       'An Android browser that loads sites without images and video by default, plus a device-owner app that locks the device around it so the settings hold.',
@@ -125,7 +125,7 @@ export const projects: Project[] = [
         value: '~95%',
         label: 'fewer image bytes and tokens (2,460 tokens full frame vs 117-121 for ROI crops)',
       },
-      { value: '43.7%', label: 'lower cloud latency' },
+      { value: '43.7%', label: 'lower cloud latency (17,838 ms to 10,034 ms)' },
       { value: '4/4', label: 'regions right with Claude Haiku 5.5 and small-crop upscaling' },
     ],
     image: {

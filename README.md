@@ -1,6 +1,6 @@
 # Ilay Fisher — Portfolio
 
-> I build software that has to hold up when someone is actively trying to break it.
+> Hi, I'm Ilay. I study computer science and build Android apps, backends and AI agents.
 
 An interactive, single-page portfolio. Instead of describing the projects, the page lets
 the visitor play with a small, working piece of each one:

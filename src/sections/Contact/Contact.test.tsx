@@ -11,9 +11,9 @@ describe('Contact', () => {
     expect(document.getElementById('contact')).not.toBeNull();
     expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
     expect(
-      screen.getByText(/student or part-time role in Backend, Android or Systems/),
+      screen.getByText(/student role or a full-time junior role in Backend, Android or Systems/),
     ).toBeVisible();
-    expect(screen.getByText(/3 days a week/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/days a week/);
   });
 
   it('has a primary mailto button whose href equals profile.email', () => {
@@ -45,12 +45,28 @@ describe('Contact', () => {
   it('keeps the mailto primary and the copy button as the loud controls', () => {
     render(<Contact />);
     expect(screen.getByRole('button', { name: /Copy email/ })).toHaveClass('btn');
-    expect(document.querySelectorAll('.contact .link-key')).toHaveLength(2);
+    expect(document.querySelectorAll('.contact .link-key')).toHaveLength(4);
   });
 
-  it('never shows a phone number', () => {
+  it('shows the approved phone as a tel: key next to the email, and no other number', () => {
     render(<Contact />);
-    expect(document.body.textContent).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
+    const tel = screen.getByRole('link', { name: /Call Ilay/ });
+    expect(tel).toHaveAttribute('href', 'tel:+972587793124');
+    expect(tel).toHaveTextContent('058-779-3124');
+    expect(tel).toHaveClass('link-key');
+    expect(tel).not.toHaveAttribute('target');
+    const rest = (document.body.textContent ?? '').replaceAll('058-779-3124', '');
+    expect(rest).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
+  });
+
+  it('has a WhatsApp key that opens wa.me in a new tab', () => {
+    render(<Contact />);
+    const wa = screen.getByRole('link', { name: 'Message Ilay on WhatsApp' });
+    expect(wa).toHaveAttribute('href', 'https://wa.me/972587793124');
+    expect(wa).toHaveAttribute('target', '_blank');
+    expect(wa).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(wa).toHaveClass('link-key');
+    expect(wa).toHaveTextContent('WhatsApp');
   });
 
   it('copies the email to the clipboard and announces it politely', async () => {

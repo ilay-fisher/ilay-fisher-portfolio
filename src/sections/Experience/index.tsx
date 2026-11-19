@@ -7,7 +7,7 @@ import { READINGS } from './readings';
 import './Experience.css';
 
 /**
- * Experience: bench readings (the numbers), a timeline of the three roles, then education.
+ * Experience: bench readings (the numbers), a timeline of the roles, then education.
  * Semantic lists throughout; the timeline is an ordered list because the order is the point.
  */
 export default function Experience() {
@@ -17,7 +17,7 @@ export default function Experience() {
       id="experience"
       title="What I have shipped and taught."
       className="experience"
-      bench={[{ label: 'since', value: 'Apr 2024' }]}
+      bench={[{ label: 'graduating', value: 'Jul 2027' }]}
     >
       <Reveal variant="stagger" className="readings">
         <h3 className="visually-hidden">Readings</h3>
@@ -34,16 +34,18 @@ export default function Experience() {
             <span className="timeline__node" aria-hidden="true" />
             <div className="timeline__when mono">
               <span>{e.period}</span>
-              <span className="timeline__kind">{e.kind}</span>
+              {e.kind && <span className="timeline__kind">{e.kind}</span>}
             </div>
             <div className="timeline__body spec-card bevel">
               <h3>{e.role}</h3>
               <p className="timeline__org">{e.org}</p>
-              <ul className="timeline__points">
-                {e.highlights.map((h) => (
-                  <li key={h}>{h}</li>
-                ))}
-              </ul>
+              {e.highlights.length > 0 && (
+                <ul className="timeline__points">
+                  {e.highlights.map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </li>
         ))}

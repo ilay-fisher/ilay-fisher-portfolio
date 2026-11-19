@@ -63,3 +63,31 @@ export function MailIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** A filled phone handset. */
+export function PhoneIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path
+        fill="currentColor"
+        d="M6.6 2.5c.5-.5 1.3-.4 1.7.1l2 2.8c.3.5.3 1.1-.1 1.5L9 8.1c1 2.1 2.8 3.9 4.9 4.9l1.2-1.2c.4-.4 1-.4 1.5-.1l2.8 2c.5.4.6 1.2.1 1.7l-1.3 1.4c-.9.9-2.2 1.2-3.4.8C9.700 16.200 7.800 14.300 6.300 11.100c-.9-1.900-1.300-3.600-1.300-4.700 0-.8.3-1.600.9-2.200z"
+      />
+    </svg>
+  );
+}
+
+/** A speech bubble with a handset cut into it; the glyph (not the key) carries the WhatsApp green. */
+export function WhatsAppIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path
+        fill="currentColor"
+        d="M12 2.2a9.800 9.800 0 0 0-8.400 14.800L2.200 21.800l5-1.300A9.800 9.800 0 1 0 12 2.200z"
+      />
+      <path
+        fill="var(--key-well)"
+        d="M8.900 7.300c.3-.4.800-.4 1 0l.8 1.600c.1.300 0 .5-.2.700l-.5.500c.6 1.200 1.500 2.100 2.700 2.700l.5-.5c.2-.2.5-.3.7-.2l1.600.8c.4.200.4.700 0 1-.9.800-1.800 1-2.800.6-2.500-1-4.100-2.700-5.100-5.200-.4-1-.1-1.900.6-2.700z"
+      />
+    </svg>
+  );
+}

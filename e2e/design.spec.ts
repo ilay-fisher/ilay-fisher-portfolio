@@ -113,7 +113,7 @@ test.describe('design v2: cursor', () => {
       await page.goto('/');
       await expect(page.getByTestId('cursor')).toHaveCount(0);
       await expect(page.getByTestId('grain')).toHaveAttribute('data-moving', 'false');
-      await expect(page.getByRole('heading', { level: 2, name: /Built alone/ })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 2, name: /Built and run/ })).toBeVisible();
     });
   });
 });

@@ -2,7 +2,7 @@ import type { ReadingData } from './Reading';
 
 /**
  * The numbers shown as bench readings. Every figure comes from docs/CONTENT.md
- * (SafeSurf and Magshimim entries); nothing here is estimated.
+ * (SafeSurf and Magshimim entries, and the two CVs); nothing here is estimated.
  */
 export const READINGS: ReadingData[] = [
   {
@@ -27,14 +27,14 @@ export const READINGS: ReadingData[] = [
     spoken: '22+ releases shipped',
   },
   {
-    id: 'beta',
-    label: 'Beta before paid launch',
+    id: 'users',
+    label: 'Active users',
     from: 0,
-    to: 3,
+    to: 50,
     decimals: 0,
-    suffix: ' months',
-    note: 'Then paid subscriptions.',
-    spoken: 'A 3 month beta before launching paid subscriptions',
+    suffix: '+',
+    note: 'Live since May 2026. Some on paid subscriptions.',
+    spoken: '50+ active users since the May 2026 launch, some on paid subscriptions',
   },
   {
     id: 'students',

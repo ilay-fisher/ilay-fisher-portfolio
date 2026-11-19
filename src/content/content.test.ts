@@ -8,28 +8,74 @@ describe('profile', () => {
   it('has the identity fields from CONTENT.md', () => {
     expect(profile.name).toBe('Ilay Fisher');
     expect(profile.thesis).toBe(
-      'I build software that has to hold up when someone is actively trying to break it.',
+      "Hi, I'm Ilay. I study computer science and build Android apps, backends and AI agents.",
     );
+    expect(profile.thesis.split(/\s+/).length).toBeLessThanOrEqual(15);
     expect(profile.email).toBe('ilay3002@gmail.com');
     expect(profile.location).toBe('Sde Yaakov, Israel');
     expect(profile.photo).toBe('/images/ilay.jpg');
   });
 
-  it('has https links and no phone number', () => {
+  it('has https links and only the approved phone', () => {
     expect(isHttps(profile.links.linkedin)).toBe(true);
     expect(isHttps(profile.links.github)).toBe(true);
     expect(isHttps(profile.links.safesurf)).toBe(true);
-    expect(JSON.stringify(profile)).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
+    expect(profile.phone).toBe('058-779-3124');
+    expect(profile.phoneHref).toBe('tel:+972587793124');
+    expect(profile.whatsapp).toBe('https://wa.me/972587793124');
+    // only the owner-approved number, and only in the phone field
+    const { phone: _p, phoneHref: _h, whatsapp: _w, ...rest } = profile;
+    void [_p, _h, _w];
+    expect(JSON.stringify(rest)).not.toMatch(/\+?\d[\d\s-]{8,}\d/);
+  });
+
+  it('aims the role and availability at student and junior roles, from the CVs', () => {
+    expect(profile.role).toBe(
+      "B.Sc. at Ruppin Academic Center, graduating July 2027. For the past year I've built and run SafeSurf and SafeGuard: Kotlin Android apps with a Firebase backend.",
+    );
+    expect(profile.about.lead).toContain('50+ active users');
+    expect(profile.availability).toBe(
+      'Open to a student role or a full-time junior role in Backend, Android or Systems.',
+    );
+    expect(profile.availability).toContain('full-time junior role');
+    expect(profile.availability).toContain('Backend, Android or Systems');
+  });
+
+  it('has the CV numbers in the experience and skills', () => {
+    const text = JSON.stringify(profile);
+    for (const n of ['50+', '60+', '77.7k', '7.6 ms', '22+', '36.6%', '14.2%', 'since May 2026'])
+      expect(text, n).toContain(n);
+    expect(profile.about.stack).toEqual(expect.arrayContaining(['Linux', 'SQL', 'GitHub Actions']));
+  });
+
+  it('never says alone or solo: another contributor worked on SafeGuard', () => {
+    expect(JSON.stringify([profile, projects])).not.toMatch(/\b(alone|solo)\b|Solo-built/i);
+    expect(JSON.stringify(profile)).toContain('another contributor');
   });
 
   it('lists experience and education with required fields', () => {
-    expect(profile.experience).toHaveLength(3);
+    expect(profile.experience.map((e) => e.id)).toEqual([
+      'safesurf',
+      'magshimim',
+      'aharaytech',
+      'rafael',
+      'service',
+    ]);
     for (const e of profile.experience) {
-      expect(e.role && e.org && e.period && e.summary.length > 0).toBeTruthy();
-      expect(e.highlights.length).toBeGreaterThan(0);
+      expect(e.role && e.org && e.period).toBeTruthy();
+      if (e.id === 'rafael') {
+        // confidential: title, org and dates only
+        expect([e.kind, e.summary, e.highlights]).toEqual(['', '', []]);
+      } else {
+        expect(e.summary.length > 0 && e.highlights.length > 0).toBe(true);
+      }
     }
     expect(profile.education.school).toBe('Ruppin Academic Center');
     expect(profile.education.average).toBe(88);
+    expect(profile.education.period).toBe('2024 to July 2027 (expected)');
+    expect(profile.education.courses).toEqual(
+      expect.arrayContaining(['Operating Systems (Linux)', 'Computer Networks']),
+    );
   });
 
   it('lists the six writing topics', () => {

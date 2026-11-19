@@ -26,8 +26,12 @@ describe('case studies', () => {
 
   it('only uses numbers that exist in CONTENT.md', () => {
     const find = (id: string) => caseStudies.find((c) => c.id === id)!;
-    expect(find('safesurf').numbers?.map((n) => n.value)).toEqual(['14.2%', '22+', '3 months']);
+    expect(find('safesurf').numbers?.map((n) => n.value)).toEqual(['50+', '14.2%', '22+', '60+']);
     expect(find('xray').numbers?.map((n) => n.value)).toEqual(['~95%', '43.7%', '4/4']);
+  });
+
+  it('never says alone or solo', () => {
+    expect(JSON.stringify(caseStudies)).not.toMatch(/\b(alone|solo)\b/i);
   });
 
   it('every image is a webp under public/', () => {
