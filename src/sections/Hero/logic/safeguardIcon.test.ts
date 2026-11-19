@@ -7,6 +7,7 @@ import {
   ICON_VIEW,
   TILE_STOPS,
   goldAt,
+  faceToIcon,
   iconToFace,
   tileAt,
 } from './safeguardIcon';
@@ -56,5 +57,12 @@ describe('SafeGuard launcher icon geometry (Guarded Grid, light)', () => {
     expect(a.z).toBeCloseTo(-18.5, 9);
     expect(b.x).toBeCloseTo(18.5, 9);
     expect(b.z).toBeCloseTo(18.5, 9);
+  });
+
+  it('maps face points back to artwork points', () => {
+    const f = iconToFace(40, 70);
+    const b = faceToIcon(f.x, f.z);
+    expect(b.u).toBeCloseTo(40, 9);
+    expect(b.v).toBeCloseTo(70, 9);
   });
 });

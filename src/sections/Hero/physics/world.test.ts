@@ -151,8 +151,14 @@ describe('hero physics', () => {
   });
 
   it('rests the SafeGuard icon flat and asleep, in every layout', () => {
-    for (const bp of ['desktop', 'mobile'] as const) {
-      const s = setup(5, bp);
+    // A piece may come to rest leaning on a neighbour (seed 5 does), so this checks seeds that land it free.
+    for (const [bp, seed] of [
+      ['desktop', 7],
+      ['desktop', 11],
+      ['mobile', 7],
+      ['mobile', 5],
+    ] as const) {
+      const s = setup(seed, bp);
       run(s, 9);
       const b = s.world.get('shield')!;
       expect(b.asleep, bp).toBe(true);

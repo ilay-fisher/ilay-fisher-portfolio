@@ -71,22 +71,23 @@ export function insideConvex(
 }
 
 /**
- * Convex outline (x, z in -1..1, z toward the camera) of the SafeGuard piece. It is the die-cut
- * silhouette of the shield and its physics collider.
+ * Convex outline (x, z in -1..1) of a square with rounded corners: the SafeGuard app icon's collider.
+ * `corner` is the corner radius as a share of the half width; each corner gets `perCorner` points on its arc
+ * (at least 2, the arc's two ends).
  */
-export const SHIELD_OUTLINE: ReadonlyArray<[number, number]> = [
-  [-0.92, -1],
-  [0.92, -1],
-  [1, -0.82],
-  [1, -0.05],
-  [0.8, 0.45],
-  [0.42, 0.8],
-  [0, 1],
-  [-0.42, 0.8],
-  [-0.8, 0.45],
-  [-1, -0.05],
-  [-1, -0.82],
-];
+export function roundedSquareOutline(corner: number, perCorner: number): Array<[number, number]> {
+  const c = 1 - corner;
+  const out: Array<[number, number]> = [];
+  for (let q = 0; q < 4; q++) {
+    const cx = q === 0 || q === 3 ? c : -c;
+    const cz = q < 2 ? c : -c;
+    for (let i = 0; i < perCorner; i++) {
+      const a = ((q + i / (perCorner - 1)) * Math.PI) / 2;
+      out.push([cx + corner * Math.cos(a), cz + corner * Math.sin(a)]);
+    }
+  }
+  return out;
+}
 
 /** A regular polygon of `n` sides and radius `r` (the magnifier's ring collider). */
 export function regularPolygon(n: number, r: number): Array<[number, number]> {

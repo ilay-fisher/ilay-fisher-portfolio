@@ -391,7 +391,15 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
       blob.visible = false;
       scene.add(blob);
       disposables.push(set.body, set.metal, set.polished, set.accent, set.glass, blobMat);
-      for (const x of [set.rim, set.ink, set.brass, set.logo, set.circuit])
+      for (const x of [
+        set.rim,
+        set.ink,
+        set.brass,
+        set.logo,
+        set.iconBlue,
+        set.iconGold,
+        set.circuit,
+      ])
         if (x) disposables.push(x);
       if (set.top) disposables.push(set.top);
       if (legend) disposables.push(legend.map);
