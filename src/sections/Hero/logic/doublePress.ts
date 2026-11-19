@@ -30,3 +30,15 @@ export class DoublePress {
     this.last = null;
   }
 }
+
+/** The longest press (down to up, ms) that still counts as a tap rather than a hold. */
+export const QUICK_TAP_MS = 320;
+
+/**
+ * True when a press that began at `downT` and ended at `upT` was a quick tap. Both times must be the events' own time
+ * stamps (`PointerEvent.timeStamp`), not the clock read inside the handlers: a heavy frame between the two events
+ * delays the second handler, and the visitor's quick tap would then look like a long hold.
+ */
+export function isQuickTap(downT: number, upT: number): boolean {
+  return upT - downT < QUICK_TAP_MS;
+}
