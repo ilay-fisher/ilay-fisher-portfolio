@@ -146,14 +146,17 @@ test('every reveal ends visible after scrolling in (motion on)', async ({ page }
           el.evaluate((e, n) => {
             e.scrollIntoView({ block: 'center', behavior: 'instant' });
             window.scrollBy(0, n % 2 ? 4 : -4);
+            if (n === 12) window.dispatchEvent(new Event('resize')); // DIAGNOSTIC: do stale triggers recover on refresh?
             const ops = [e, ...Array.from(e.children)].map((n) => getComputedStyle(n).opacity);
             return ops.every((o) => o === '1')
-              ? 'ok'
+              ? n > 12
+                ? `ok-after-resize-poll-${n}`
+                : 'ok'
               : `opacities ${ops.join(',')} top ${Math.round(e.getBoundingClientRect().top)} scrollY ${Math.round(scrollY)} pageH ${document.documentElement.scrollHeight} ready ${e.dataset.revealReady} style [${(e.children[0] as HTMLElement | undefined)?.style.cssText}] fonts ${document.fonts.status}`;
           }, nudge++),
         { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 45_000 },
       )
-      .toBe('ok');
+      .toMatch(/^ok/);
   }
 
   // The thing the bug hid: the About portrait is really visible, not just rendered into an invisible wrapper.
