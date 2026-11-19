@@ -72,9 +72,7 @@ describe('Hero markup', () => {
   it('shows the approved invitation line verbatim next to the scene', () => {
     webgl.available = true;
     render(<Hero />);
-    expect(
-      screen.getByText('Throw things at my name. Cheaper than therapy. It holds.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Throw everything at me. I'll handle it.")).toBeInTheDocument();
   });
 
   it('has a scroll cue to the next section', () => {

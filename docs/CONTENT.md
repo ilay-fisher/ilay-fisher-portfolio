@@ -121,7 +121,8 @@ the tone: an invitation to play, one human beat, then the thesis as the payoff.
 
 Approved lines (use exactly):
 
-- Hero invitation: "Throw things at my name. Cheaper than therapy. It holds."
+- Hero invitation: "Throw everything at me. I'll handle it." (owner changed it on 2026-11-19; it replaces
+  "Throw things at my name. Cheaper than therapy. It holds.", which is retired)
 - SafeSurf invitation (near the filter switch): "Go ahead, turn it off. Everyone tries. It waits."
 - SafeSurf delay lock (shown while an unlock request is waiting): "Want it now? So did I. Come back in an hour."
 - Drone invitation: "Get in its way. It won't take it personally. It re-plans."
