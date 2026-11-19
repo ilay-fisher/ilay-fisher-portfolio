@@ -3,7 +3,7 @@ import { ProjectFrame } from '../../../components/ProjectFrame/ProjectFrame';
 import { projects } from '../../../content/projects';
 import { DroneRig } from './DroneRig';
 
-const project = projects[1]!;
+const project = projects.find((p) => p.id === 'drone')!;
 
 const subscribe = () => () => {};
 const readFlag = () => new URLSearchParams(window.location.search).get('drone');

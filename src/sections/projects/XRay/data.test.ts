@@ -3,7 +3,7 @@ import { projects } from '../../../content/projects';
 import { BENCHMARK, PRESETS, diagnosisFor } from './data';
 
 describe('benchmark numbers match the content module', () => {
-  const nums = projects[2]!.numbers!;
+  const nums = projects.find((p) => p.id === 'xray')!.numbers!;
   it('uses the README token and latency figures', () => {
     expect(BENCHMARK.fullTokens).toBe(2460);
     expect(BENCHMARK.roiTokens).toEqual([117, 121]);

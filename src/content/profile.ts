@@ -107,6 +107,11 @@ export const profile: Profile = {
       'GitHub Actions',
       'TFLite',
       'PyTorch',
+      'ONNX',
+      'Claude API',
+      'AI agents',
+      'Multi-agent orchestration',
+      'Prompt engineering',
     ],
   },
   experience: [

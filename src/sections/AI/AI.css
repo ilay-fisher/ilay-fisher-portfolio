@@ -1,0 +1,142 @@
+/* AI and agent workflows: four rounded hardware cards on the dark stage. Light comes from the top left, like the
+   rest of the page; depth is the bevel and the contact shadow, never an outline. */
+.ai__grid {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-7);
+}
+
+.ai-card {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
+  /* the card sits on the stage; a hover lifts it with the snappy spring and lights its top edge */
+  transition:
+    transform var(--spring-snappy-dur) var(--spring-snappy),
+    box-shadow 260ms var(--ease-out);
+}
+.ai-card h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ai-card p {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+/* the label pill carries a small pilot lamp, lit like an armed switch */
+.ai-card__label {
+  justify-self: start;
+  gap: var(--space-3);
+}
+.ai-card__lamp {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--paint);
+  box-shadow:
+    0 0 0 2px rgb(var(--paint-rgb) / 0.16),
+    0 0 10px rgb(var(--paint-rgb) / 0.7);
+}
+
+/* skill names are engraved chips; the note sits beside or under them */
+.ai-chip {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 0.28);
+  box-shadow: var(--well-inset);
+  color: var(--paint-hi);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 500;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.ai-skills {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+.ai-skills__row {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+.ai-skills dd {
+  margin: 0;
+  color: var(--text-dim);
+}
+.ai-also {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+}
+.ai-also__label {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+.ai-also ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai__more {
+  margin-top: var(--space-6);
+}
+.ai__more p {
+  margin: 0;
+  color: var(--text-dim);
+}
+.ai__more a {
+  color: var(--paint-hi);
+}
+
+@media (min-width: 720px) {
+  .ai__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6);
+  }
+  /* The skills card is the tall one: it takes the right column for two rows, so the release and orchestration
+     cards stack beside it and no card is left half empty. The content plugin closes the grid full width. */
+  .ai-card--release-agent {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .ai-card--skills {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .ai-card--orchestration {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .ai-card--content-plugin {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .ai-card--content-plugin p {
+    max-width: 62ch;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion) .ai-card:hover {
+    transform: translateY(-5px);
+    box-shadow:
+      var(--bevel-inset),
+      var(--shadow-contact),
+      0 -1px 0 rgb(var(--paint-hi-rgb) / 0.35),
+      0 14px 34px -16px rgb(var(--paint-rgb) / 0.45);
+  }
+}

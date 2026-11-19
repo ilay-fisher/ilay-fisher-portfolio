@@ -2,7 +2,7 @@ import { ProjectFrame } from '../../../components/ProjectFrame/ProjectFrame';
 import { projects } from '../../../content/projects';
 import { SafeSurfDemo } from './SafeSurfDemo';
 
-const project = projects[0]!;
+const project = projects.find((p) => p.id === 'safesurf')!;
 const DEFAULT_DELAY_MS = 8000;
 
 /**

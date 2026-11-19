@@ -52,14 +52,15 @@ It renders one `<section>` through the shared `Section` component with these ids
 | Section    | `id`         |
 | ---------- | ------------ |
 | Hero       | `top`        |
+| AI         | `ai`         |
 | About      | `about`      |
 | SafeSurf   | `safesurf`   |
-| Drone      | `drone`      |
 | XRay       | `xray`       |
+| Drone      | `drone`      |
 | Experience | `experience` |
 | Contact    | `contact`    |
 
-Page order in `App.tsx`: Hero, About, SafeSurf, Drone, XRay, Experience, Contact.
+Page order in `App.tsx`: Hero, AI, About, SafeSurf, XRay, Drone, Experience, Contact (AI section and project order: owner brief 2026-11-19).
 
 Project sections use the shared `ProjectFrame` (title, one-line summary, stack tags, links,
 and a slot for the interactive demo) so the three project sections look like one family.

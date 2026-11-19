@@ -1,5 +1,6 @@
 import { Footer } from './components/Footer/Footer';
 import { Nav } from './components/Nav/Nav';
+import AI from './sections/AI';
 import About from './sections/About';
 import Contact from './sections/Contact';
 import Experience from './sections/Experience';
@@ -15,10 +16,11 @@ export default function App() {
       <Nav />
       <main id="main">
         <Hero />
+        <AI />
         <About />
         <SafeSurf />
-        <Drone />
         <XRay />
+        <Drone />
         <Experience />
         <Contact />
       </main>

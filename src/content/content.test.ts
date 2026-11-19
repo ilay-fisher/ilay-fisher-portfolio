@@ -53,6 +53,22 @@ describe('profile', () => {
     expect(JSON.stringify(profile)).toContain('another contributor');
   });
 
+  it('adds the AI skills without duplicating any entry (owner brief 2026-11-19)', () => {
+    const stack = profile.about.stack;
+    expect(stack).toEqual(
+      expect.arrayContaining([
+        'Claude API',
+        'AI agents',
+        'Multi-agent orchestration',
+        'Prompt engineering',
+        'PyTorch',
+        'TFLite',
+        'ONNX',
+      ]),
+    );
+    expect(new Set(stack.map((s) => s.toLowerCase())).size).toBe(stack.length);
+  });
+
   it('lists experience and education with required fields', () => {
     expect(profile.experience.map((e) => e.id)).toEqual([
       'safesurf',

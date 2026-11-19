@@ -129,7 +129,7 @@ describe('Nav', () => {
       render(<Nav />);
       const btn = screen.getByRole('button', { name: 'Menu' });
       await user.click(btn);
-      expect(screen.getByRole('link', { name: 'About' })).toHaveFocus();
+      expect(screen.getByRole('link', { name: 'AI' })).toHaveFocus();
       await user.keyboard('{Escape}');
       expect(btn).toHaveAttribute('aria-expanded', 'false');
       expect(btn).toHaveFocus();
@@ -150,7 +150,7 @@ describe('Nav', () => {
       await user.keyboard('{Enter}');
       expect(btn).toHaveAttribute('aria-expanded', 'true');
       await user.keyboard('{Tab}');
-      expect(screen.getByRole('link', { name: 'SafeSurf' })).toHaveFocus();
+      expect(screen.getByRole('link', { name: 'About' })).toHaveFocus();
       await user.keyboard('{Enter}');
       expect(btn).toHaveAttribute('aria-expanded', 'false');
     });

@@ -37,9 +37,9 @@ describe('index.html meta (owner brief 2026-11-19)', () => {
     });
   }
 
-  it('stays readable: both descriptions under 175 characters', () => {
-    expect(description.length).toBeLessThanOrEqual(175);
-    expect(ogDescription.length).toBeLessThanOrEqual(175);
+  it('stays readable: both descriptions under 172 characters', () => {
+    expect(description.length).toBeLessThanOrEqual(172);
+    expect(ogDescription.length).toBeLessThanOrEqual(172);
   });
 
   it('carries no phone number, no prices and no ruled-out words', () => {

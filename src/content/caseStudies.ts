@@ -36,7 +36,7 @@ export interface CaseStudy {
   note?: string;
 }
 
-/** The three case studies, in page order. */
+/** The three case studies, in page order: SafeSurf, X-Ray Lens, Drone. */
 export const caseStudies: CaseStudy[] = [
   {
     id: 'safesurf',
@@ -78,7 +78,7 @@ export const caseStudies: CaseStudy[] = [
       {
         value: '14.2%',
         label:
-          'false blocks in the strict tier, down from 36.6%, with recall kept. Inference runs at 7.6 ms median on arm64',
+          'false blocks from the on-device image model in the strict tier, down from 36.6%, with recall kept. Inference runs at 7.6 ms median on arm64',
       },
       {
         value: '22+',
@@ -86,53 +86,6 @@ export const caseStudies: CaseStudy[] = [
       },
       { value: '60+', label: 'Firebase Cloud Functions (Node.js)' },
     ],
-  },
-  {
-    id: 'drone',
-    metaDescription:
-      'Drone sandbox: C++17 A* and D* Lite compiled to WebAssembly, replanning a route in real time. React, Fastify and PostgreSQL.',
-    problem: [
-      'A drone has a route through a city grid. Then an obstacle lands on it.',
-      'The planner has to answer again, fast, every time something changes, while the page keeps drawing at 60 FPS.',
-    ],
-    built: [
-      'A pathfinding engine in C++17 with A* and incremental D* Lite, compiled to WebAssembly with Emscripten.',
-      'A React, TypeScript and Canvas app that draws the city, the route and the drone at 60 FPS.',
-      'A Fastify and PostgreSQL service that stores scenarios and mission telemetry.',
-      'The same algorithms in TypeScript, used as a fallback when the Wasm build is missing.',
-    ],
-    how: [
-      {
-        title: 'A* starts over.',
-        body: 'It searches from scratch on every replan. It is simple, optimal with an admissible heuristic (octile distance) and cheap on small grids. Its cost grows with the whole search area each time an obstacle moves.',
-      },
-      {
-        title: 'D* Lite repairs.',
-        body: 'It searches backward from the goal and keeps its values between calls. When a cell changes, only the inconsistent nodes around it are repaired, so a replan after a local change usually expands far fewer nodes. The price is more memory and more complex code, and a new goal resets it.',
-      },
-      {
-        title: 'One grid, one set of rules.',
-        body: 'Both planners use an 8-connected grid, the octile heuristic and no corner cutting. Wind zones cost 4x, so the drone takes a longer route when that is cheaper.',
-      },
-      {
-        title: 'The engine and the canvas share memory.',
-        body: 'The grid, the visited heat and the path live in WebAssembly memory. The canvas reads them through views, without copying.',
-      },
-    ],
-    numbers: [
-      { value: '60 FPS', label: 'canvas render rate' },
-      { value: '4x', label: 'cost of a wind zone against open ground' },
-    ],
-    media: [
-      {
-        src: '/images/projects/drone-case.webp',
-        alt: 'The drone sandbox: a drone flying an orange route between grey buildings, with controls for speed, planner and building tools, and a readout of nodes expanded and path cost.',
-        caption: 'The sandbox, mid-flight, with the planner readout below the map.',
-        width: 1440,
-        height: 900,
-      },
-    ],
-    note: 'The live demo runs in the browser only. It has no backend, so saving and loading scenarios is off there. The full stack runs locally with Docker.',
   },
   {
     id: 'xray',
@@ -192,6 +145,53 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     note: 'Locally, cropping barely helps time: latency is dominated by fixed per-call overhead. A 7B local model got 3 of 4 regions right, and Claude Haiku 5.5 got 4 of 4.',
+  },
+  {
+    id: 'drone',
+    metaDescription:
+      'Drone sandbox: C++17 A* and D* Lite compiled to WebAssembly, replanning a route in real time. React, Fastify and PostgreSQL.',
+    problem: [
+      'A drone has a route through a city grid. Then an obstacle lands on it.',
+      'The planner has to answer again, fast, every time something changes, while the page keeps drawing at 60 FPS.',
+    ],
+    built: [
+      'A pathfinding engine in C++17 with A* and incremental D* Lite, compiled to WebAssembly with Emscripten.',
+      'A React, TypeScript and Canvas app that draws the city, the route and the drone at 60 FPS.',
+      'A Fastify and PostgreSQL service that stores scenarios and mission telemetry.',
+      'The same algorithms in TypeScript, used as a fallback when the Wasm build is missing.',
+    ],
+    how: [
+      {
+        title: 'A* starts over.',
+        body: 'It searches from scratch on every replan. It is simple, optimal with an admissible heuristic (octile distance) and cheap on small grids. Its cost grows with the whole search area each time an obstacle moves.',
+      },
+      {
+        title: 'D* Lite repairs.',
+        body: 'It searches backward from the goal and keeps its values between calls. When a cell changes, only the inconsistent nodes around it are repaired, so a replan after a local change usually expands far fewer nodes. The price is more memory and more complex code, and a new goal resets it.',
+      },
+      {
+        title: 'One grid, one set of rules.',
+        body: 'Both planners use an 8-connected grid, the octile heuristic and no corner cutting. Wind zones cost 4x, so the drone takes a longer route when that is cheaper.',
+      },
+      {
+        title: 'The engine and the canvas share memory.',
+        body: 'The grid, the visited heat and the path live in WebAssembly memory. The canvas reads them through views, without copying.',
+      },
+    ],
+    numbers: [
+      { value: '60 FPS', label: 'canvas render rate' },
+      { value: '4x', label: 'cost of a wind zone against open ground' },
+    ],
+    media: [
+      {
+        src: '/images/projects/drone-case.webp',
+        alt: 'The drone sandbox: a drone flying an orange route between grey buildings, with controls for speed, planner and building tools, and a readout of nodes expanded and path cost.',
+        caption: 'The sandbox, mid-flight, with the planner readout below the map.',
+        width: 1440,
+        height: 900,
+      },
+    ],
+    note: 'The live demo runs in the browser only. It has no backend, so saving and loading scenarios is off there. The full stack runs locally with Docker.',
   },
 ];
 
