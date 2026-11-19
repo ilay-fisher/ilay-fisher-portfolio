@@ -57,7 +57,7 @@ describe('Footer', () => {
     const list = screen.getByRole('list', { name: 'Elsewhere' });
     for (const a of within(list).getAllByRole('link')) {
       expect(a).toHaveAttribute('data-magnetic');
-      expect(a).toHaveClass('footer-key');
+      expect(a).toHaveClass('link-key');
     }
   });
 

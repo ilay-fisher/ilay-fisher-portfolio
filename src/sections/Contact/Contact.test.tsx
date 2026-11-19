@@ -24,17 +24,28 @@ describe('Contact', () => {
     expect(document.querySelectorAll('.btn--primary')).toHaveLength(1);
   });
 
-  it('has LinkedIn and GitHub as external secondary links', () => {
+  it('has LinkedIn and GitHub as the shared icon keys, external and safe', () => {
     render(<Contact />);
     for (const [name, href] of [
-      [/LinkedIn/, profile.links.linkedin],
-      [/GitHub/, profile.links.github],
+      [/^LinkedIn/, profile.links.linkedin],
+      [/^GitHub/, profile.links.github],
     ] as const) {
       const a = screen.getByRole('link', { name });
       expect(a).toHaveAttribute('href', href);
       expect(a).toHaveAttribute('rel', 'noopener noreferrer');
       expect(a).toHaveAttribute('target', '_blank');
+      expect(a).toHaveClass('link-key');
+      expect(a).not.toHaveClass('btn');
+      expect(a).toHaveAttribute('data-magnetic');
+      expect(a.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(a).toHaveTextContent('(opens in a new tab)');
     }
+  });
+
+  it('keeps the mailto primary and the copy button as the loud controls', () => {
+    render(<Contact />);
+    expect(screen.getByRole('button', { name: /Copy email/ })).toHaveClass('btn');
+    expect(document.querySelectorAll('.contact .link-key')).toHaveLength(2);
   });
 
   it('never shows a phone number', () => {
