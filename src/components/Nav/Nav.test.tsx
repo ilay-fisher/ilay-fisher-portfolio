@@ -180,6 +180,7 @@ describe('Nav (v2)', () => {
     expect(screen.getByRole('link', { name: 'Ilay Fisher' })).toHaveAttribute('href', '/#top');
     for (const i of NAV_ITEMS)
       expect(screen.getByRole('link', { name: i.label })).toHaveAttribute('href', `/#${i.id}`);
+    expect(screen.getByRole('link', { name: 'Get in touch' })).toHaveAttribute('href', '/#contact');
     expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute('href', '#main');
   });
 });

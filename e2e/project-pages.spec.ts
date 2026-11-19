@@ -80,7 +80,7 @@ test('the nav on a detail page leads to the home page sections', async ({ page }
   await page.goto('/work/drone');
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Contact' })
+    .getByRole('link', { name: 'Get in touch' })
     .click();
   await expect(page).toHaveURL(/\/#contact$/);
   await expect(page.locator('#contact')).toBeVisible();
