@@ -116,3 +116,47 @@ test('WebGL2 is available in this browser', async ({ page }) => {
   );
   expect(ok).toBe(true);
 });
+
+/**
+ * Regression: with motion on, every `[data-reveal]` must end fully visible once scrolled in. A reveal that animates the
+ * element itself (`fade`, `up`) once recorded the CSS pre-hide (opacity 0) as its end value and stayed invisible in the
+ * production build; React StrictMode's second effect run hid it in the dev server, so only a preview-build run sees it.
+ */
+test('every reveal ends visible after scrolling in (motion on)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const total = await page.locator('[data-reveal]').count();
+  expect(total, 'the page has reveals').toBeGreaterThan(0);
+
+  for (let i = 0; i < total; i++) {
+    const el = page.locator('[data-reveal]').nth(i);
+    const label = await el.evaluate(
+      (e) => `${e.getAttribute('data-reveal')} ${e.className || e.tagName.toLowerCase()}`,
+    );
+    await el.evaluate((e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await expect
+      .poll(
+        () =>
+          el.evaluate((e) => {
+            const op = (n: Element) => parseFloat(getComputedStyle(n).opacity);
+            return [e, ...Array.from(e.children)].map(op).every((o) => o === 1);
+          }),
+        { message: `reveal #${i} (${label}) ends fully opaque`, timeout: 10_000 },
+      )
+      .toBe(true);
+  }
+
+  // The thing the bug hid: the About portrait is really visible, not just rendered into an invisible wrapper.
+  const stage = page.locator('#about .avatar__stage');
+  await stage.scrollIntoViewIfNeeded();
+  await expect(stage).toBeVisible();
+  await expect
+    .poll(() =>
+      stage.evaluate(
+        (e) =>
+          e.closest<HTMLElement>('[data-reveal]') &&
+          getComputedStyle(e.closest('[data-reveal]')!).opacity,
+      ),
+    )
+    .toBe('1');
+});
