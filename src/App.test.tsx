@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import App from './App';
 
-const ORDER = ['top', 'ai', 'about', 'safesurf', 'xray', 'drone', 'experience', 'contact'];
+const ORDER = ['top', 'about', 'safesurf', 'xray', 'drone', 'experience', 'ai', 'contact'];
 
 describe('App', () => {
   it('composes the eight sections in contract order inside main', () => {

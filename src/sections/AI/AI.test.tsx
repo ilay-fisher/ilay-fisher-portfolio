@@ -11,24 +11,21 @@ describe('AI section', () => {
     expect(section).toHaveAttribute('aria-labelledby', heading.id);
   });
 
-  it('shows four cards with the item titles as h3, in order', () => {
+  it('shows three cards with the item titles as h3, in order', () => {
     render(<AI />);
     const cards = screen.getAllByRole('article');
-    expect(cards).toHaveLength(4);
+    expect(cards).toHaveLength(3);
     expect(cards.map((c) => within(c).getByRole('heading', { level: 3 }).textContent)).toEqual([
       'Release-manager agent',
-      'Custom skills',
       'Manager and subagent orchestration',
-      'Content plugin',
+      'Skills, plugins and scheduled tasks',
     ]);
   });
 
-  it('puts the 637-line script and the skill names on the page', () => {
+  it('puts the 637-line script and the orchestration flow on the page', () => {
     render(<AI />);
     expect(screen.getByText(/637-line release script/)).toBeInTheDocument();
-    for (const name of ['diagnose', 'verify-avd', 'add-safeguard-setting', 'job-career-scan'])
-      expect(screen.getByText(name)).toBeInTheDocument();
-    expect(screen.getByText('release', { selector: 'code' })).toBeInTheDocument();
+    expect(screen.getByText(/squash-merges and deploys/)).toBeInTheDocument();
   });
 
   it('makes no fake links: cards hold no anchors', () => {
@@ -38,10 +35,10 @@ describe('AI section', () => {
     }
   });
 
-  it('links to the X-Ray and SafeSurf sections from the closing line', () => {
-    render(<AI />);
-    expect(screen.getByRole('link', { name: /X-Ray Lens/ })).toHaveAttribute('href', '#xray');
-    expect(screen.getByRole('link', { name: /SafeSurf/ })).toHaveAttribute('href', '#safesurf');
+  it('has no closing line and no links at all: the projects are not framed as AI work', () => {
+    const { container } = render(<AI />);
+    expect(container.querySelectorAll('a')).toHaveLength(0);
+    expect(container.textContent).not.toMatch(/projects below|More AI work/i);
   });
 
   it('has no sharp corner hooks: cards use the rounded bevel class', () => {

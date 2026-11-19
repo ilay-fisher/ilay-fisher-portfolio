@@ -31,7 +31,7 @@ export interface Project {
   image?: { src: string; alt: string };
 }
 
-/** The three projects, in page order: the AI-heavy ones first (owner brief 2026-11-19). */
+/** The three projects, in page order (owner brief 2026-11-19). */
 export const projects: Project[] = [
   {
     id: 'safesurf',

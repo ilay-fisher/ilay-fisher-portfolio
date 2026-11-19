@@ -4,24 +4,23 @@ import { expect, test } from '@playwright/test';
 // and the meta tags. Reduced motion keeps every reveal in its finished state, so visibility is not timing-dependent.
 test.use({ reducedMotion: 'reduce' });
 
-test('the AI section sits right after the hero with four cards', async ({ page }) => {
+test('the AI section sits after Experience with three cards', async ({ page }) => {
   await page.goto('/');
   const ids = await page.$$eval('main > section', (els) => els.map((e) => e.id));
-  expect(ids.slice(0, 3)).toEqual(['top', 'ai', 'about']);
+  expect(ids).toEqual(['top', 'about', 'safesurf', 'xray', 'drone', 'experience', 'ai', 'contact']);
   const section = page.locator('#ai');
   await expect(
     section.getByRole('heading', { level: 2, name: 'AI and agent workflows' }),
   ).toBeVisible();
   const cards = section.getByRole('article');
-  await expect(cards).toHaveCount(4);
+  await expect(cards).toHaveCount(3);
   await expect(cards.getByRole('heading', { level: 3 })).toHaveText([
     'Release-manager agent',
-    'Custom skills',
     'Manager and subagent orchestration',
-    'Content plugin',
+    'Skills, plugins and scheduled tasks',
   ]);
   await expect(section.getByText('637-line release script')).toBeVisible();
-  await expect(section.getByText('verify-avd')).toBeVisible();
+  await expect(section.getByText(/squash-merges and deploys/)).toBeVisible();
   // the agent tooling has no public repo, so no card is a link
   await expect(cards.locator('a')).toHaveCount(0);
 });
@@ -36,17 +35,17 @@ test('the projects run SafeSurf, X-Ray Lens, Drone', async ({ page }) => {
   expect(cases).toEqual(['CASE-01', 'CASE-02', 'CASE-03']);
 });
 
-test('the nav lists AI, About, SafeSurf, X-Ray, Drone, Experience', async ({ page }) => {
+test('the nav lists About, SafeSurf, X-Ray, Drone, Experience, AI', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Sections' });
   await expect(nav.locator('#nav-links a')).toHaveText([
-    'AI',
     'About',
     'SafeSurf',
     'X-Ray',
     'Drone',
     'Experience',
+    'AI',
   ]);
 });
 
@@ -122,6 +121,6 @@ for (const width of [360, 390, 665, 1024, 1440]) {
         return r.left >= 0 && r.right <= document.documentElement.clientWidth;
       }),
     );
-    expect(cards).toEqual([true, true, true, true]);
+    expect(cards).toEqual([true, true, true]);
   });
 }

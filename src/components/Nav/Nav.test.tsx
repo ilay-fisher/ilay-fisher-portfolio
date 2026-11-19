@@ -53,14 +53,14 @@ describe('Nav', () => {
     expect(NAV_ITEMS.map((i) => i.id)).not.toContain('contact');
   });
 
-  it('lists AI first, then About, SafeSurf, X-Ray, Drone and Experience', () => {
+  it('lists About, SafeSurf, X-Ray, Drone, Experience, then AI', () => {
     expect(NAV_ITEMS.map((i) => [i.id, i.label])).toEqual([
-      ['ai', 'AI'],
       ['about', 'About'],
       ['safesurf', 'SafeSurf'],
       ['xray', 'X-Ray'],
       ['drone', 'Drone'],
       ['experience', 'Experience'],
+      ['ai', 'AI'],
     ]);
   });
 
@@ -129,7 +129,7 @@ describe('Nav', () => {
       render(<Nav />);
       const btn = screen.getByRole('button', { name: 'Menu' });
       await user.click(btn);
-      expect(screen.getByRole('link', { name: 'AI' })).toHaveFocus();
+      expect(screen.getByRole('link', { name: 'About' })).toHaveFocus();
       await user.keyboard('{Escape}');
       expect(btn).toHaveAttribute('aria-expanded', 'false');
       expect(btn).toHaveFocus();
@@ -150,7 +150,7 @@ describe('Nav', () => {
       await user.keyboard('{Enter}');
       expect(btn).toHaveAttribute('aria-expanded', 'true');
       await user.keyboard('{Tab}');
-      expect(screen.getByRole('link', { name: 'About' })).toHaveFocus();
+      expect(screen.getByRole('link', { name: 'SafeSurf' })).toHaveFocus();
       await user.keyboard('{Enter}');
       expect(btn).toHaveAttribute('aria-expanded', 'false');
     });

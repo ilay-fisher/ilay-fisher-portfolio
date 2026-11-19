@@ -54,7 +54,7 @@ test.describe('design v2: nothing is a sharp rectangle', () => {
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.goto('/');
-    for (const id of ['ai', 'about', 'safesurf', 'xray', 'drone', 'experience', 'contact']) {
+    for (const id of ['about', 'safesurf', 'xray', 'drone', 'experience', 'ai', 'contact']) {
       await page.evaluate((i) => document.getElementById(i)?.scrollIntoView(), id);
       await page.waitForTimeout(150);
     }

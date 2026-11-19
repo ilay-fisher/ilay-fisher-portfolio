@@ -16,12 +16,12 @@ export default function App() {
       <Nav />
       <main id="main">
         <Hero />
-        <AI />
         <About />
         <SafeSurf />
         <XRay />
         <Drone />
         <Experience />
+        <AI />
         <Contact />
       </main>
       <Footer />
