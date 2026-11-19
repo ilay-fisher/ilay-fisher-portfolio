@@ -1,6 +1,6 @@
 # Ilay Fisher — Portfolio
 
-> I build software that has to hold up when someone is actively trying to break it.
+> I run a live Android app and its backend. 50+ active users.
 
 An interactive, single-page portfolio. Instead of describing the projects, the page lets
 the visitor play with a small, working piece of each one:

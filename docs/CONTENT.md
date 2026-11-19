@@ -4,16 +4,25 @@ All facts below were gathered from Ilay's LinkedIn profile, safesurfsite.com and
 project READMEs on 2026-11-18. Do not invent facts, numbers, employers or dates. If a
 section needs a fact that is not here, leave it out and note it in your report.
 
+**Rewritten for job search from the CVs, 2026-11-19.** The site now aims at student, junior and
+entry-level roles (Backend, Android, Systems). The owner's two CVs (`Ilay Fisher Resume.pdf`,
+student, and `Ilay Fisher Resume_junior.pdf`, junior) are owner-provided, so every fact in them is
+approved. Where they differ, the junior CV's framing leads. The CV phone number is never used.
+
 Site language: English only. Voice: first person, plain, specific, no buzzwords, no
 exclamation marks. Short sentences. Numbers over adjectives.
 
 ## Identity
 
 - Name: Ilay Fisher
-- Role line: CS student at Ruppin Academic Center (graduating July 2027). Android, backend, on-device ML.
+- Headline (hero, `profile.thesis`): "I run a live Android app and its backend. 50+ active users."
+- Role line: Student backend developer. Android and systems. B.Sc. Computer Science, graduating July 2027.
+- Availability: Open to a student role (3 days a week) or a full-time junior role in Backend, Android or Systems.
+  (Student CV: 3 days a week. Junior CV: full-time. Both are shown.)
 - Location: Sde Yaakov, Israel
-- One-liner (use as the site thesis): "I build software that has to hold up when someone is actively trying to break it."
-- Availability: looking for a student or part-time role in Backend, Android or Systems. Available 3 days a week.
+- Page title: "Ilay Fisher — Student Backend and Android Developer"
+- Meta description: "Ilay Fisher: CS student (B.Sc., July 2027) seeking a student or junior Backend, Android or Systems role. Runs SafeSurf, a live Android product with 50+ users."
+- The old thesis "I build software that has to hold up when someone is actively trying to break it." is retired as the headline.
 
 ## Links (public)
 
@@ -24,43 +33,57 @@ exclamation marks. Short sentences. Numbers over adjectives.
 - Photo: `public/images/ilay.jpg` (800x800 JPEG, already in the repo, owner approved). If it fails to load, show a designed "IF" monogram, never a broken image.
 - No phone number anywhere on the site.
 
-## About (long form, edit for layout but keep the facts)
+## About
 
-I build software that has to hold up when someone is actively trying to break it.
+Lead: "SafeSurf and SafeGuard are my own Android product. Live since May 2026, 50+ active users, some on paid subscriptions."
+Section title: "Built and run end to end."
 
 SafeSurf started as my own problem: every Android filter I tried was either easy to bypass
-or too strict to use. So I built one, alone, end to end. It now has paying users.
+or too strict to use. So I built one, end to end. Another contributor worked with me on
+SafeGuard, and user feedback shaped the features.
+
+I can start on a Kotlin Android app, a Node or Firebase backend, and the tests and CI around them.
 
 What I built:
 
-- A GeckoView-based Android browser with global and per-site content rules
+- A GeckoView-based Android browser with global and per-site content rules. The Kotlin app is 77.7k lines: MVVM, Jetpack Compose, StateFlow, Room, coroutines
 - A device-owner enforcement app that blocks bypass at OS level (in-app browsers, WebViews, settings)
-- On-device image and text models I trained, running inside the browser without slowing it down
+- An on-device image classifier I trained (TFLite): 7.6 ms median inference on arm64, false blocks down from 36.6% to 14.2%. A text model runs next to it
 - A React dashboard where a parent or sponsor changes rules in real time
-- Firebase backend (Functions, Firestore, Remote Config), PostHog monitoring, scripted releases
-- A Chrome and Firefox extension port of the same filter engine
+- 60+ Firebase Cloud Functions (Node.js), Firestore sync, Remote Config and PostHog monitoring
+- A Chrome and Firefox extension port of the same filter engine (Manifest V3)
+- GitHub Actions on every PR merge: build, test, lint, then deploy the website, Cloud Functions and APK releases. JUnit, MockK, Espresso, Maestro and Firestore rules tests
 
-Stack: Kotlin, Java, Jetpack Compose, TypeScript, React, Node, Python, PyTorch, TFLite/ONNX, Firebase, C, C++.
+Skills (section heading "Skills"): Kotlin, Java, Jetpack Compose, Coroutines, Room, Node.js, Firebase,
+PostgreSQL, SQL, REST APIs, Docker, Python, C, C++, TypeScript, React, Linux, Bash, Git, GitHub Actions,
+TFLite, PyTorch. (CV skills, ordered for Backend, Android, Systems roles.)
 
 ## Experience
 
-1. **Founder & Developer, SafeSurf** — Aug 2025 to present, self-employed
-   - Built a GeckoView Android browser and a device-owner companion app that blocks filter bypass at OS level
-   - Trained on-device image classifiers; cut the false-block rate in the strict tier from 36.6% to 14.2% while keeping recall
-   - Added an on-device semantic text filter and a page-level text x image fusion step
-   - Built a React + Firebase dashboard for real-time rule changes, with delayed-unlock and password gates
-   - Ported the filter engine to Chrome and Firefox (MV3, declarativeNetRequest)
-   - Shipped 22+ releases through a scripted pipeline: build, checksum, upload, Remote Config rollout
-   - Ran a 3-month beta, then launched paid subscriptions
-2. **Instructor, Magshimim** — Oct 2025 to Oct 2026, part-time
-   - Taught and mentored 10 students in advanced C: pointers, memory management, data structures
+Section title: "What I have shipped and taught." Readings: false-block rate 36.6% to 14.2%, 22+ releases,
+50+ active users, 10 students taught advanced C. Bench label: graduating Jul 2027.
+
+1. **Founder & Developer, SafeSurf & SafeGuard** — Aug 2025 to present, self-employed
+   - Shipped 22+ releases of an Android browser and a device-owner app through a scripted pipeline. Live since May 2026 with 50+ active users, some on paid subscriptions
+   - Built a serverless backend of 60+ Firebase Cloud Functions (Node.js) with Firestore sync and Remote Config, plus a React dashboard for real-time rule changes
+   - Cut the false-block rate of the image classifier from 36.6% to 14.2% in the strict tier with on-device ML (TFLite), keeping recall. Inference runs at 7.6 ms median on arm64
+   - Developed a 77.7k-line Kotlin Android app (MVVM) with Jetpack Compose, StateFlow, Room and coroutine-based concurrency
+   - Set up CI/CD with GitHub Actions: build, test and lint on every PR merge, with automatic deploys of the website, Cloud Functions and APK releases
+   - Wrote unit and UI tests: JUnit, MockK, Espresso and Maestro on Android; Node test runner and Firestore rules tests on the Firebase emulator
+   - Ported the filter engine to Chrome and Firefox (Manifest V3, declarativeNetRequest)
+   - Worked with another contributor on SafeGuard and shaped features from user feedback. Ran a 3-month beta, then launched paid subscriptions
+2. **Instructor, Magshimim Cyber Program** — Oct 2025 to Oct 2026, part-time
+   - Instructed 10 students in advanced C: pointers, memory allocation, complexity and linked lists
+   - Directed their capstone project, a modular GIF playback engine, and guided the group through file I/O parsing
 3. **Technology Instructor, AharayTech (8200 Alumni Association)** — Apr 2024 to Oct 2026
-   - Taught Python and web development
+   - Taught Python and web development (scholarship program)
+4. **Team Member, Rafael Advanced Defense Systems** — Dec 2023 to Aug 2024, shift-based manufacturing role
+5. **Squad Commander, Combat Engineering Corps** — Nov 2019 to Jul 2023, military service
 
 ## Education
 
-- **Ruppin Academic Center** — B.Sc. Computer Science, 2024 to July 2027, grade average 88
-- Courses: C, C#, Java, Python, OOP, data structures, algorithms, computer architecture, big data, machine learning
+- **Ruppin Academic Center** — B.Sc. Computer Science, 2024 to July 2027 (expected), grade average 88
+- Courses: Operating Systems (Linux), Computer Networks, Algorithms, Data structures, Computer architecture, OOP, Machine learning, Big data. Teamwork in university group projects.
 
 ## Writing
 
@@ -74,6 +97,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 ### 1. SafeSurf + SafeGuard (flagship, live product)
 
 - URL: https://safesurfsite.com
+- Status label: "Live since May 2026, 50+ active users"
 - What: an Android browser that loads sites without images and video by default, plus a
   device-owner app (SafeGuard) that locks the device around it so the settings hold.
 - Key ideas to show:
@@ -91,7 +115,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 
 - Repo: https://github.com/ilay-fisher/drone-obstacle-sandbox
 - Live demo: https://ilay-fisher.github.io/drone-obstacle-sandbox/
-- What: a browser sandbox where a drone plans and re-plans its route through a city grid in
+- What: solo project. A browser sandbox where a drone plans and re-plans its route through a city grid in
   real time. Pathfinding engine in C++17 (A* and incremental D* Lite) compiled to
   WebAssembly; React + TypeScript + Canvas renders at 60 FPS; Fastify + PostgreSQL stores
   scenarios and telemetry.
@@ -103,11 +127,11 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
 ### 3. Multi-Modal Visual QA & Anomaly X-Ray Lens
 
 - Repo: https://github.com/ilay-fisher/multimodal-visual-qa-xray-lens
-- What: hybrid classical CV + vision-language model inspection. OpenCV finds where
+- What: solo project. Hybrid classical CV + vision-language model inspection. OpenCV finds where
   something changed between a baseline and a target image in about 10 ms; a VLM is asked
   what changed, only on the cropped regions.
-- Numbers (from the README benchmark): about 95% fewer image bytes and tokens (2,460 tokens
-  full frame vs 117-121 for ROI crops); cloud latency 43.7% lower; Claude Haiku 5.5 got 4/4
+- Numbers (from the README benchmark and the CVs): about 95% fewer image bytes and tokens (2,460 tokens
+  full frame vs 117-121 for ROI crops); cloud latency 43.7% lower (17,838 ms to 10,034 ms); Claude Haiku 5.5 got 4/4
   regions right with small-crop upscaling.
 - Key idea: deterministic localization, probabilistic interpretation. Do the cheap thing first.
 - Stack: Python, OpenCV, FastAPI, Pydantic, SSE, React, TypeScript, Canvas, Docker

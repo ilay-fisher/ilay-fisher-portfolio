@@ -7,7 +7,7 @@ import { READINGS } from './readings';
 import './Experience.css';
 
 /**
- * Experience: bench readings (the numbers), a timeline of the three roles, then education.
+ * Experience: bench readings (the numbers), a timeline of the roles, then education.
  * Semantic lists throughout; the timeline is an ordered list because the order is the point.
  */
 export default function Experience() {
@@ -17,7 +17,7 @@ export default function Experience() {
       id="experience"
       title="What I have shipped and taught."
       className="experience"
-      bench={[{ label: 'since', value: 'Apr 2024' }]}
+      bench={[{ label: 'graduating', value: 'Jul 2027' }]}
     >
       <Reveal variant="stagger" className="readings">
         <h3 className="visually-hidden">Readings</h3>

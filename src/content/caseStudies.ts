@@ -41,17 +41,18 @@ export const caseStudies: CaseStudy[] = [
   {
     id: 'safesurf',
     metaDescription:
-      'How SafeSurf and SafeGuard work: an Android browser that blocks images, not sites, and a device-owner app that makes the settings hold.',
+      'SafeSurf and SafeGuard: a live Android browser and device-owner app. 22+ releases, 50+ active users. Kotlin, Firebase, on-device ML.',
     problem: [
       'Every Android filter I tried was either easy to bypass or too strict to use.',
-      'So I built one, alone, end to end. It now has paying users.',
+      'So I built one, end to end. It has been live since May 2026 with 50+ active users, some on paid subscriptions.',
     ],
     built: [
       'A GeckoView-based Android browser with global and per-site content rules.',
       'SafeGuard, a device-owner app that blocks bypass at the OS level: in-app browsers, WebViews and settings.',
       'On-device image and text models that I trained. They run inside the browser without slowing it down.',
       'A React dashboard where a parent or sponsor changes rules in real time, with delayed-unlock and password gates.',
-      'A Firebase backend (Functions, Firestore, Remote Config), PostHog monitoring and scripted releases.',
+      'A Firebase backend of 60+ Cloud Functions (Node.js) with Firestore and Remote Config, PostHog monitoring and scripted releases.',
+      'GitHub Actions that build, test and lint on every PR merge and deploy the website, Cloud Functions and APK releases, with unit and UI tests behind them.',
       'A Chrome and Firefox extension port of the same filter engine.',
     ],
     how: [
@@ -73,21 +74,23 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     numbers: [
+      { value: '50+', label: 'active users since the May 2026 launch, some on paid subscriptions' },
       {
         value: '14.2%',
-        label: 'false blocks in the strict tier, down from 36.6%, with recall kept',
+        label:
+          'false blocks in the strict tier, down from 36.6%, with recall kept. Inference runs at 7.6 ms median on arm64',
       },
       {
         value: '22+',
         label: 'releases through a scripted build, checksum, upload and rollout pipeline',
       },
-      { value: '3 months', label: 'of beta before paid subscriptions launched' },
+      { value: '60+', label: 'Firebase Cloud Functions (Node.js)' },
     ],
   },
   {
     id: 'drone',
     metaDescription:
-      'How the drone sandbox works: A* and D* Lite in C++17 compiled to WebAssembly, replanning a route through a city grid in real time.',
+      'Drone sandbox: C++17 A* and D* Lite compiled to WebAssembly, replanning a route in real time. Solo project with React, Fastify and PostgreSQL.',
     problem: [
       'A drone has a route through a city grid. Then an obstacle lands on it.',
       'The planner has to answer again, fast, every time something changes, while the page keeps drawing at 60 FPS.',
@@ -134,7 +137,7 @@ export const caseStudies: CaseStudy[] = [
   {
     id: 'xray',
     metaDescription:
-      'How the X-Ray Lens works: OpenCV finds what changed in about 10 ms, then a vision model explains only those regions. About 95% fewer tokens.',
+      'X-Ray Lens: Python, OpenCV and FastAPI. Sending only the changed regions to a vision model cut image tokens by about 95%. Solo project.',
     problem: [
       'Asking a vision model about a whole image is slow and costly, and most of the image has not changed.',
       'I wanted to find what changed between a baseline and a target image, then have a model say what it is.',
@@ -168,7 +171,7 @@ export const caseStudies: CaseStudy[] = [
         value: '~95%',
         label: 'fewer image bytes and tokens (2,460 tokens full frame vs 117-121 for region crops)',
       },
-      { value: '43.7%', label: 'lower cloud latency' },
+      { value: '43.7%', label: 'lower cloud latency (17,838 ms to 10,034 ms)' },
       { value: '4/4', label: 'regions right with Claude Haiku 5.5 and small-crop upscaling' },
     ],
     media: [
