@@ -89,6 +89,9 @@ export function roundedSquareOutline(corner: number, perCorner: number): Array<[
   return out;
 }
 
+/** Corner of a logo badge tile (TypeScript, LinkedIn) as a share of its half width; also its collider's. */
+export const BADGE_CORNER = 0.2;
+
 /** A regular polygon of `n` sides and radius `r` (the magnifier's ring collider). */
 export function regularPolygon(n: number, r: number): Array<[number, number]> {
   return Array.from({ length: n }, (_, i) => {

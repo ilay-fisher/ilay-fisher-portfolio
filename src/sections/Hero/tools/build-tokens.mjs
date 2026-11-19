@@ -31,6 +31,7 @@ const SLUGS = [
   'opencv',
   'googlecloud',
   'claude',
+  'github',
   'c',
   'java',
 ];

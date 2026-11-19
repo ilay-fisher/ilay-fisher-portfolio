@@ -417,13 +417,14 @@ test.describe('hero scene @gl-heavy', () => {
       const opened: string[] = [];
       page.context().on('page', (p) => opened.push(p.url()));
       const at = await restingPoint(page, piece.id);
-      await page.mouse.click(at.x, at.y);
-      // A press that moves is a drag: it carries the piece and must not count towards a double press.
-      const to = (await hero(page, (h, i: string) => h.project(i), piece.id)) ?? at;
-      await page.mouse.move(to.x, to.y);
+      // A press that moves is a drag: it carries the piece and does not count towards a double press.
+      await page.mouse.move(at.x, at.y);
       await page.mouse.down();
-      for (let i = 1; i <= 5; i++) await page.mouse.move(to.x + i * 12, to.y - i * 6);
+      for (let i = 1; i <= 5; i++) await page.mouse.move(at.x + i * 12, at.y - i * 6);
       await page.mouse.up();
+      // One tap, wherever the piece is now: a single press is never the open gesture.
+      const to = (await hero(page, (h, i: string) => h.project(i), piece.id)) ?? at;
+      await page.mouse.click(to.x, to.y);
       // Let the scene and the page run on: anything queued by the gesture has fired after this.
       await hero(page, (h) => h.step(60));
       await page.evaluate(() => new Promise<void>((r) => setTimeout(r, 0)));
