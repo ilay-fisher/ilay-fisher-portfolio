@@ -188,9 +188,7 @@ export default function Hero() {
       {mode === 'scene' && (
         <div className="hero__tools">
           <div className="hero__note">
-            <span className="hero__hint mono">
-              Throw things at my name. Cheaper than therapy. It holds.
-            </span>
+            <span className="hero__hint mono">Throw everything at me. I&apos;ll handle it.</span>
             <span className="hero__hits mono" data-testid="hero-hits">
               Hits on the name: {hits}. Damage: 0.
             </span>
