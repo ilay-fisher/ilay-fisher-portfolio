@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { profile } from '../../../content/profile';
 import { MARKS } from '../scene/marks';
 import {
   boundingRadius,
   buildCatalogue,
   chipLabel,
   IMPORTANCE,
+  isOpenable,
   PIECE_SCALE,
   SKILLS,
   type ObjectSpec,
@@ -39,13 +41,15 @@ const OTHER_STACK = [
 const TOOLS = ['github', 'vscode', 'googlecloud', 'claude'];
 const ALLOWED = [...TOP_TEN, ...OTHER_STACK, ...TOOLS];
 
-/** Every piece that stands for a skill: a die-cut token or a keycap. */
-const keys = (list: ObjectSpec[]) => list.filter((s) => s.kind === 'key' || s.kind === 'token');
+/** Every piece that stands for a skill: a die-cut token, a logo badge or a keycap (they all carry a tier). */
+const keys = (list: ObjectSpec[]) => list.filter((s) => s.tier !== null);
 const keycaps = (list: ObjectSpec[]) => list.filter((s) => s.kind === 'key');
 const tokens = (list: ObjectSpec[]) => list.filter((s) => s.kind === 'token');
-const hardware = (list: ObjectSpec[]) => list.filter((s) => s.kind !== 'key' && s.kind !== 'token');
-/** Skill ids as they appear in piece ids, which are prefixed `key-` or `token-`. */
-const skillOf = (s: ObjectSpec) => s.id.replace(/^(key|token)-/, '');
+const badges = (list: ObjectSpec[]) => list.filter((s) => s.kind === 'badge' && s.tier !== null);
+/** The owner's projects: no tier, not the LinkedIn piece. */
+const hardware = (list: ObjectSpec[]) => list.filter((s) => s.tier === null && s.id !== 'linkedin');
+/** Skill ids as they appear in piece ids, which are prefixed `key-`, `token-` or `badge-`. */
+const skillOf = (s: ObjectSpec) => s.id.replace(/^(key|token|badge)-/, '');
 
 describe('catalogue allowed list and importance order', () => {
   it('only ever contains what the owner works in (no invented skills)', () => {
@@ -69,7 +73,9 @@ describe('catalogue allowed list and importance order', () => {
     for (const bp of ['desktop', 'mobile'] as const)
       for (const lite of [false, true]) {
         const ids = keys(buildCatalogue(bp, lite)).map(skillOf);
-        expect(ids.slice(0, 10)).toEqual(TOP_TEN);
+        // The phone's reduced set gives up Python, the last of the top ten, to make room for GitHub.
+        const top = bp === 'mobile' && lite ? 9 : 10;
+        expect(ids.slice(0, top)).toEqual(TOP_TEN.slice(0, top));
         const order = ids.map((id) => ALLOWED.indexOf(id));
         expect(order).toEqual([...order].sort((a, b) => a - b));
       }
@@ -79,9 +85,9 @@ describe('catalogue allowed list and importance order', () => {
 describe('body counts per breakpoint', () => {
   const PROJECT_PIECES = ['drone', 'lens', 'logo', 'shield'];
 
-  it('desktop has 29 bodies: 25 skill pieces plus the 4 project pieces, nothing generic', () => {
+  it('desktop has 30 bodies: 25 skill pieces, the LinkedIn piece and the 4 project pieces, nothing generic', () => {
     const c = buildCatalogue('desktop');
-    expect(c).toHaveLength(29);
+    expect(c).toHaveLength(30);
     expect(keys(c)).toHaveLength(25);
     expect(
       hardware(c)
@@ -90,17 +96,17 @@ describe('body counts per breakpoint', () => {
     ).toEqual(PROJECT_PIECES);
   });
 
-  it('mobile has 17 bodies, fewer than desktop, and still has the project pieces', () => {
+  it('mobile has 18 bodies, fewer than desktop, and still has the project pieces', () => {
     const c = buildCatalogue('mobile');
-    expect(c).toHaveLength(17);
+    expect(c).toHaveLength(18);
     expect(keys(c)).toHaveLength(13);
     const kinds = hardware(c).map((s) => s.kind);
     for (const k of ['logo', 'shield', 'drone', 'lens']) expect(kinds).toContain(k);
   });
 
   it('lite sets (software renderers, lowest quality) are smaller still', () => {
-    expect(buildCatalogue('desktop', true)).toHaveLength(19);
-    expect(buildCatalogue('mobile', true)).toHaveLength(14);
+    expect(buildCatalogue('desktop', true)).toHaveLength(20);
+    expect(buildCatalogue('mobile', true)).toHaveLength(15);
     expect(buildCatalogue('desktop', true).length).toBeLessThan(buildCatalogue('desktop').length);
     expect(buildCatalogue('mobile', true).length).toBeLessThan(buildCatalogue('mobile').length);
   });
@@ -109,7 +115,7 @@ describe('body counts per breakpoint', () => {
     for (const bp of ['desktop', 'mobile'] as const)
       for (const lite of [false, true])
         for (const s of buildCatalogue(bp, lite))
-          expect(['key', 'token', 'shield', 'logo', 'drone', 'lens']).toContain(s.kind);
+          expect(['key', 'token', 'badge', 'shield', 'logo', 'drone', 'lens']).toContain(s.kind);
   });
 
   it('has unique ids and positive masses and sizes', () => {
@@ -143,7 +149,7 @@ describe('piece sizes per breakpoint', () => {
     for (const bp of ['desktop', 'mobile'] as const)
       for (const s of buildCatalogue(bp)) {
         const dim = Math.max(s.size.w, s.size.d);
-        if (s.kind === 'key' || s.kind === 'token') expect(dim).toBeLessThan(1.5);
+        if (s.tier !== null || s.id === 'linkedin') expect(dim).toBeLessThan(1.5);
         else expect(dim).toBeLessThan(2);
         expect(boundingRadius(s)).toBeLessThan(1.2);
       }
@@ -151,7 +157,8 @@ describe('piece sizes per breakpoint', () => {
 
   it('makes tokens and keycaps shrink by tier: A larger than B larger than C', () => {
     const c = buildCatalogue('desktop');
-    for (const group of [keycaps(c), tokens(c)]) {
+    // GitHub is a filled disc sized to the LinkedIn tile on purpose, so it is outside the tier ladder.
+    for (const group of [keycaps(c), tokens(c).filter((s) => s.mark !== 'github')]) {
       // A keycap's size is its depth (a wide legend only stretches the width); a token's is its longest side.
       const dim = (s: ObjectSpec) => (s.kind === 'key' ? s.size.d : Math.max(s.size.w, s.size.d));
       const by = (t: string) => group.filter((s) => s.tier === t).map(dim);
@@ -161,6 +168,16 @@ describe('piece sizes per breakpoint', () => {
       if (by('B').length) expect(min(by('B'))).toBeGreaterThan(max(by('C')) - 1e-9);
       expect(min(by('A'))).toBeGreaterThan(max(by('C')));
     }
+  });
+
+  it('sizes the GitHub disc to the LinkedIn tile: plate diameter equals its side, collider follows', () => {
+    const c = buildCatalogue('desktop');
+    const gh = c.find((s) => s.id === 'token-github')!;
+    const li = c.find((s) => s.id === 'linkedin')!;
+    // The plate is 25.9 mark units of a collider that spans 27.2.
+    const plate = Math.max(gh.size.w, gh.size.d) * (25.9 / 27.2);
+    expect(plate).toBeCloseTo(li.size.w, 2);
+    expect(gh.radius).toBeGreaterThanOrEqual(plate / 2);
   });
 
   it('keeps the logo, drone, lens and shield big enough to read at a glance (at least a tier B token)', () => {
@@ -192,8 +209,8 @@ describe('importance drives size, weight and accent', () => {
   const tier = (t: string) => k.filter((s) => s.tier === t);
 
   it('puts the top seven in tier A, the next three in B and everything else in C', () => {
-    expect(tier('A').map((s) => s.id.replace(/^(key|token)-/, ''))).toEqual(TOP_TEN.slice(0, 7));
-    expect(tier('B').map((s) => s.id.replace(/^(key|token)-/, ''))).toEqual(TOP_TEN.slice(7));
+    expect(tier('A').map(skillOf)).toEqual(TOP_TEN.slice(0, 7));
+    expect(tier('B').map(skillOf)).toEqual(TOP_TEN.slice(7));
     expect(tier('C')).toHaveLength(15);
   });
 
@@ -246,6 +263,7 @@ describe('die-cut tokens and keycaps', () => {
         'opencv',
         'googlecloud',
         'claude',
+        'github',
       ].sort(),
     );
     for (const s of tokens(all)) {
@@ -254,16 +272,20 @@ describe('die-cut tokens and keycaps', () => {
     }
   });
 
-  it('keeps a handful of real keycaps: ML and VS Code (no usable mark), plus TypeScript and GitHub', () => {
-    expect(keycaps(all).map((s) => s.id.replace(/^key-/, ''))).toEqual([
-      'ml',
-      'typescript',
-      'github',
-      'vscode',
-    ]);
-    expect(keycaps(all).length).toBeGreaterThanOrEqual(4);
-    expect(keycaps(all).length).toBeLessThanOrEqual(7);
+  it('keeps only two real keycaps, the ones with no usable mark: ML and VS Code', () => {
+    expect(keycaps(all).map((s) => s.id.replace(/^key-/, ''))).toEqual(['ml', 'vscode']);
     expect(tokens(all).length).toBeGreaterThan(keycaps(all).length * 2);
+  });
+
+  it('makes TypeScript a blue logo badge with no box and no link', () => {
+    const ts = badges(all);
+    expect(ts.map(skillOf)).toEqual(['typescript']);
+    expect(ts[0]!.id).toBe('badge-typescript');
+    expect(ts[0]!.mark).toBe('typescript');
+    expect(ts[0]!.legend).toBeNull();
+    expect(MARKS.typescript!.hex).toBe('3178C6');
+    expect(isOpenable(ts[0]!)).toBe(false);
+    expect(ts[0]!.size.w).toBeCloseTo(ts[0]!.size.d, 9);
   });
 
   it('prints exactly one of a logo mark or a text legend on every keycap, and a mark on every token', () => {
@@ -317,6 +339,7 @@ describe('accessible names and project pieces', () => {
     }
     const k = keys(buildCatalogue('desktop'));
     expect(k[0]!.label).toBe('Android Development token');
+    for (const s of buildCatalogue('desktop')) expect(s.label.length).toBeGreaterThan(2);
     expect(k.find((s) => s.id === 'token-tflite')!.label).toBe('TensorFlow Lite token');
     expect(k.find((s) => s.id === 'token-java')!.label).toBe('Java token');
   });
@@ -330,6 +353,7 @@ describe('accessible names and project pieces', () => {
     for (const kind of ['logo', 'shield', 'drone', 'lens'])
       expect(h(kind).description).toMatch(/double-click or press enter/i);
     for (const s of keys(buildCatalogue('desktop'))) expect(s.href).toBeNull();
+    expect(buildCatalogue('desktop').find((s) => s.id === 'linkedin')!.href).toBeNull();
   });
 
   it('describes the SafeGuard piece as the real app icon, factually', () => {
@@ -366,5 +390,100 @@ describe('accessible names and project pieces', () => {
       'Drone Sandbox · double-click to open',
     );
     expect(chipLabel(all.find((s) => s.id === 'lens')!)).toBe('X-Ray · double-click to open');
+  });
+});
+
+describe('GitHub and LinkedIn pieces open the owner profiles', () => {
+  const layouts = [
+    ['desktop', false],
+    ['desktop', true],
+    ['mobile', false],
+    ['mobile', true],
+  ] as const;
+
+  it('puts exactly one GitHub piece and one LinkedIn piece in every layout', () => {
+    for (const [bp, lite] of layouts) {
+      const c = buildCatalogue(bp, lite);
+      expect(
+        c.filter((s) => s.id === 'token-github'),
+        `${bp} lite=${lite}`,
+      ).toHaveLength(1);
+      expect(
+        c.filter((s) => s.id === 'linkedin'),
+        `${bp} lite=${lite}`,
+      ).toHaveLength(1);
+      expect(new Set(c.map((s) => s.id)).size).toBe(c.length);
+    }
+  });
+
+  it('makes GitHub a die-cut token (the mark is the body) and LinkedIn a badge, neither a keycap', () => {
+    const c = buildCatalogue('desktop');
+    const gh = c.find((s) => s.id === 'token-github')!;
+    const li = c.find((s) => s.id === 'linkedin')!;
+    expect(gh.kind).toBe('token');
+    expect(gh.mark).toBe('github');
+    expect(gh.legend).toBeNull();
+    expect(li.kind).toBe('badge');
+    expect(li.mark).toBe('linkedin');
+    expect(MARKS.linkedin!.hex).toBe('0A66C2');
+    expect(c.some((s) => s.kind === 'key' && /github|linkedin/.test(s.id))).toBe(false);
+  });
+
+  it('takes the target of each piece from the profile, never a literal', () => {
+    for (const [bp, lite] of layouts) {
+      const c = buildCatalogue(bp, lite);
+      expect(c.find((s) => s.id === 'token-github')!.url).toBe(profile.links.github);
+      expect(c.find((s) => s.id === 'linkedin')!.url).toBe(profile.links.linkedin);
+      // Nothing else opens a page; the project pieces still open sections.
+      expect(
+        c
+          .filter((s) => s.url !== null)
+          .map((s) => s.id)
+          .sort(),
+      ).toEqual(['linkedin', 'token-github']);
+      for (const s of c) expect(isOpenable(s)).toBe(s.href !== null || s.url !== null);
+    }
+  });
+
+  it('says what each piece is and what it does, in plain words', () => {
+    const c = buildCatalogue('desktop');
+    const gh = c.find((s) => s.id === 'token-github')!;
+    const li = c.find((s) => s.id === 'linkedin')!;
+    expect(gh.description).toBe(
+      'Double-click or press Enter to open my GitHub profile in a new tab.',
+    );
+    expect(li.description).toBe(
+      'Double-click or press Enter to open my LinkedIn profile in a new tab.',
+    );
+    expect(chipLabel(gh)).toBe('GitHub · double-click to open profile');
+    expect(chipLabel(li)).toBe('LinkedIn · double-click to open profile');
+    expect(gh.label).toBe('GitHub');
+    expect(li.label).toBe('LinkedIn');
+  });
+
+  it('sizes the LinkedIn badge like a tier B token, so it neither jams nor shrinks the others', () => {
+    for (const bp of ['desktop', 'mobile'] as const) {
+      const c = buildCatalogue(bp);
+      const li = c.find((s) => s.id === 'linkedin')!;
+      const tierB = Math.max(
+        ...tokens(c)
+          .filter((s) => s.tier === 'B')
+          .map((s) => Math.max(s.size.w, s.size.d)),
+      );
+      expect(li.size.w).toBeCloseTo(li.size.d, 9);
+      expect(li.size.w).toBeLessThanOrEqual(tierB + 1e-9);
+      expect(li.size.w).toBeGreaterThan(0.5);
+      expect(li.radius).toBeGreaterThanOrEqual(li.size.w / 2);
+      expect(li.radius).toBeLessThan(1.2);
+    }
+  });
+
+  it('leaves the Claude piece exactly where it was: desktop lite and full only', () => {
+    const has = (bp: 'desktop' | 'mobile', lite: boolean) =>
+      buildCatalogue(bp, lite).some((s) => s.id === 'token-claude');
+    expect(has('desktop', false)).toBe(true);
+    expect(has('desktop', true)).toBe(true);
+    expect(has('mobile', false)).toBe(false);
+    expect(has('mobile', true)).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 /* global URL */
-// Marks that simple-icons does not carry, taken from the devicon repository (MIT, https://github.com/devicons/devicon)
-// and scaled from their 128x128 box into the 24x24 box every other mark uses.
+// Marks that the installed simple-icons does not carry: Java from the devicon repository (MIT,
+// https://github.com/devicons/devicon), scaled from its 128x128 box into the 24x24 box every other mark uses, and
+// LinkedIn, which simple-icons dropped after 12.0.0 (the 12.0.0 file is kept here, unmodified, CC0-1.0).
 import fs from 'node:fs';
 import * as si from 'simple-icons';
 
@@ -43,12 +44,23 @@ export function vendorMarks() {
   // and the C counter are the first sub-path, the plus signs are the sub-paths after it.
   const cpp = si.siCplusplus.path;
   const cut = cpp.indexOf('zm', cpp.indexOf('z') + 1);
+  const li = fs.readFileSync(new URL('simple-icons-12.0.0-linkedin.svg', dir), 'utf8');
   return {
+    linkedin: {
+      title: 'LinkedIn',
+      path: li.match(/ d="([^"]+)"/)[1],
+      hex: '0A66C2',
+      source: 'https://brand.linkedin.com',
+      guidelines: 'https://brand.linkedin.com/policies',
+      licence:
+        'CC0-1.0 (simple-icons 12.0.0 data, the last release that carried it); trademark of LinkedIn',
+    },
     c: {
       title: 'C',
       path: cpp.slice(0, cut + 1),
       hex: '283593',
-      source: 'https://commons.wikimedia.org/wiki/File:C_Programming_Language.svg (the hexagon C mark)',
+      source:
+        'https://commons.wikimedia.org/wiki/File:C_Programming_Language.svg (the hexagon C mark)',
       guidelines: null,
       licence:
         'Geometry from simple-icons cplusplus (CC0-1.0 data) of the ISO C++ logo, plus signs removed; the Commons file of the same C logo states Public domain; the C logo is unofficial (the language has no brand owner)',

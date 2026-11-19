@@ -12,22 +12,37 @@ export interface TokenFootprint {
 }
 
 /**
+ * Tokens whose mark has an inner cut-out that opens onto its outer edge (the octocat's tail meets the GitHub disc's
+ * rim), so the die-cut silhouette would be a C with the cut-out showing the floor. They sit on a full disc instead,
+ * the mark's outline, so the cut-out is a recess in the disc.
+ */
+export const FILLED_TOKENS: ReadonlySet<string> = new Set(['github']);
+
+/** Radius of the filled disc's plate in mark units (the 24 wide mark plus the die-cut margin). */
+export const DISC_PLATE_RADIUS = 12.95;
+
+/** Convex collider of a filled disc: a 12-gon whose flat sides stay outside the plate circle. */
+const DISC_HULL = regularPolygon(12, 13.6);
+
+/**
  * Footprint of the die-cut token for a mark, scaled so its longest plate side is `maxDim`. Mark y (down)
  * becomes world z (toward the camera), so the mark reads upright from the front.
  */
 export function tokenFootprint(slug: string, maxDim: number): TokenFootprint {
   const t = TOKEN_SHAPES[slug];
   if (!t) throw new Error(`no token shape for ${slug}`);
+  const hullFlat = FILLED_TOKENS.has(slug) ? DISC_HULL.flat() : t.hull;
   // The collider can reach a hair past the plate box (its corners are extended), so size from the collider.
   let hx = 0;
   let hz = 0;
-  for (let i = 0; i < t.hull.length; i += 2) {
-    hx = Math.max(hx, Math.abs(t.hull[i]!));
-    hz = Math.max(hz, Math.abs(t.hull[i + 1]!));
+  for (let i = 0; i < hullFlat.length; i += 2) {
+    hx = Math.max(hx, Math.abs(hullFlat[i]!));
+    hz = Math.max(hz, Math.abs(hullFlat[i + 1]!));
   }
   const unit = maxDim / (2 * Math.max(hx, hz));
   const hull: Array<[number, number]> = [];
-  for (let i = 0; i < t.hull.length; i += 2) hull.push([t.hull[i]! * unit, t.hull[i + 1]! * unit]);
+  for (let i = 0; i < hullFlat.length; i += 2)
+    hull.push([hullFlat[i]! * unit, hullFlat[i + 1]! * unit]);
   const radius = hull.reduce((m, [x, z]) => Math.max(m, Math.hypot(x, z)), 0);
   return { unit, w: 2 * hx * unit, d: 2 * hz * unit, hull, radius };
 }
@@ -88,6 +103,9 @@ export function roundedSquareOutline(corner: number, perCorner: number): Array<[
   }
   return out;
 }
+
+/** Corner of a logo badge tile (TypeScript, LinkedIn) as a share of its half width; also its collider's. */
+export const BADGE_CORNER = 0.2;
 
 /** A regular polygon of `n` sides and radius `r` (the magnifier's ring collider). */
 export function regularPolygon(n: number, r: number): Array<[number, number]> {

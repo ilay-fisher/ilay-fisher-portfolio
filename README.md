@@ -63,3 +63,7 @@ keycap); the full source and licence list is in `docs/reports/hero.md`. The foot
   according to terms described in the Creative Commons 3.0 Attribution License.
 - The Git logo by [Jason Long](https://twitter.com/jasonlong) is licensed under the Creative Commons
   Attribution 3.0 Unported License.
+- The GitHub mark is a trademark of GitHub, Inc.; the GitHub piece in the hero links to my own profile.
+- The LinkedIn "in" mark is a trademark of LinkedIn Corporation. Its path data is the CC0-1.0 simple-icons 12.0.0
+  file (the last release that carried it); the piece links to my own profile.
+- The TypeScript mark is a trademark of Microsoft Corporation (path data from simple-icons, CC0-1.0).

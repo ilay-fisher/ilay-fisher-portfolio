@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { profile } from '../src/content/profile';
 import { scrollSettled } from './helpers';
 
 /**
@@ -83,12 +84,13 @@ test.describe('hero scene @gl-heavy', () => {
   test('is ready already settled, with every body inside the bounds', async ({ page }) => {
     const errors = await openHero(page);
     const ids = await hero(page, (h) => h.ids());
-    // 29 on a wide GPU screen (25 technologies and 4 projects), 17 on a phone; fewer on software renderers.
+    // 30 on a wide GPU screen (25 technologies, LinkedIn and 4 projects), 18 on a phone; fewer on software renderers.
     expect(ids.length).toBeGreaterThanOrEqual(14);
-    expect(ids.length).toBeLessThanOrEqual(29);
+    expect(ids.length).toBeLessThanOrEqual(30);
     // Everything is a technology or a project: no generic hardware.
     expect(ids.filter((id) => /dial|toggle|switch/.test(id))).toEqual([]);
-    for (const id of ['shield', 'logo', 'drone', 'lens']) expect(ids).toContain(id);
+    for (const id of ['shield', 'logo', 'drone', 'lens', 'token-github', 'linkedin'])
+      expect(ids).toContain(id);
     expect(ids).not.toContain('lock');
     expect(ids).not.toContain('phone');
     await expect(canvas(page)).toHaveAttribute('data-bodies', String(ids.length));
@@ -332,6 +334,106 @@ test.describe('hero scene @gl-heavy', () => {
     await page.waitForTimeout(700);
     expect(await page.evaluate(() => location.hash)).toBe('');
   });
+
+  /** The two profile pieces: scene id, accessible name, and where they lead (always from the profile). */
+  const SOCIAL = [
+    { id: 'token-github', name: 'GitHub', url: profile.links.github },
+    { id: 'linkedin', name: 'LinkedIn', url: profile.links.linkedin },
+  ] as const;
+
+  /** Answers the profile hosts with a stub page, so a test never reaches github.com or linkedin.com. */
+  async function blockProfileHosts(page: Page) {
+    const hit: string[] = [];
+    await page.context().route(/^https:\/\/([^/]+\.)?(github|linkedin)\.com\//, (route) => {
+      hit.push(route.request().url());
+      return route.fulfill({ status: 200, contentType: 'text/html', body: '<title>stub</title>' });
+    });
+    return hit;
+  }
+
+  /** Waits until the piece lies still on screen, and returns where to press it. */
+  async function restingPoint(page: Page, id: string) {
+    expect(await hero(page, (h) => h.settle()), 'the scene comes to rest').toBe(true);
+    const at = (await hero(page, (h, i: string) => h.project(i), id))!;
+    expect(at, `${id} is on screen`).not.toBeNull();
+    const onCanvas = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x!, y!)?.getAttribute('data-testid'),
+      [at.x, at.y],
+    );
+    expect(onCanvas, `${id} is not covered by other content`).toBe('hero-canvas');
+    return at;
+  }
+
+  for (const piece of SOCIAL) {
+    test(`a double-click on the ${piece.name} piece opens the profile in a new tab`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await blockProfileHosts(page);
+      await openHero(page);
+      const at = await restingPoint(page, piece.id);
+      const [popup] = await Promise.all([
+        page.context().waitForEvent('page'),
+        page.mouse.dblclick(at.x, at.y),
+      ]);
+      await popup.waitForURL(piece.url);
+      expect(popup.url()).toBe(piece.url);
+      // The hero page itself stays where it was.
+      expect(page.url()).toContain('heroSeed=11');
+      expect(await page.evaluate(() => location.hash)).toBe('');
+      await popup.close();
+    });
+
+    test(`Enter on the selected ${piece.name} piece opens the profile in a new tab`, async ({
+      page,
+    }) => {
+      await blockProfileHosts(page);
+      await openHero(page);
+      await canvas(page).focus();
+      const count = (await hero(page, (h) => h.ids())).length;
+      let found = false;
+      for (let i = 0; i < count && !found; i++) {
+        await page.keyboard.press('n');
+        const text = (await status(page).textContent()) ?? '';
+        found = text.startsWith(`${piece.name} selected`);
+      }
+      expect(found, `${piece.name} is announced when selected`).toBe(true);
+      await expect(status(page)).toContainText(
+        `Double-click or press Enter to open my ${piece.name} profile in a new tab.`,
+      );
+      const [popup] = await Promise.all([
+        page.context().waitForEvent('page'),
+        page.keyboard.press('Enter'),
+      ]);
+      await popup.waitForURL(piece.url);
+      expect(popup.url()).toBe(piece.url);
+      await popup.close();
+    });
+
+    test(`a single click or a drag on the ${piece.name} piece opens nothing`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      const requests = await blockProfileHosts(page);
+      await openHero(page);
+      const opened: string[] = [];
+      page.context().on('page', (p) => opened.push(p.url()));
+      const at = await restingPoint(page, piece.id);
+      // A press that moves is a drag: it carries the piece and does not count towards a double press.
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.down();
+      for (let i = 1; i <= 5; i++) await page.mouse.move(at.x + i * 12, at.y - i * 6);
+      await page.mouse.up();
+      // One tap, wherever the piece is now: a single press is never the open gesture.
+      const to = (await hero(page, (h, i: string) => h.project(i), piece.id)) ?? at;
+      await page.mouse.click(to.x, to.y);
+      // Let the scene and the page run on: anything queued by the gesture has fired after this.
+      await hero(page, (h) => h.step(60));
+      await page.evaluate(() => new Promise<void>((r) => setTimeout(r, 0)));
+      expect(opened).toEqual([]);
+      expect(requests).toEqual([]);
+      expect(await page.evaluate(() => location.hash)).toBe('');
+      expect(page.context().pages()).toHaveLength(1);
+    });
+  }
 
   test('hits on the name are counted, with nothing else changing', async ({ page }) => {
     await openHero(page);

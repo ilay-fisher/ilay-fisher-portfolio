@@ -1,6 +1,13 @@
 /** The set of physical objects in the hero: what they are, how big, how heavy. DOM-free. */
 
-import { tokenFootprint } from './token';
+import { profile } from '../../../content/profile';
+import {
+  BADGE_CORNER,
+  DISC_PLATE_RADIUS,
+  FILLED_TOKENS,
+  roundedSquareOutline,
+  tokenFootprint,
+} from './token';
 
 /** Importance tier: A is the owner's top skills (largest, accent), B the next three, C everything else. */
 export type Tier = 'A' | 'B' | 'C';
@@ -64,11 +71,12 @@ export const IMPORTANCE: readonly string[] = SKILLS.map((s) => s.id);
 export type Breakpoint = 'desktop' | 'mobile';
 /**
  * Object families; each has its own geometry and collision shape. A skill is a die-cut `token` (its logo's
- * silhouette extruded like an enamel pin) or a `key` (a keycap, for marks that do not make a good outline).
- * The rest are the owner's projects.
+ * silhouette extruded like an enamel pin), a `badge` (a logo that is itself a rounded tile, TypeScript and
+ * LinkedIn: a bevelled tile in the brand colour with the letters raised) or a `key` (a keycap, for marks with
+ * no usable outline). The rest are the owner's projects.
  */
-export type Kind = 'key' | 'token' | 'shield' | 'logo' | 'drone' | 'lens';
-export type ProjectKind = Exclude<Kind, 'key' | 'token'>;
+export type Kind = 'key' | 'token' | 'badge' | 'shield' | 'logo' | 'drone' | 'lens';
+export type ProjectKind = Exclude<Kind, 'key' | 'token' | 'badge'>;
 /** Surface treatment of the body. */
 export type Finish = 'anodised' | 'ceramic' | 'alloy';
 
@@ -92,6 +100,8 @@ export interface ObjectSpec {
   rank: number;
   /** In-page section a double-click or Enter scrolls to (project pieces), otherwise null. */
   href: string | null;
+  /** Profile a double-click or Enter opens in a new tab (GitHub, LinkedIn), otherwise null. Taken from the profile. */
+  url: string | null;
   /** Final size in world units (already multiplied by `scale`). */
   size: { w: number; h: number; d: number };
   /** The breakpoint's piece scale that was applied to the size. */
@@ -115,8 +125,12 @@ export interface ObjectSpec {
  */
 export const PIECE_SCALE: Record<Breakpoint, number> = { desktop: 0.6, mobile: 0.6 };
 
-/** Skills printed on a keycap: the marks that make a poor die-cut, plus a few for variety. */
-const KEYCAPS: ReadonlySet<string> = new Set(['ml', 'typescript', 'github', 'vscode']);
+/** Skills printed on a keycap: those with no usable logo outline (ML and VS Code have no mark at all). */
+const KEYCAPS: ReadonlySet<string> = new Set(['ml', 'vscode']);
+/** Skills whose logo is itself a rounded tile: built as a badge, not a die-cut silhouette. */
+const BADGES: ReadonlySet<string> = new Set(['typescript']);
+/** Skill pieces that open the owner's profile, by the key of `profile.links`. */
+const SKILL_LINKS: Readonly<Record<string, 'github' | 'linkedin'>> = { github: 'github' };
 const FINISHES: Finish[] = ['anodised', 'ceramic', 'alloy', 'anodised', 'ceramic'];
 const DENSITY = 2.2;
 /** Longest plate side (token) or cap side (keycap) and height per tier, before PIECE_SCALE; top tier is heavier. */
@@ -130,18 +144,35 @@ const TOKEN_THICK = 0.62;
 /** Share of a token plate's bounding box that is solid, for mass. */
 const TOKEN_FILL = 0.62;
 
+/** Text of the hint on a piece that opens a profile (also the accessible description). */
+const OPEN_PROFILE = (name: string) =>
+  `Double-click or press Enter to open my ${name} profile in a new tab.`;
+
+/** Edge of a badge tile and its thickness, from a tier's size. */
+const badgeSize = (side: number, h: number, scale: number) => {
+  const w = side * scale;
+  const outline = roundedSquareOutline(BADGE_CORNER, 3);
+  const radius = outline.reduce((m, [x, z]) => Math.max(m, Math.hypot(x, z)), 0) * (w / 2);
+  return { size: { w, h: h * scale, d: w }, radius };
+};
+
 const skillPiece = (s: Skill, rank: number, scale: number): ObjectSpec => {
   const t = TIER_SIZE[s.tier];
-  const isKey = KEYCAPS.has(s.id) || !s.mark;
+  const isBadge = BADGES.has(s.id) && !!s.mark;
+  const isKey = !isBadge && (KEYCAPS.has(s.id) || !s.mark);
+  const link = SKILL_LINKS[s.id];
   const common = {
-    label: `${s.name} ${isKey ? 'key' : 'token'}`,
-    description: `${s.name}, one of the technologies Ilay works with.`,
+    label: link ? s.name : `${s.name} ${isKey ? 'key' : isBadge ? 'badge' : 'token'}`,
+    description: link
+      ? OPEN_PROFILE(s.name)
+      : `${s.name}, one of the technologies Ilay works with.`,
     name: s.name,
     mark: s.mark,
     legend: s.legend,
     tier: s.tier,
     rank,
     href: null,
+    url: link ? profile.links[link] : null,
     scale,
     accentLegend: s.tier === 'A',
     finish: FINISHES[rank % FINISHES.length]!,
@@ -162,8 +193,26 @@ const skillPiece = (s: Skill, rank: number, scale: number): ObjectSpec => {
       accentBody: false,
     };
   }
-  const f = tokenFootprint(s.mark!, t.side * scale);
-  const h = t.h * TOKEN_THICK * scale;
+  if (isBadge) {
+    const b = badgeSize(t.side, t.h * 0.8, scale);
+    return {
+      ...common,
+      id: `badge-${s.id}`,
+      kind: 'badge',
+      size: b.size,
+      radius: b.radius,
+      mass: b.size.w * b.size.d * b.size.h * DENSITY * t.weight * 0.9,
+      accentBody: false,
+    };
+  }
+  // A filled disc (GitHub) is sized by its plate diameter to match the LinkedIn tile's side (tier B).
+  const tb = FILLED_TOKENS.has(s.mark!) ? TIER_SIZE.B : t;
+  const unit1 = tokenFootprint(s.mark!, 1).unit;
+  const maxDim = FILLED_TOKENS.has(s.mark!)
+    ? (tb.side * scale) / (2 * DISC_PLATE_RADIUS * unit1)
+    : t.side * scale;
+  const f = tokenFootprint(s.mark!, maxDim);
+  const h = tb.h * TOKEN_THICK * scale;
   return {
     ...common,
     id: `token-${s.id}`,
@@ -262,6 +311,7 @@ const projectPiece = (kind: ProjectKind, rank: number, scale: number): ObjectSpe
     tier: null,
     rank,
     href: h.href,
+    url: null,
     size,
     scale,
     radius: h.radius * scale,
@@ -273,15 +323,53 @@ const projectPiece = (kind: ProjectKind, rank: number, scale: number): ObjectSpe
   };
 };
 
-/** Skills kept in each set, always in importance order (the top ten are in every set). */
+/**
+ * The LinkedIn piece: the official mark is a rounded blue tile with a white "in", so it is a badge, sized like a
+ * tier B token. It is not a skill (no tier), it opens the owner's profile.
+ */
+const linkedinPiece = (rank: number, scale: number): ObjectSpec => {
+  const t = TIER_SIZE.B;
+  const b = badgeSize(t.side, t.h * 0.8, scale);
+  return {
+    id: 'linkedin',
+    kind: 'badge',
+    label: 'LinkedIn',
+    description: OPEN_PROFILE('LinkedIn'),
+    name: 'LinkedIn',
+    mark: 'linkedin',
+    legend: null,
+    tier: null,
+    rank,
+    href: null,
+    url: profile.links.linkedin,
+    size: b.size,
+    scale,
+    radius: b.radius,
+    mass: b.size.w * b.size.d * b.size.h * DENSITY * t.weight * 0.9,
+    accentBody: false,
+    accentLegend: false,
+    finish: 'ceramic',
+    shade: 0.5,
+  };
+};
+
+/** Skills kept in each set, always in importance order (the top ten are in every set, bar one on a phone's lite set). */
 const KEY_COUNT: Record<Breakpoint, { full: number; lite: number }> = {
   desktop: { full: 25, lite: 15 },
   mobile: { full: 13, lite: 10 },
 };
+/**
+ * How many of the top ten skills each set keeps. A phone's lite set is the tightest floor: GitHub joins it (it is
+ * a link piece, in every layout), so Python, the last of the top ten, is the one skill piece given up.
+ */
+const TOP_COUNT: Record<Breakpoint, Record<'full' | 'lite', number>> = {
+  desktop: { full: 10, lite: 10 },
+  mobile: { full: 10, lite: 9 },
+};
 /** Skills that fill the places after the top ten in the reduced sets, by importance. */
 const EXTRA_KEYS: Record<Breakpoint, Record<'full' | 'lite', readonly string[]>> = {
   desktop: { full: [], lite: ['compose', 'typescript', 'node', 'github', 'claude'] },
-  mobile: { full: ['compose', 'typescript', 'github'], lite: [] },
+  mobile: { full: ['compose', 'typescript', 'github'], lite: ['github'] },
 };
 const PROJECT_SETS: Record<Breakpoint, Record<'full' | 'lite', ProjectKind[]>> = {
   desktop: {
@@ -300,18 +388,24 @@ const PROJECT_SETS: Record<Breakpoint, Record<'full' | 'lite', ProjectKind[]>> =
  */
 export function buildCatalogue(bp: Breakpoint, lite = false): ObjectSpec[] {
   const set = lite ? 'lite' : 'full';
-  const top = SKILLS.slice(0, 10);
+  const top = SKILLS.slice(0, TOP_COUNT[bp][set]);
   const want = new Set<string>([...top.map((s) => s.id), ...EXTRA_KEYS[bp][set]]);
   const skills = bp === 'desktop' && !lite ? SKILLS : SKILLS.filter((s) => want.has(s.id));
   const scale = PIECE_SCALE[bp];
   const keys = skills.map((s) => skillPiece(s, IMPORTANCE.indexOf(s.id), scale));
   if (keys.length !== KEY_COUNT[bp][set]) throw new Error('catalogue key count drifted');
   const pieces = PROJECT_SETS[bp][set].map((k, i) => projectPiece(k, SKILLS.length + i, scale));
-  return [...keys, ...pieces];
+  return [...keys, ...pieces, linkedinPiece(SKILLS.length + pieces.length, scale)];
 }
 
-/** Text of the hover/grab chip: the name, with a hint on project pieces that open a section. */
+/** True for a piece a double-click or Enter does something with: a project section or a profile. */
+export function isOpenable(s: ObjectSpec): boolean {
+  return s.href !== null || s.url !== null;
+}
+
+/** Text of the hover/grab chip: the name, with a hint on pieces that open a section or a profile. */
 export function chipLabel(s: ObjectSpec): string {
+  if (s.url) return `${s.name} · double-click to open profile`;
   return s.href ? `${s.name} · double-click to open` : s.name;
 }
 

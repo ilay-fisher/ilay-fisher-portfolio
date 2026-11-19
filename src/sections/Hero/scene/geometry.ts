@@ -34,7 +34,13 @@ import {
   iconToFace,
   tileAt,
 } from '../logic/safeguardIcon';
-import { roundedSquareOutline, tokenFootprint } from '../logic/token';
+import {
+  BADGE_CORNER,
+  DISC_PLATE_RADIUS,
+  FILLED_TOKENS,
+  roundedSquareOutline,
+  tokenFootprint,
+} from '../logic/token';
 import { MARKS } from './marks';
 import { TOKEN_SHAPES } from './tokenData';
 
@@ -129,6 +135,8 @@ function inlayGeometry(shapes: Shape[], height: number, bevel: number) {
 
 /** The official mark as shapes in plate coordinates: centred on the plate, scaled, y down becomes +z. */
 function markShapes(slug: string, unit: number): Shape[] {
+  // Finer curve sampling on the filled disc: the octocat's ears and tail are what the piece is recognised by.
+  const divisions = FILLED_TOKENS.has(slug) ? 20 : 6;
   const mark = MARKS[slug];
   const t = TOKEN_SHAPES[slug];
   if (!mark || !t) return [];
@@ -139,12 +147,62 @@ function markShapes(slug: string, unit: number): Shape[] {
   const tx = (v: Vector2) => new Vector2((v.x - t.cx) * unit, -(v.y - t.cy) * unit);
   for (const p of data.paths)
     for (const sh of SVGLoader.createShapes(p)) {
-      const { shape, holes } = sh.extractPoints(6);
+      const { shape, holes } = sh.extractPoints(divisions);
       const s = new Shape(shape.map(tx));
       s.holes = holes.map((hole) => new Path(hole.map(tx)));
       out.push(s);
     }
   return out;
+}
+
+/**
+ * The letters of a logo that is a tile with its glyph cut out (TypeScript's "TS", LinkedIn's "in"): the holes of
+ * the official path, in tile coordinates. The tile is the mark's own 24 x 24 box, centred, `unit` world units per
+ * mark unit, y down becomes +z. The artwork is not altered, only read: its outer tile is the badge's plate and
+ * its holes are the raised letters.
+ */
+export function badgeGlyphShapes(slug: string, unit: number): Shape[] {
+  const mark = MARKS[slug];
+  if (!mark) return [];
+  const data = new SVGLoader().parse(
+    `<svg xmlns="http://www.w3.org/2000/svg"><path d="${mark.path}"/></svg>`,
+  );
+  const tx = (v: Vector2) => new Vector2((v.x - 12) * unit, -(v.y - 12) * unit);
+  const out: Shape[] = [];
+  for (const p of data.paths)
+    for (const sh of SVGLoader.createShapes(p)) {
+      const { holes } = sh.extractPoints(8);
+      for (const hole of holes) out.push(new Shape(hole.map(tx)));
+    }
+  return out;
+}
+
+/**
+ * Logo badge (TypeScript, LinkedIn): the official mark is a rounded tile in the brand colour with its letters
+ * cut out in white. Built as a bevelled tile in the brand colour with a metal rim and the letters raised in white
+ * ceramic on both faces. Not a keycap: the object is the logo's own shape.
+ */
+function buildBadge(spec: ObjectSpec, m: MaterialSet): Group {
+  const { w, h } = spec.size;
+  const half = w / 2;
+  const group = new Group();
+  const loop = roundedSquareOutline(BADGE_CORNER, 9).map(
+    ([x, z]) => [x * half, z * half] as [number, number],
+  );
+  group.add(mesh(plateGeometry([loop], h, h * 0.22), [m.body, m.rim ?? m.metal]));
+  const raise = Math.min(0.04, h * 0.2);
+  const letters = mesh(
+    inlayGeometry(badgeGlyphShapes(spec.mark!, w / 24), raise, raise * 0.35),
+    m.ink ?? m.polished,
+  );
+  letters.position.y = h / 2 - 0.002;
+  group.add(letters);
+  // Double sided, like the tokens: the same letters on the back.
+  const back = letters.clone();
+  back.position.y = -(h / 2 - 0.002);
+  back.rotation.x = Math.PI;
+  group.add(back);
+  return group;
 }
 
 /** Keycap: bevelled block whose top is a little narrower than its base, legend on the top face. */
@@ -164,6 +222,15 @@ function buildKey(spec: ObjectSpec, m: MaterialSet): Group {
   return group;
 }
 
+/** A circle of radius `r` on the floor plane as a plate outline. */
+function discLoop(r: number): Array<[number, number]> {
+  const n = 72;
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    return [Math.cos(a) * r, Math.sin(a) * r] as [number, number];
+  });
+}
+
 /**
  * Die-cut token: the logo's silhouette (grown by a thin margin) extruded into a chunky, rounded plate in the
  * brand colour, a thin metal rim, and the official mark raised on top. Like an enamel pin.
@@ -173,15 +240,18 @@ function buildToken(spec: ObjectSpec, m: MaterialSet): Group {
   const slug = spec.mark!;
   const t = TOKEN_SHAPES[slug]!;
   const unit = tokenFootprint(slug, Math.max(spec.size.w, spec.size.d)).unit;
-  const loops = t.cut.map((flat) => {
-    const pts: Array<[number, number]> = [];
-    for (let i = 0; i < flat.length; i += 2) pts.push([flat[i]! * unit, flat[i + 1]! * unit]);
-    return chaikin(pts, 2);
-  });
+  const loops = FILLED_TOKENS.has(slug)
+    ? [discLoop(DISC_PLATE_RADIUS * unit)]
+    : t.cut.map((flat) => {
+        const pts: Array<[number, number]> = [];
+        for (let i = 0; i < flat.length; i += 2) pts.push([flat[i]! * unit, flat[i + 1]! * unit]);
+        return chaikin(pts, 2);
+      });
   const group = new Group();
   const plate = mesh(plateGeometry(loops, h, h * 0.3), [m.body, m.rim ?? m.metal]);
   group.add(plate);
-  const raise = h * 0.2;
+  // A filled disc is raised higher: the cut-out is a real recess whose wall throws a shadow line.
+  const raise = h * (FILLED_TOKENS.has(slug) ? 0.4 : 0.2);
   const mk = mesh(inlayGeometry(markShapes(slug, unit), raise, raise * 0.35), m.ink ?? m.polished);
   mk.position.y = h / 2 - 0.002;
   group.add(mk);
@@ -409,13 +479,15 @@ export function buildObject(spec: ObjectSpec, m: MaterialSet): BuiltObject {
       ? buildKey(spec, m)
       : spec.kind === 'token'
         ? buildToken(spec, m)
-        : spec.kind === 'shield'
-          ? buildShield(spec, m)
-          : spec.kind === 'logo'
-            ? buildLogo(spec, m)
-            : spec.kind === 'drone'
-              ? buildDrone(spec, m)
-              : buildLens(spec, m);
+        : spec.kind === 'badge'
+          ? buildBadge(spec, m)
+          : spec.kind === 'shield'
+            ? buildShield(spec, m)
+            : spec.kind === 'logo'
+              ? buildLogo(spec, m)
+              : spec.kind === 'drone'
+                ? buildDrone(spec, m)
+                : buildLens(spec, m);
   const hoverMaterials = [
     m.body,
     m.top,

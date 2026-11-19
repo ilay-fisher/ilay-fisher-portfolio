@@ -30,7 +30,13 @@ import { createLogger } from '../../../lib/logger';
 import type { Bounds, Rig, Vec3 } from '../logic/camera';
 import { computeStage, nameCap, type Stage } from '../logic/stage';
 import { DoublePress } from '../logic/doublePress';
-import { buildCatalogue, chipLabel, type Breakpoint, type ObjectSpec } from '../logic/catalogue';
+import {
+  buildCatalogue,
+  chipLabel,
+  isOpenable,
+  type Breakpoint,
+  type ObjectSpec,
+} from '../logic/catalogue';
 import { VelocityTracker } from '../logic/drag';
 import { FixedStepper } from '../logic/fixedStep';
 import { IdleScheduler } from '../logic/idle';
@@ -69,6 +75,8 @@ export interface RuntimeOptions {
   onHits?: (n: number) => void;
   /** Double-click or Enter on a project piece: scroll to its section (`#safesurf`). */
   onNavigate?: (hash: string) => void;
+  /** Double-click or Enter on the GitHub or LinkedIn piece: open its profile in a new tab. False when refused. */
+  onOpenProfile?: (id: string, url: string) => boolean;
 }
 
 /** What the host can do with a running scene. */
@@ -582,9 +590,9 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   };
 
   const announce = (msg: string) => o.onAnnounce(msg);
-  /** Name announced on selection; project pieces also say that Enter or a double-click opens their section. */
+  /** Name announced on selection; pieces that open a section or a profile also say how. */
   const selectedMessage = (spec: ObjectSpec) =>
-    spec.href ? `${spec.label} selected. ${spec.description}` : `${spec.label} selected`;
+    isOpenable(spec) ? `${spec.label} selected. ${spec.description}` : `${spec.label} selected`;
 
   // Name chip: pointer-following on hover or grab, beside the selected object for the keyboard.
   const chip = o.chipEl ?? null;
@@ -616,6 +624,11 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
   };
 
   const openPiece = (it: Item) => {
+    if (it.spec.url) {
+      if (!o.onOpenProfile?.(it.spec.id, it.spec.url)) return false;
+      announce(`Opening my ${it.spec.name} profile in a new tab`);
+      return true;
+    }
     if (!it.spec.href || !o.onNavigate) return false;
     o.onNavigate(it.spec.href);
     announce(`Jumping to the ${it.spec.name} section`);
@@ -634,7 +647,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     const pairId = doublePress.second(e.clientX, e.clientY, performance.now());
     if (pairId) {
       const pair = content.items.get(pairId);
-      if (pair?.spec.href) {
+      if (pair && isOpenable(pair.spec)) {
         // Open only after this press has ended: the page scroller cancels an anchor scroll on any pointerdown,
         // and this very event is still bubbling to it. The first of the pair is released already.
         if (e.pointerType === 'mouse') e.preventDefault();
@@ -716,7 +729,7 @@ export async function createHeroRuntime(o: RuntimeOptions): Promise<HeroRuntime>
     if (moved < 6 && quick) {
       const p = planePoint(e.clientX, e.clientY, 0.5) ?? undefined;
       const tapped = content?.items.get(grab.id);
-      if (tapped?.spec.href)
+      if (tapped && isOpenable(tapped.spec))
         doublePress.tap(tapped.spec.id, e.clientX, e.clientY, performance.now());
       else doublePress.clear();
       endGrab(false, p);

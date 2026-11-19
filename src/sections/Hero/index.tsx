@@ -5,6 +5,7 @@ import { createLogger } from '../../lib/logger';
 import { useInView, usePrefersReducedMotion } from '../../lib/motion';
 import { isWebGLAvailable } from '../../lib/webgl';
 import { selectMode } from './logic/mode';
+import { openInNewTab } from './openLink';
 import type { HeroRuntime } from './scene/runtime';
 import './Hero.css';
 
@@ -80,6 +81,15 @@ export default function Hero() {
     a.remove();
   }, []);
 
+  // Double-click or Enter on the GitHub or LinkedIn piece: the profile opens in a new tab, from a real anchor click.
+  // Nothing identifying is logged, only which piece.
+  const openProfile = useCallback((id: string, url: string) => {
+    const opened = openInNewTab(url);
+    if (opened) log.info('profile piece opened', { piece: id });
+    else log.warn('profile piece not opened: address is not https', { piece: id });
+    return opened;
+  }, []);
+
   // Load the 3D chunk after first paint so the text is never waiting on it.
   useEffect(() => {
     if (mode !== 'scene') return;
@@ -98,6 +108,7 @@ export default function Hero() {
             chipEl: chipRef.current,
             onHits: setHits,
             onNavigate: goTo,
+            onOpenProfile: openProfile,
             onContextLost: () => setLost(true),
             onContextRestored: () => setLost(false),
             onAnnounce: setMessage,
@@ -119,7 +130,7 @@ export default function Hero() {
       created?.dispose();
       setRuntime(null);
     };
-  }, [mode, params, goTo]);
+  }, [mode, params, goTo, openProfile]);
 
   // Run the loop only while the hero is on screen and the tab is visible.
   useEffect(() => {

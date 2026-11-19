@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { TOKEN_SHAPES } from '../scene/tokenData';
 import { buildCatalogue, boundingRadius } from './catalogue';
-import { insideConvex, isConvex, roundedSquareOutline, tokenFootprint } from './token';
+import {
+  BADGE_CORNER,
+  insideConvex,
+  isConvex,
+  roundedSquareOutline,
+  tokenFootprint,
+} from './token';
 
 const tokenSpecs = buildCatalogue('desktop').filter((s) => s.kind === 'token');
 
 describe('token cut lines and colliders', () => {
   it('has shape data for every token in the catalogue', () => {
-    expect(tokenSpecs).toHaveLength(21);
+    expect(tokenSpecs).toHaveLength(22);
     for (const s of tokenSpecs) expect(TOKEN_SHAPES[s.mark!], s.id).toBeDefined();
   });
 
@@ -91,5 +97,16 @@ describe('rounded square collider (the SafeGuard app icon)', () => {
       expect(has(-x, z)).toBe(true);
       expect(has(x, -z)).toBe(true);
     }
+  });
+});
+
+describe('badge collider (TypeScript and LinkedIn tiles)', () => {
+  it('is a convex rounded square that cuts the corners but keeps the flat sides', () => {
+    const o = roundedSquareOutline(BADGE_CORNER, 3);
+    expect(isConvex(o)).toBe(true);
+    expect(BADGE_CORNER).toBeGreaterThan(0.05);
+    expect(BADGE_CORNER).toBeLessThan(0.4);
+    expect(Math.max(...o.map(([x]) => x))).toBeCloseTo(1, 9);
+    for (const [x, z] of o) expect(Math.hypot(x, z)).toBeLessThan(Math.SQRT2 - 0.02);
   });
 });

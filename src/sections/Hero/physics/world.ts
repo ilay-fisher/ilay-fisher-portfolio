@@ -15,7 +15,7 @@ import type { Bounds, Vec3 } from '../logic/camera';
 import type { ObjectSpec } from '../logic/catalogue';
 import { clampVec, springAccel } from '../logic/drag';
 import { ICON_FACE_CORNER } from '../logic/safeguardIcon';
-import { regularPolygon, roundedSquareOutline, tokenFootprint } from '../logic/token';
+import { BADGE_CORNER, regularPolygon, roundedSquareOutline, tokenFootprint } from '../logic/token';
 import type { Box as BoxDef } from '../logic/nameLayout';
 import type { SpawnPlan } from '../logic/spawn';
 
@@ -177,6 +177,10 @@ export class PhysicsWorld {
         prism(
           roundedSquareOutline(ICON_FACE_CORNER, 3).map(([x, z]) => [x * (w / 2), z * (d / 2)]),
         );
+        break;
+      case 'badge':
+        // A logo tile (TypeScript, LinkedIn): a convex rounded-square slab, the same on both faces.
+        prism(roundedSquareOutline(BADGE_CORNER, 3).map(([x, z]) => [x * (w / 2), z * (d / 2)]));
         break;
       case 'logo':
         // A round token: a regular polygon prism that rolls a little and settles flat.
@@ -361,7 +365,7 @@ export class PhysicsWorld {
       const ux = 2 * (q.x * q.y - q.z * q.w);
       const uy = 1 - 2 * (q.x * q.x + q.z * q.z);
       const uz = 2 * (q.y * q.z + q.x * q.w);
-      const sided = kind !== 'token' && kind !== 'logo';
+      const sided = kind !== 'token' && kind !== 'logo' && kind !== 'badge';
       if (body.position.y > 1.2 || (uy > 0.96 && uy <= 1) || (uy < -0.96 && !sided)) continue;
       // A piece jammed against its neighbours gets a few seconds of help, then is left to sleep.
       const used = this.toppleSteps.get(id) ?? 0;
