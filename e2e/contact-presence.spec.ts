@@ -8,6 +8,8 @@ const SIZES = [
   ['1440', { width: 1440, height: 900 }],
   ['665', { width: 665, height: 900 }],
   ['390', { width: 390, height: 844 }],
+  ['360', { width: 360, height: 780 }],
+  ['320', { width: 320, height: 640 }],
 ] as const;
 
 const overflow = (page: Page) =>
@@ -31,6 +33,9 @@ for (const [name, size] of SIZES) {
       await expect(toggle).toBeVisible();
       const t = (await toggle.boundingBox())!;
       expect(t.x + t.width).toBeLessThanOrEqual(box.x + 1); // Menu sits left of the pill, no overlap
+      // the name never runs under Menu: wider phone fonts (iOS) need real slack, so ask for 8 px
+      const brand = (await page.locator('.nav__brand').boundingBox())!;
+      expect(brand.x + brand.width + 8).toBeLessThanOrEqual(t.x + 1);
     }
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await cta.click();
