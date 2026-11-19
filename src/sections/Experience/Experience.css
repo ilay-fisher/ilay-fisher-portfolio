@@ -176,13 +176,20 @@
   .readings__list {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* three tiles: the before/after reading takes the full row, the other two pair under it */
+  .reading:first-child {
+    grid-column: 1 / -1;
+  }
   .education__grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 @media (min-width: 900px) {
   .readings__list {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .reading:first-child {
+    grid-column: auto;
   }
   .timeline__item {
     grid-template-columns: 13rem minmax(0, 1fr);
