@@ -142,7 +142,7 @@ void main() {
   float band = flick * (1.0 - form);
   float charBand = smoothstep(1.9, 2.6, tt) * (1.0 - smoothstep(3.4, 4.6, tt)) * band;
   float acc = (1.0 - smoothstep(0.0, 1.1, abs(tt - 1.7))) * flick;
-  float amber = (1.0 - smoothstep(0.0, 1.0, abs(tt - 0.85))) * flick;
+  float pale = (1.0 - smoothstep(0.0, 1.0, abs(tt - 0.85))) * flick;
   float core = (1.0 - smoothstep(0.0, 0.7, abs(tt - 0.1))) * flick;
   // A burn glows on both sides of the line; a re-form is a cooling lip on the formed side only.
   float side = mix(1.0, step(0.0, d), form);
@@ -151,7 +151,7 @@ void main() {
   vec4 r = base;
   r = over(vec4(uChar * charBand * 0.92, charBand * 0.92) * fade, r);
   r = over(vec4(uMid * acc * 0.9, acc * 0.9) * fade * side, r);
-  r = over(vec4(uHi * amber, amber) * fade * side, r);
+  r = over(vec4(uHi * pale, pale) * fade * side, r);
   r = over(vec4(uHot * core, core) * fade * side, r);
 
   // Glow spill: soft light thrown past the front, and past the image edge at peak heat.
