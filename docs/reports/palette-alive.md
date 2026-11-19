@@ -50,8 +50,7 @@ scope.
 
 Judged against the new palette, the brushed grey-bronze alloy no longer fit: it was warm metal on
 a cool stage. The letters are now glossy white ceramic (clearcoat 0.85, metalness 0) on dark
-plinths, with a thin rounded cyan inlay line on each plinth front. Bevel radius went 0.042 -> 0.06
-with 12 segments, so edges are rounder. The inlay is visual only: colliders come from the layout
+plinths, with a thin rounded cyan inlay line on each plinth front. Bevel is 0.04 em with a 0.012 inset; a larger one folded the contour in the joins of a, y, s, e and r (close-up: palette-alive-name-closeup.png). The inlay is visual only: colliders come from the layout
 and are untouched. Stills (`public/hero/still-*.webp`) regenerated from the live scene.
 Before and after: `docs/reports/img/palette-alive-name-before-after.png`.
 

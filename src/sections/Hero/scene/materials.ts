@@ -45,7 +45,7 @@ export function bodyMaterial(spec: ObjectSpec, palette: Palette): MeshPhysicalMa
     // The logo's own tile: glazed ceramic in the brand colour, exactly as the official mark specifies it.
     return new MeshPhysicalMaterial({
       color: `#${MARKS[spec.mark]!.hex}`,
-      roughness: 0.3,
+      roughness: 0.24,
       metalness: 0,
       clearcoat: 1,
       clearcoatRoughness: 0.1,
@@ -147,7 +147,7 @@ export function materialSet(
   const polished = new MeshPhysicalMaterial({ color: '#c2c7ce', metalness: 1, roughness: 0.12 });
   const accent = new MeshPhysicalMaterial({
     color: palette.accent,
-    roughness: 0.3,
+    roughness: 0.24,
     metalness: 0.2,
     clearcoat: 1,
     emissive: palette.accent,
@@ -166,14 +166,14 @@ export function materialSet(
     spec.mark === 'github' && spec.kind === 'token'
       ? new MeshPhysicalMaterial({
           color: GITHUB_WHITE,
-          roughness: 0.3,
+          roughness: 0.24,
           metalness: 0.1,
           clearcoat: 0.9,
           clearcoatRoughness: 0.1,
         })
       : new MeshPhysicalMaterial({
           color: spec.kind === 'badge' ? BADGE_WHITE : markHex ? markColor(markHex) : '#ffffff',
-          roughness: 0.3,
+          roughness: 0.24,
           metalness: 0,
           clearcoat: 0.8,
           clearcoatRoughness: 0.12,
@@ -206,7 +206,7 @@ export function materialSet(
   const iconBlue = new MeshPhysicalMaterial({
     color: '#ffffff',
     vertexColors: true,
-    roughness: 0.3,
+    roughness: 0.24,
     metalness: 0,
     clearcoat: 1,
     clearcoatRoughness: 0.1,
@@ -258,11 +258,12 @@ export function nameMaterials(palette: Palette): {
 } {
   return {
     letters: new MeshPhysicalMaterial({
-      color: palette.paper.clone().lerp(new Color('#f4f8ff'), 0.45).multiplyScalar(0.8),
+      color: palette.paper.clone().lerp(new Color('#f4f8ff'), 0.45).multiplyScalar(0.76),
       metalness: 0,
-      roughness: 0.4,
-      clearcoat: 0.85,
-      clearcoatRoughness: 0.1,
+      roughness: 0.24,
+      clearcoat: 1,
+      clearcoatRoughness: 0.04,
+      envMapIntensity: 1.3,
     }),
     slab: new MeshPhysicalMaterial({
       color: '#131920',
