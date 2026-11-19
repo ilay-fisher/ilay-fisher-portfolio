@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const glass = '#about .avatar__stage';
+/** Frames are fetched and decoded lazily (63 images); on a shared 2-vCPU CI runner two tests doing it at once can take well over 15 s. */
+const LOADED = 45_000;
 
 /**
  * Waits until the displayed frame index has stopped changing (the spring has settled), then returns it. The pointer
@@ -31,7 +33,7 @@ test('the head follows the pointer: sweeping left to right never raises the fram
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
+  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: LOADED });
   const box = (await page.locator('#about .avatar').boundingBox())!;
   const y = box.y + box.height / 2;
   const seen: number[] = [];
@@ -50,7 +52,7 @@ test('the pointer is tracked anywhere on the page, not only over the avatar', as
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
+  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: LOADED });
   await page.mouse.move(2, 5, { steps: 6 });
   const left = await settled(page, 2, 5);
   await page.mouse.move(1436, 5, { steps: 6 });
@@ -63,7 +65,7 @@ test('reduced motion shows one static frame and ignores the pointer', async ({ p
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'static', { timeout: 15000 });
+  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'static', { timeout: LOADED });
   const first = await page.locator(glass).getAttribute('data-frame');
   await page.mouse.move(2, 400, { steps: 5 });
   await page.waitForTimeout(800);
@@ -98,7 +100,7 @@ test('the avatar is lazy: nothing from the turn set loads until About is near', 
   await page.waitForTimeout(1200);
   expect(urls).toEqual([]);
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect.poll(() => urls.length, { timeout: 15000 }).toBeGreaterThan(30);
+  await expect.poll(() => urls.length, { timeout: LOADED }).toBeGreaterThan(30);
 });
 
 test('he blinks: a blink starts and ends on request, and the head and layout do not move', async ({
@@ -112,7 +114,7 @@ test('he blinks: a blink starts and ends on request, and the head and layout do 
   // starts exactly when the `avatar:blink` event says so. (The 3 to 7 s random rhythm is unit-tested in blinkLogic.)
   await page.goto('/?avatarBlink=manual');
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
+  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: LOADED });
   const stage = page.locator(glass);
   const box = (await page.locator('#about .avatar').boundingBox())!;
   const x = box.x + box.width / 2;
@@ -177,7 +179,7 @@ test('blinking pauses under reduced motion, and a missing atlas just means no bl
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.locator('#about').scrollIntoViewIfNeeded();
-  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'static', { timeout: 15000 });
+  await expect(page.locator(glass)).toHaveAttribute('data-avatar', 'static', { timeout: LOADED });
   // No scheduler exists under reduced motion: the stage says so as soon as it is up, no waiting for a blink that never comes.
   await expect(page.locator(glass)).toHaveAttribute('data-blink', 'off');
   await expect(page.locator(glass)).toHaveAttribute('data-blink-started', '0');
@@ -187,7 +189,7 @@ test('blinking pauses under reduced motion, and a missing atlas just means no bl
   await other.setViewportSize({ width: 1440, height: 900 });
   await other.goto('/');
   await other.locator('#about').scrollIntoViewIfNeeded();
-  await expect(other.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: 15000 });
+  await expect(other.locator(glass)).toHaveAttribute('data-avatar', 'frames', { timeout: LOADED });
   await expect(other.locator(glass)).toHaveAttribute('data-blink', 'off');
   await expect(other.locator(glass)).toHaveAttribute('data-blink-started', '0');
 });
