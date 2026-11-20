@@ -47,6 +47,47 @@ test.describe('X-Ray demo', () => {
     expect(errors).toEqual([]);
   });
 
+  test('the intro sweep waits for scrolling to stop, then plays @gl-heavy', async ({ page }) => {
+    // Frame timing matters here, so it runs alone (gl-heavy project): on a starved machine a frame can
+    // take longer than the idle window and look like the scroll stopped.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await expect(page.getByTestId('xray-heatmap')).toHaveAttribute(
+      'data-source',
+      /computed|fallback/,
+      {
+        timeout: 60_000,
+      },
+    );
+    // Park above the section until the page has finished laying out, then scroll onto it.
+    await page.waitForTimeout(2000);
+    const r = await page.evaluate(async () => {
+      const st = document.querySelector('[data-testid="xray-stage"]')!;
+      const knob = document.querySelector<HTMLElement>('.xray__knob')!;
+      const base = st.getBoundingClientRect().top + scrollY - 150;
+      const seen: [number, string][] = [];
+      const t0 = performance.now();
+      let i = 0;
+      await new Promise<void>((done) => {
+        const f = () => {
+          const t = performance.now() - t0;
+          // A finger keeps the page moving over the stage for the first second.
+          if (t < 1000) window.scrollTo({ top: base + (i++ % 2 ? 4 : 0), behavior: 'instant' });
+          seen.push([t, knob.style.left]);
+          if (t < 5000) requestAnimationFrame(f);
+          else done();
+        };
+        requestAnimationFrame(f);
+      });
+      return {
+        movedWhileScrolling: seen.filter(([t, l]) => t < 1000 && l !== '50%').length,
+        positionsAfter: new Set(seen.filter(([t]) => t >= 1000).map(([, l]) => l)).size,
+      };
+    });
+    expect(r.movedWhileScrolling).toBe(0);
+    expect(r.positionsAfter).toBeGreaterThan(3);
+  });
+
   test('keyboard and drag move the slider clip', async ({ page }) => {
     await openDemo(page);
     const slider = page.getByTestId('xray-slider');

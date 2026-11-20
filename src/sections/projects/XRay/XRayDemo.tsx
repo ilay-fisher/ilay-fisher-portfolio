@@ -26,6 +26,8 @@ const FLIGHT_MS = 480;
 const STREAM_CPS = 90;
 /** A finger must travel this far sideways (and more sideways than down) before it drags the slider. */
 const DRAG_SLOP = 6;
+/** The intro sweep waits until the page has stopped scrolling this long, so it never runs under a finger. */
+const SCROLL_IDLE_MS = 180;
 const SEVERITY_LABEL = {
   low: 'Low',
   medium: 'Medium',
@@ -178,26 +180,105 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
     }
   }, [analysis]);
 
-  const stopSweep = useCallback(() => {
-    if (sweepId.current) cancelAnimationFrame(sweepId.current);
-    sweepId.current = 0;
+  // The divider (heat clip, handle, rail) is drawn straight to the DOM, never through React state.
+  // The intro sweep and the spring used to set state every frame, re-rendering the whole demo 60
+  // times a second, and on a phone that landed exactly while the finger was scrolling past.
+  const heatRef = useRef<HTMLDivElement | null>(null);
+  const handleRef = useRef<HTMLDivElement | null>(null);
+  const litRef = useRef<HTMLSpanElement | null>(null);
+  const knobRef = useRef<HTMLSpanElement | null>(null);
+  const rangeRef = useRef<HTMLInputElement | null>(null);
+  const spring = useRef<SpringState>({ x: 50, v: 0 });
+  const goal = useRef(50);
+  const springId = useRef(0);
+  const paint = useCallback((x: number) => {
+    if (heatRef.current) heatRef.current.style.clipPath = sliderToClip(x);
+    const left = handleLeft(x);
+    if (handleRef.current) handleRef.current.style.left = left;
+    if (litRef.current) litRef.current.style.width = left;
+    if (knobRef.current) knobRef.current.style.left = left;
   }, []);
+  /** Moves the drawn divider toward `to`: with slight inertia, or exactly under reduced motion. */
+  const chase = useCallback(
+    (to: number) => {
+      goal.current = to;
+      if (reduced) {
+        cancelAnimationFrame(springId.current);
+        springId.current = 0;
+        spring.current = { x: to, v: 0 };
+        paint(to);
+        return;
+      }
+      if (springId.current) return;
+      let last = performance.now();
+      const tick = (now: number) => {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        let next = springStep(spring.current, goal.current, dt);
+        const settled = Math.abs(next.x - goal.current) < 0.04 && Math.abs(next.v) < 0.2;
+        if (settled) next = { x: goal.current, v: 0 };
+        spring.current = next;
+        paint(next.x);
+        springId.current = settled ? 0 : requestAnimationFrame(tick);
+      };
+      springId.current = requestAnimationFrame(tick);
+    },
+    [reduced, paint],
+  );
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(springId.current);
+      springId.current = 0;
+    },
+    [],
+  );
+  const targetRef = useRef(50);
 
-  // One intro sweep the first time the stage is in view with a result to show.
+  const stopSweep = useCallback(() => {
+    if (!sweepId.current) return;
+    cancelAnimationFrame(sweepId.current);
+    sweepId.current = 0;
+    chase(targetRef.current);
+  }, [chase]);
+
+  // One intro sweep the first time the stage is in view with a result to show, once scrolling stops.
   useEffect(() => {
     if (reduced || swept.current || touched.current || !stageInView || !analysis || guess) return;
-    swept.current = true;
     const stops = analysis.regions.map((r) => ((r.x + r.w / 2) / preset.width) * 100);
-    log.info('intro sweep', { stops: stops.length });
-    const t0 = performance.now();
-    const frame = (now: number) => {
-      const t = (now - t0) / SWEEP_MS;
-      setValue(sweepPath(t, stops));
-      sweepId.current = t < 1 ? requestAnimationFrame(frame) : 0;
+    let idle = 0;
+    const begin = () => {
+      window.removeEventListener('scroll', onScroll);
+      if (touched.current) return; // the visitor got to the slider first
+      swept.current = true;
+      log.info('intro sweep', { stops: stops.length });
+      const t0 = performance.now();
+      const frame = (now: number) => {
+        const t = (now - t0) / SWEEP_MS;
+        const v = sweepPath(t, stops);
+        chase(v);
+        if (rangeRef.current) rangeRef.current.value = String(Math.round(v));
+        if (t < 1) {
+          sweepId.current = requestAnimationFrame(frame);
+        } else {
+          sweepId.current = 0;
+          setValue(clampPercent(v));
+          chase(clampPercent(v));
+        }
+      };
+      sweepId.current = requestAnimationFrame(frame);
     };
-    sweepId.current = requestAnimationFrame(frame);
-    return stopSweep;
-  }, [reduced, stageInView, analysis, guess, stopSweep, preset.width]);
+    const onScroll = () => {
+      window.clearTimeout(idle);
+      idle = window.setTimeout(begin, SCROLL_IDLE_MS);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    idle = window.setTimeout(begin, SCROLL_IDLE_MS);
+    return () => {
+      window.clearTimeout(idle);
+      window.removeEventListener('scroll', onScroll);
+      stopSweep();
+    };
+  }, [reduced, stageInView, analysis, guess, stopSweep, chase, preset.width]);
 
   const regions = useMemo(() => (analysis ? analysis.regions : []), [analysis]);
   const sel = selected !== null ? regions[selected] : undefined;
@@ -323,27 +404,12 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
   };
 
   const target = guess ? 0 : value;
-  // The drawn divider follows the input with slight inertia; reduced motion follows it exactly.
-  const [follow, setFollow] = useState(50);
-  const spring = useRef<SpringState>({ x: 50, v: 0 });
-  useEffect(() => {
-    if (reduced) return;
-    let id = 0;
-    let last = performance.now();
-    const tick = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      spring.current = springStep(spring.current, target, dt);
-      const settled =
-        Math.abs(spring.current.x - target) < 0.04 && Math.abs(spring.current.v) < 0.2;
-      if (settled) spring.current = { x: target, v: 0 };
-      setFollow(spring.current.x);
-      id = settled ? 0 : requestAnimationFrame(tick);
-    };
-    id = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(id);
-  }, [target, reduced]);
-  const shown = reduced ? target : follow;
+  useLayoutEffect(() => {
+    targetRef.current = target;
+    if (!sweepId.current) chase(target);
+  }, [target, chase]);
+  // React holds none of the divider styles, so a render never moves it; draw the current spot on mount.
+  useLayoutEffect(() => paint(spring.current.x), [paint]);
   const total = regions.length;
   const layout = sel ? pairLayout(sel) : null;
   const live = stream.key === `${presetId}:${selected}`;
@@ -418,7 +484,7 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                   className="xray__heat"
                   data-testid="xray-heatmap"
                   data-source={analysis?.source ?? 'pending'}
-                  style={{ clipPath: sliderToClip(shown) }}
+                  ref={heatRef}
                 >
                   <img
                     className="xray__img xray__heatbase"
@@ -495,11 +561,7 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                     ))}
                   </>
                 )}
-                <div
-                  className="xray__handle"
-                  aria-hidden="true"
-                  style={{ left: handleLeft(shown) }}
-                >
+                <div className="xray__handle" aria-hidden="true" ref={handleRef}>
                   <span className="xray__glow" />
                   <span className="xray__edge" />
                 </div>
@@ -507,13 +569,14 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
               </div>
               <div className="xray__rail" aria-hidden="true">
                 <span className="xray__groove well" />
-                <span className="xray__lit" style={{ width: handleLeft(shown) }} />
-                <span className="xray__knob" style={{ left: handleLeft(shown) }}>
+                <span className="xray__lit" ref={litRef} />
+                <span className="xray__knob" ref={knobRef}>
                   <span className="xray__led" />
                 </span>
               </div>
               <input
                 className="xray__range"
+                ref={rangeRef}
                 type="range"
                 min={0}
                 max={100}
