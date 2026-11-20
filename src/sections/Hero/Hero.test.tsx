@@ -84,9 +84,9 @@ describe('Hero markup', () => {
     expect(screen.getByText("Throw everything at me. I'll handle it.")).toBeInTheDocument();
   });
 
-  it('has a scroll cue to the next section', () => {
+  it('has no scroll cue (the page scrolls on its own)', () => {
     render(<Hero />);
-    expect(screen.getByRole('link', { name: /scroll/i })).toHaveAttribute('href', '#about');
+    expect(screen.queryByRole('link', { name: /scroll/i })).toBeNull();
   });
 });
 

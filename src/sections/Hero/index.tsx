@@ -216,9 +216,6 @@ export default function Hero() {
         aria-hidden="true"
         hidden
       />
-      <a className="hero__cue" href="#about">
-        Scroll
-      </a>
       <p className="visually-hidden" role="status" aria-live="polite">
         {message}
       </p>

@@ -152,27 +152,6 @@
 .hero__tools .btn {
   pointer-events: auto;
 }
-.hero__cue {
-  position: absolute;
-  z-index: 1;
-  left: var(--gutter);
-  bottom: var(--space-5);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--step--1);
-  color: var(--text-faint);
-  text-decoration: none;
-}
-.hero__cue::after {
-  content: '';
-  width: 1px;
-  height: 28px;
-  background: linear-gradient(var(--text-faint), transparent);
-}
-.hero__cue:hover {
-  color: var(--text);
-}
 
 /* Narrow: text on top, the studio underneath it. */
 @media (max-width: 899px) {
@@ -212,10 +191,5 @@
   }
   .hero__hint {
     max-width: none;
-  }
-  .hero__cue {
-    left: auto;
-    right: auto;
-    bottom: var(--space-4);
   }
 }
