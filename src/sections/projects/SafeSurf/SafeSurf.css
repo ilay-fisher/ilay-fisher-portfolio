@@ -925,6 +925,53 @@
   margin-left: auto;
 }
 
+/* Bypass keys: laid out by the row's own width (container query), never by wrapping, so a key
+   can never spill into the display below. Narrow: label on top, keys 2 x 2. Medium: label beside
+   the 2 x 2. Wide: one row of four. Every row is a fixed height, so the block height stays
+   content-independent. */
+.ss .ss-keys--bypass {
+  display: block;
+  height: auto;
+  container-type: inline-size;
+}
+.ss-bypass-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 16px 40px 40px;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ss-bypass-grid .ss-cap {
+  grid-column: 1 / -1;
+  line-height: 16px;
+}
+.ss-bypass-grid .ss-key {
+  min-width: 0;
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@container (min-width: 320px) {
+  .ss-bypass-grid {
+    grid-template-columns: auto repeat(2, minmax(0, 1fr));
+    grid-template-rows: 40px 40px;
+  }
+  .ss-bypass-grid .ss-cap {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+}
+@container (min-width: 560px) {
+  .ss-bypass-grid {
+    grid-template-columns: auto repeat(4, minmax(0, 1fr));
+    grid-template-rows: 40px;
+  }
+  .ss-bypass-grid .ss-cap {
+    grid-row: 1;
+  }
+}
+
 /* ---- zero layout shift ----
    Every part of the rig that shows text or appears and disappears has an explicit,
    content-independent height per breakpoint (never min-height, never sized by font metrics),
@@ -949,9 +996,6 @@
 .ss-slot,
 .ss-keys {
   height: 40px;
-}
-.ss-keys--bypass {
-  height: 88px;
 }
 .ss .ss-readout {
   height: 88px;
@@ -997,9 +1041,6 @@
     height: 84px;
   }
   .ss-keys:not(.ss-keys--bypass) {
-    height: 40px;
-  }
-  .ss-keys--bypass {
     height: 40px;
   }
 }

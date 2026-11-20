@@ -143,7 +143,7 @@ export const BYPASSES: BypassInfo[] = [
     id: 'install',
     short: 'Install app',
     label: 'Install an app',
-    refusal: 'SafeGuard: new installs are blocked. Nothing was installed.',
+    refusal: 'SafeGuard: the app installed, then got suspended right away. It never opens.',
   },
   {
     id: 'inapp',

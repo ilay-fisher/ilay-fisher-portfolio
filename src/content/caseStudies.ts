@@ -66,7 +66,7 @@ export const caseStudies: CaseStudy[] = [
       },
       {
         title: 'SafeGuard locks the device around the browser.',
-        body: 'It hides other browsers, closes in-app browsers, stops new installs and locks the system settings that allow bypass, such as VPN and private DNS.',
+        body: 'It hides other browsers, closes in-app browsers, suspends any newly installed app and locks the system settings that allow bypass, such as VPN and private DNS.',
       },
       {
         title: 'Filtering runs on the device.',
