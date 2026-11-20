@@ -83,6 +83,16 @@ describe('ProjectPage', () => {
     );
   });
 
+  it('ends with the same contact panel as the home page, without the hero wit line', () => {
+    render(<ProjectPage id="drone" />);
+    const contact = document.getElementById('contact')!;
+    expect(within(contact).getByRole('heading', { name: /get in touch/i })).toBeInTheDocument();
+    expect(within(contact).getByTestId('contact-email')).toHaveTextContent('ilay3002@gmail.com');
+    expect(within(contact).getByRole('button', { name: /copy email/i })).toBeInTheDocument();
+    expect(within(contact).getByRole('link', { name: /whatsapp/i })).toBeInTheDocument();
+    expect(within(contact).queryByText(/throwing things was fun/i)).toBeNull();
+  });
+
   it('renders the real screenshots with alt text', () => {
     render(<ProjectPage id="xray" />);
     const imgs = screen.getAllByRole('img').filter((i) => i.getAttribute('src')?.endsWith('.webp'));

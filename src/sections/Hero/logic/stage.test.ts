@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildCatalogue } from './catalogue';
 import { footprintRadius } from './spawn';
 import { projectToNdc } from './camera';
+import { MOBILE_SCENE_PX } from './region';
 import { computeStage, nameScreenRect } from './stage';
 
 /** Typical sizes of the hero text block (px, relative to the canvas) at each viewport width. */
@@ -74,5 +75,17 @@ describe('stage per viewport', () => {
     });
     const front = projectToNdc(st.rig, { x: 0, y: 0, z: st.layout.keepOut.maxZ + 0.5 });
     expect(front.y).toBeLessThan(nameScreenRect(st).y0 + 0.05);
+  });
+});
+
+describe('phone: the 3D name never reaches the text', () => {
+  // iOS Safari wraps the copy onto more lines than Chrome, so the text can end anywhere in this range.
+  // The hero grows with it (CSS keeps MOBILE_SCENE_PX of stage under the text), and the name must stay clear.
+  it.each([360, 400, 440, 480, 520, 560, 620])('text ending at %ipx leaves at least 24px', (bottom) => {
+    const width = 390;
+    const height = Math.max(784, bottom + MOBILE_SCENE_PX);
+    const st = computeStage({ canvas: { width, height }, text: { right: width, bottom }, windowWidth: width });
+    const nameTop = ((1 - nameScreenRect(st).y1) / 2) * height;
+    expect(nameTop - bottom).toBeGreaterThanOrEqual(24);
   });
 });

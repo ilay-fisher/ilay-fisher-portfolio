@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
-/** The four Contact keys, once the section is in view. */
+/** The three Contact keys, once the section is in view. */
 async function keys(page: Page) {
   const contact = page.locator('#contact');
   await contact.scrollIntoViewIfNeeded();
   const links = contact.locator('a.link-key');
-  await expect(links).toHaveCount(4);
+  await expect(links).toHaveCount(3);
   return { contact, links };
 }
 
@@ -19,18 +19,15 @@ for (const [name, size] of [
     await page.setViewportSize(size);
     await page.goto('/');
     const { contact, links } = await keys(page);
-    await expect(links.nth(0)).toHaveAttribute('href', 'tel:+972587793124');
-    await expect(links.nth(1)).toHaveAttribute('href', 'https://wa.me/972587793124');
-    await expect(links.nth(1)).toHaveAttribute('aria-label', 'Message Ilay on WhatsApp');
-    await expect(links.nth(2)).toHaveAttribute('href', /linkedin\.com\/in\//);
-    await expect(links.nth(3)).toHaveAttribute('href', /github\.com\//);
-    for (let i = 0; i < 4; i++) {
+    await expect(links.nth(0)).toHaveAttribute('href', 'https://wa.me/972587793124');
+    await expect(links.nth(0)).toHaveAttribute('aria-label', 'Message Ilay on WhatsApp');
+    await expect(links.nth(1)).toHaveAttribute('href', /linkedin\.com\/in\//);
+    await expect(links.nth(2)).toHaveAttribute('href', /github\.com\//);
+    for (let i = 0; i < 3; i++) {
       const a = links.nth(i);
       await expect(a).toBeVisible();
-      if (i > 0) {
-        await expect(a).toHaveAttribute('target', '_blank');
-        await expect(a).toHaveAttribute('rel', /noopener/);
-      }
+      await expect(a).toHaveAttribute('target', '_blank');
+      await expect(a).toHaveAttribute('rel', /noopener/);
       await expect(a.locator('svg[aria-hidden="true"]')).toBeVisible();
       const box = (await a.boundingBox())!;
       expect(box.height).toBeGreaterThanOrEqual(44);

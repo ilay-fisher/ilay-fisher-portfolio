@@ -2,7 +2,8 @@ import type { ReadingData } from './Reading';
 
 /**
  * The numbers shown as bench readings. Every figure comes from docs/CONTENT.md
- * (SafeSurf and Magshimim entries, and the two CVs); nothing here is estimated.
+ * (SafeSurf entry and the two CVs); nothing here is estimated. Teaching is
+ * told once, in the timeline, so it has no tile here.
  */
 export const READINGS: ReadingData[] = [
   {
@@ -35,14 +36,5 @@ export const READINGS: ReadingData[] = [
     suffix: '+',
     note: 'Live since May 2026. Some on paid subscriptions.',
     spoken: '50+ active users since the May 2026 launch, some on paid subscriptions',
-  },
-  {
-    id: 'students',
-    label: 'Students taught advanced C',
-    from: 0,
-    to: 10,
-    decimals: 0,
-    note: 'Pointers, memory management, data structures.',
-    spoken: '10 students taught advanced C',
   },
 ];

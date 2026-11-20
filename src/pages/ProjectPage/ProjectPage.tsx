@@ -6,10 +6,10 @@ import { Nav } from '../../components/Nav/Nav';
 import { Section } from '../../components/Section/Section';
 import { TagList } from '../../components/Tag/Tag';
 import { caseStudyOf, type CaseMedia } from '../../content/caseStudies';
-import { profile } from '../../content/profile';
 import { projects, type Project, type ProjectId } from '../../content/projects';
 import { usePageMeta } from '../../lib/documentMeta';
 import { homeHref, workPath } from '../../lib/route';
+import Contact from '../../sections/Contact';
 import { SafeSurfDemo } from '../../sections/projects/SafeSurf/SafeSurfDemo';
 import './ProjectPage.css';
 
@@ -170,23 +170,7 @@ export function ProjectPage({ id }: ProjectPageProps) {
           </CaseKey>
         </nav>
 
-        <Section
-          id="case-contact"
-          title="Get in touch."
-          accent="touch"
-          summary={profile.availability}
-          className="case-section"
-        >
-          <div className="case__contact stage">
-            <div className="case__links">
-              <LinkButton variant="primary" href={`mailto:${profile.email}`}>
-                Email Ilay
-              </LinkButton>
-              <LinkButton href={profile.links.linkedin}>LinkedIn</LinkButton>
-              <LinkButton href={profile.links.github}>GitHub</LinkButton>
-            </div>
-          </div>
-        </Section>
+        <Contact wit={false} className="case-section" />
       </main>
       <Footer />
     </div>

@@ -8,6 +8,7 @@ const SIZES = [
   ['1440', { width: 1440, height: 900 }],
   ['665', { width: 665, height: 900 }],
   ['390', { width: 390, height: 844 }],
+  ['360', { width: 360, height: 780 }],
 ] as const;
 
 const overflow = (page: Page) =>
@@ -31,6 +32,9 @@ for (const [name, size] of SIZES) {
       await expect(toggle).toBeVisible();
       const t = (await toggle.boundingBox())!;
       expect(t.x + t.width).toBeLessThanOrEqual(box.x + 1); // Menu sits left of the pill, no overlap
+      // the name never runs under Menu: wider phone fonts (iOS) need real slack, so ask for 8 px
+      const brand = (await page.locator('.nav__brand').boundingBox())!;
+      expect(brand.x + brand.width + 8).toBeLessThanOrEqual(t.x + 1);
     }
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await cta.click();
@@ -60,7 +64,7 @@ for (const [name, size] of [
   ['390', { width: 390, height: 844 }],
   ['360', { width: 360, height: 780 }],
 ] as const) {
-  test(`contact actions: one clean row or an even 2 + 2 + 2, at ${name}`, async ({ page }) => {
+  test(`contact actions: one clean row, or Email alone then 2 + 2, at ${name}`, async ({ page }) => {
     await page.setViewportSize(size);
     await page.goto('/');
     const actions = page.locator('#contact .contact__actions');
@@ -71,10 +75,10 @@ for (const [name, size] of [
         return { top: Math.round(r.top), left: r.left, right: r.right };
       }),
     );
-    expect(boxes).toHaveLength(6);
+    expect(boxes).toHaveLength(5);
     const rows = [...new Set(boxes.map((b) => b.top))];
     const perRow = rows.map((t) => boxes.filter((b) => Math.abs(b.top - t) <= 2).length);
-    const shape = size.width >= 900 ? [6] : [2, 2, 2];
+    const shape = size.width >= 900 ? [5] : [1, 2, 2];
     expect(perRow, `${name}px rows`).toEqual(shape);
     for (const b of boxes) {
       expect(b.left).toBeGreaterThanOrEqual(0);

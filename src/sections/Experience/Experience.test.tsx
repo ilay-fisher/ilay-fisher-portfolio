@@ -46,6 +46,8 @@ describe('Experience', () => {
     expect(readings).toHaveTextContent('22+');
     expect(readings).toHaveTextContent('50+');
     expect(readings).toHaveTextContent(/false-block/i);
+    // teaching is told once, in the timeline, not again as a tile
+    expect(readings).not.toHaveTextContent(/taught advanced C/i);
   });
 
   it('renders the final values immediately under reduced motion', () => {
@@ -71,7 +73,7 @@ describe('Experience', () => {
 describe('Experience (v2)', () => {
   it('shows readings as instrument tiles and the timeline with round nodes, no ticks', () => {
     render(<Experience />);
-    expect(document.querySelectorAll('.reading.tile').length).toBe(4);
+    expect(document.querySelectorAll('.reading.tile').length).toBe(3);
     expect(document.querySelectorAll('.timeline__node').length).toBe(profile.experience.length);
     expect(document.querySelector('.ticks')).toBeNull();
   });

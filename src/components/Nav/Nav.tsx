@@ -155,7 +155,7 @@ export function Nav({ base = '' }: { base?: string }) {
             onClick={() => setOpen((o) => !o)}
           >
             <span className="nav__toggle-bars" aria-hidden="true" />
-            Menu
+            <span className="nav__toggle-label">Menu</span>
           </button>
           <ul className="nav__links" id="nav-links" data-open={open} ref={linksRef}>
             <li

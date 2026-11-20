@@ -7,6 +7,19 @@ export const DESKTOP_MIN_WIDTH = 900;
 /** Bottom strip of a stacked (phone) canvas kept clear for the hint, hit counter and reset button. */
 export const MOBILE_TOOLS_PX = 170;
 
+/**
+ * Stage height a stacked (phone) hero always keeps under the text block. Hero.css sets the same value as the
+ * layout's bottom padding and lets the hero grow with the text, so where iOS wraps the copy onto more lines the
+ * stage moves down with it instead of the 3D name being pushed up into the buttons.
+ */
+export const MOBILE_SCENE_PX = 420;
+
+/**
+ * Clear space between the end of the text and the top of a stacked stage. The drawn lettering reaches a little above
+ * its computed box (the lit top faces in perspective), so this is real air, not a rounding margin.
+ */
+export const MOBILE_TEXT_GAP_PX = 48;
+
 /** Layout class for a viewport width. */
 export function breakpointFor(width: number): Breakpoint {
   return width >= DESKTOP_MIN_WIDTH ? 'desktop' : 'mobile';
@@ -28,7 +41,7 @@ export function computeRegion(
       x0: -0.97,
       x1: 0.97,
       y0: -1 + (2 * MOBILE_TOOLS_PX) / canvas.height,
-      y1: 1 - (2 * text.bottom) / canvas.height,
+      y1: 1 - (2 * (text.bottom + MOBILE_TEXT_GAP_PX)) / canvas.height,
     };
   }
   return { x0: -1 + (2 * text.right) / canvas.width, x1: 0.98, y0: -0.84, y1: 0.9 };
