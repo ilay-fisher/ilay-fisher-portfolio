@@ -24,6 +24,8 @@ const SWEEP_MS = 2600;
 const DESC_DELAY_MS = 900;
 const FLIGHT_MS = 480;
 const STREAM_CPS = 90;
+/** A finger must travel this far sideways (and more sideways than down) before it drags the slider. */
+const DRAG_SLOP = 6;
 const SEVERITY_LABEL = {
   low: 'Low',
   medium: 'Medium',
@@ -299,6 +301,11 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
     if (guess) setGuess(false);
     setValue(clampPercent(v));
   };
+  const drag = useRef<{ id: number; x: number; y: number; live: boolean } | null>(null);
+  const slideTo = (el: Element, clientX: number) => {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0) onSlide(Math.round(((clientX - r.left) / r.width) * 100));
+  };
   const toggleGuess = () => {
     stopSweep();
     touched.current = true;
@@ -516,9 +523,34 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
                 aria-label="Compare the diff heatmap with the plain target"
                 aria-valuetext={sliderValueText(target)}
                 onChange={(e) => onSlide(Number(e.target.value))}
-                onPointerDown={() => {
+                onPointerDown={(e) => {
                   stopSweep();
                   touched.current = true;
+                  // iOS Safari only drags a range by its thumb, and this thumb is a 2px hairline, so a finger could
+                  // only tap. Touch and pen drag the value from anywhere on the image; the mouse keeps the native range.
+                  // The drag starts once the finger moves sideways, so a vertical swipe still scrolls the page.
+                  if (e.pointerType === 'mouse') return;
+                  drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, live: false };
+                }}
+                onPointerMove={(e) => {
+                  const d = drag.current;
+                  if (!d || d.id !== e.pointerId) return;
+                  if (!d.live) {
+                    const dx = Math.abs(e.clientX - d.x);
+                    if (dx < DRAG_SLOP || dx < Math.abs(e.clientY - d.y)) return;
+                    d.live = true;
+                    e.currentTarget.setPointerCapture?.(e.pointerId);
+                  }
+                  slideTo(e.currentTarget, e.clientX);
+                }}
+                onPointerUp={(e) => {
+                  const d = drag.current;
+                  if (!d || d.id !== e.pointerId) return;
+                  if (!d.live) slideTo(e.currentTarget, e.clientX); // a tap jumps there
+                  drag.current = null;
+                }}
+                onPointerCancel={(e) => {
+                  if (drag.current?.id === e.pointerId) drag.current = null;
                 }}
               />
             </div>
@@ -548,7 +580,7 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           ) : (
             <div
               className="xray__scroller"
-               
+
               {...scrollAreaProps('Diagnosis details')}
               key={`${presetId}-${selected}`}
             >
@@ -617,7 +649,7 @@ export function XRayDemo({ analyze = analyzePreset }: XRayDemoProps) {
           className="xray__readout well"
           data-testid="xray-readout"
           ref={readoutRef}
-           
+
           {...scrollAreaProps('Why it matters')}
         >
           <div className="xray__head">
