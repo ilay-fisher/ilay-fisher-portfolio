@@ -67,6 +67,68 @@ describe('XRayDemo slider', () => {
     expect(s).toHaveAttribute('aria-valuetext', expect.stringContaining('80 percent'));
     expect(screen.getByTestId('xray-heatmap').style.clipPath).toBe('inset(0px 20% 0px 0px)');
   });
+  it('a touch drag anywhere on the image moves the slider (iOS only drags a range by its thumb)', async () => {
+    await ready();
+    const s = screen.getByTestId('xray-slider') as HTMLInputElement;
+    vi.spyOn(s, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      right: 300,
+      top: 0,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      x: 100,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const touch = (type: string, clientX: number, clientY = 100) =>
+      s.dispatchEvent(
+        Object.assign(new MouseEvent(type, { bubbles: true, clientX, clientY }), {
+          pointerId: 7,
+          pointerType: 'touch',
+        }),
+      );
+    act(() => touch('pointerdown', 140));
+    expect(s.value).toBe('50'); // a finger landing may be the start of a page scroll
+    act(() => touch('pointermove', 160));
+    expect(s.value).toBe('30');
+    act(() => touch('pointermove', 260));
+    expect(s.value).toBe('80');
+    expect(s).toHaveAttribute('aria-valuetext', expect.stringContaining('80 percent'));
+    act(() => touch('pointerup', 260));
+    act(() => touch('pointermove', 120));
+    expect(s.value).toBe('80');
+  });
+  it('a vertical swipe over the image scrolls the page and leaves the slider alone', async () => {
+    await ready();
+    const s = screen.getByTestId('xray-slider') as HTMLInputElement;
+    vi.spyOn(s, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      right: 300,
+      top: 0,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      x: 100,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const touch = (type: string, clientX: number, clientY: number) =>
+      s.dispatchEvent(
+        Object.assign(new MouseEvent(type, { bubbles: true, clientX, clientY }), {
+          pointerId: 3,
+          pointerType: 'touch',
+        }),
+      );
+    act(() => touch('pointerdown', 140, 150));
+    act(() => touch('pointermove', 143, 100));
+    act(() => touch('pointercancel', 143, 60));
+    expect(s.value).toBe('50');
+    // a plain tap still jumps there
+    act(() => touch('pointerdown', 280, 100));
+    act(() => touch('pointerup', 280, 100));
+    expect(s.value).toBe('90');
+  });
 });
 
 describe('XRayDemo regions and diagnosis', () => {
