@@ -346,7 +346,7 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
               className="ss-scroll"
               ref={scrollRef}
               // A scroll area: wheel and touch scroll it, and it is a focusable region for the keyboard.
-               
+
               {...scrollAreaProps('Mock news article, scrollable')}
               data-cursor="scroll"
             >
@@ -550,24 +550,26 @@ export function SafeSurfDemo({ delayMs = 8000, manualClock = false }: SafeSurfDe
           </div>
 
           <div className="ss-keys ss-keys--bypass" role="group" aria-label="Try to get around it">
-            <span className="ss-cap mono" aria-hidden="true">
-              Bypass
-            </span>
-            {BYPASSES.map((b) => (
-              <Button
-                className="ss-key"
-                data-cursor="press"
-                key={b.id}
-                aria-label={b.label}
-                data-testid={`safesurf-bypass-${b.id}`}
-                onClick={() => {
-                  setLastBypass(b.id);
-                  dispatch({ type: 'bypass', attempt: b.id });
-                }}
-              >
-                {b.short}
-              </Button>
-            ))}
+            <div className="ss-bypass-grid">
+              <span className="ss-cap mono" aria-hidden="true">
+                Bypass
+              </span>
+              {BYPASSES.map((b) => (
+                <Button
+                  className="ss-key"
+                  data-cursor="press"
+                  key={b.id}
+                  aria-label={b.label}
+                  data-testid={`safesurf-bypass-${b.id}`}
+                  onClick={() => {
+                    setLastBypass(b.id);
+                    dispatch({ type: 'bypass', attempt: b.id });
+                  }}
+                >
+                  {b.short}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="ss-display ss-display--small well mono" {...bypassArea}>
             <p

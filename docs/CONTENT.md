@@ -121,7 +121,7 @@ what it misses. Optional small "Writing" strip that links to LinkedIn; no post t
     are not loaded until the user allows them for a site, a page or a single video.
   - "Tighten instantly, loosen after a delay." Adding protection applies at once. Removing
     it waits for a delay the user set earlier (hour, day, week), or a sponsor approves it.
-  - SafeGuard hides other browsers, closes in-app browsers, stops new installs and locks
+  - SafeGuard hides other browsers, closes in-app browsers, suspends any newly installed app and locks
     the system settings that allow bypass (VPN, private DNS).
   - Filtering runs on the device. No VPN, no proxy server.
 - Stack: Kotlin, Java, GeckoView, Android device-owner APIs, TFLite, React, Firebase

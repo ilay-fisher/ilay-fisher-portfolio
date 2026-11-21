@@ -164,6 +164,26 @@ test('a second request while the lock is busy shakes it, and the sponsor gets a 
   await expectSlow(demo.locator('.ss-ring__check')).toHaveCount(1);
 });
 
+for (const width of [360, 390, 768, 1000, 1024, 1280, 1440]) {
+  test(`every bypass key sits inside its row at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/?safesurfDelay=60000');
+    await expectSlow(page.getByTestId('safesurf-demo')).toBeVisible();
+    const spill = await page.evaluate(() => {
+      const row = document.querySelector('.ss-keys--bypass') as HTMLElement;
+      const box = row.getBoundingClientRect();
+      return [...row.querySelectorAll<HTMLElement>('.ss-key')]
+        .filter((k) => {
+          const r = k.getBoundingClientRect();
+          const clipped = k.scrollWidth > k.clientWidth + 1;
+          return clipped || r.bottom > box.bottom + 0.5 || r.right > box.right + 0.5;
+        })
+        .map((k) => k.textContent);
+    });
+    expect(spill).toEqual([]);
+  });
+}
+
 for (const width of [360, 390, 768, 1000, 1440]) {
   test(`the rig causes no layout shift at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

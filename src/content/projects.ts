@@ -44,7 +44,7 @@ export const projects: Project[] = [
     points: [
       'Block images, not sites. Sites keep working (bank, news, school); images and video are not loaded until you allow them for a site, a page or a single video.',
       'Tighten instantly, loosen after a delay. Adding protection applies at once. Removing it waits for a delay you set earlier (hour, day, week), or a sponsor approves it.',
-      'SafeGuard hides other browsers, closes in-app browsers, stops new installs and locks the system settings that allow bypass (VPN, private DNS).',
+      'SafeGuard hides other browsers, closes in-app browsers, suspends any newly installed app and locks the system settings that allow bypass (VPN, private DNS).',
       'Filtering runs on the device. No VPN, no proxy server.',
     ],
     stack: [
