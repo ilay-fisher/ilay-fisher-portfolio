@@ -177,7 +177,7 @@ export const profile: Profile = {
     school: 'Ruppin Academic Center',
     degree: 'B.Sc. Computer Science',
     period: '2024 to July 2027 (expected)',
-    average: 88,
+    average: 85,
     courses: [
       'Operating Systems (Linux)',
       'Computer Networks',

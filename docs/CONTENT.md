@@ -98,7 +98,7 @@ Section title: "What I have shipped and taught." Readings: false-block rate 36.6
 
 ## Education
 
-- **Ruppin Academic Center** — B.Sc. Computer Science, 2024 to July 2027 (expected), grade average 88
+- **Ruppin Academic Center** — B.Sc. Computer Science, 2024 to July 2027 (expected), grade average 85
 - Courses: Operating Systems (Linux), Computer Networks, Algorithms, Data structures, Computer architecture, OOP, Machine learning, Big data. Teamwork in university group projects.
 
 ## Writing
