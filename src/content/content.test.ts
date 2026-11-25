@@ -87,7 +87,7 @@ describe('profile', () => {
       }
     }
     expect(profile.education.school).toBe('Ruppin Academic Center');
-    expect(profile.education.average).toBe(88);
+    expect(profile.education.average).toBe(85);
     expect(profile.education.period).toBe('2024 to July 2027 (expected)');
     expect(profile.education.courses).toEqual(
       expect.arrayContaining(['Operating Systems (Linux)', 'Computer Networks']),
