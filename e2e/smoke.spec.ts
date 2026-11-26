@@ -26,8 +26,9 @@ test('title and description are set', async ({ page }) => {
   await expect(page).toHaveTitle(/Ilay Fisher/);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     'content',
-    /student or junior/,
+    /junior Backend, Android, Systems or LLM engineer role/,
   );
+  await expect(page).not.toHaveTitle(/student/i);
 });
 
 // Where a nav click ends up is under test here, not the smooth scroll itself (that is e2e/smooth-scroll.spec.ts, in
