@@ -22,8 +22,8 @@ exclamation marks. Short sentences. Numbers over adjectives.
 - Availability: Open to a student role or a full-time junior role in Backend, Android or Systems.
   (Student CV and junior CV differ on hours; the owner chose not to state hours. 2026-11-19.)
 - Location: Sde Yaakov, Israel
-- Page title: "Ilay Fisher — Student Backend, Android and AI Agents Developer" (AI section, owner brief 2026-11-19; also `og:title`)
-- Meta description: "Ilay Fisher: CS student seeking a student or junior Backend, Android, Systems or LLM engineer role. Builds AI agents and runs SafeSurf, a live Android app with 50+ users." (AI section, owner brief 2026-11-19; `og:description` is the same without the name)
+- Page title: "Ilay Fisher — Backend, Android and AI Agents Developer" (owner brief 2026-11-26: the meta must not say "student"; also `og:title`)
+- Meta description: "Ilay Fisher: developer seeking a junior Backend, Android, Systems or LLM engineer role. Builds AI agents and runs SafeSurf, a live Android app with 50+ users." (owner brief 2026-11-26, no "student"; `og:description` is the same starting at "Developer", without the name)
 - The old thesis "I build software that has to hold up when someone is actively trying to break it." is retired as the headline.
 
 ## Links (public)

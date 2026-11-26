@@ -17,12 +17,13 @@ const description = pick(/<meta\s+name="description"\s+content="([^"]*)"/);
 const ogTitle = pick(/<meta\s+property="og:title"\s+content="([^"]*)"/);
 const ogDescription = pick(/<meta\s+property="og:description"\s+content="([^"]*)"/);
 
-describe('index.html meta (owner brief 2026-11-19)', () => {
+describe('index.html meta (owner brief 2026-11-19; owner brief 2026-11-26: no student)', () => {
   it('title mentions AI agents once and keeps Backend and Android', () => {
     expect(count(title, /AI agents/gi)).toBe(1);
     expect(title).toMatch(/Backend/);
     expect(title).toMatch(/Android/);
     expect(ogTitle).toBe(title);
+    expect(title).not.toMatch(/student/i);
   });
 
   for (const [name, value] of [
@@ -33,7 +34,8 @@ describe('index.html meta (owner brief 2026-11-19)', () => {
       expect(count(value, /AI agents/g)).toBe(1);
       expect(count(value, /\bLLM\b/g)).toBe(1);
       for (const w of ['Backend', 'Android', 'Systems']) expect(value).toContain(w);
-      expect(value).toMatch(/student or junior/);
+      expect(value).toMatch(/\bjunior\b/);
+      expect(value).not.toMatch(/student/i);
     });
   }
 
